@@ -3,6 +3,9 @@ import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
 import Profile from "./Profile";
+import People from "./People";
+import LoanSummary from "./LoanSummary";
+import Reports from "./Reports";
 
 type Expense = {
   id: string;
@@ -79,6 +82,8 @@ export default function Dashboard({
   logoutError,
 }: Props) {
   const [showProfile, setShowProfile] = useState(false);
+  const [showPeople, setShowPeople] = useState(false);
+  const [showReports, setShowReports] = useState(false);
 
   const [month, setMonth] = useState(
     () => todayIn(user.timezone).slice(0, 7)
@@ -267,7 +272,24 @@ export default function Dashboard({
       setBusy(false);
     }
   }
-
+    if (showReports) {
+    return (
+      <Reports
+        timezone={user.timezone}
+        onBack={() => setShowReports(false)}
+      />
+    );
+  }
+  if (showPeople) {
+    return (
+      <People
+        onBack={() => {
+          setShowPeople(false);
+          setRefresh((value) => value + 1);
+        }}
+      />
+    );
+  }
   if (showProfile) {
     return (
       <>
@@ -302,14 +324,33 @@ export default function Dashboard({
           <span>Paylet</span>
         </a>
 
-        <button
-          type="button"
-          className="button button-outline"
-          disabled={disabled}
-          onClick={() => setShowProfile(true)}
-        >
-          My profile
-        </button>
+                <div className="header-actions">
+                              <button
+            type="button"
+            className="button button-outline"
+            disabled={disabled || Boolean(draft)}
+            onClick={() => setShowReports(true)}
+          >
+            Reports
+          </button>
+          <button
+            type="button"
+            className="button button-blue"
+            disabled={disabled || Boolean(draft)}
+            onClick={() => setShowPeople(true)}
+          >
+            People
+          </button>
+
+          <button
+            type="button"
+            className="button button-outline"
+            disabled={disabled || Boolean(draft)}
+            onClick={() => setShowProfile(true)}
+          >
+            My profile
+          </button>
+        </div>
       </header>
 
       <section className="dashboard-page">
@@ -385,7 +426,7 @@ export default function Dashboard({
             {notice}
           </p>
         )}
-
+                 <LoanSummary refreshKey={refresh} />
         {!ready && !error && (
           <p role="status">Loading expenses…</p>
         )}

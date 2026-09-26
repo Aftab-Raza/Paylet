@@ -9,6 +9,9 @@ import { authRouter } from "./routes/auth.js";
 import { googleRouter } from "./routes/google.js";
 import { profileRouter } from "./routes/profile.js";
 import { expensesRouter } from "./routes/expenses.js";
+import { contactsRouter } from "./routes/contacts.js";
+import { loansRouter } from "./routes/loans.js";
+import { reportsRouter } from "./routes/reports.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
@@ -77,6 +80,9 @@ app.use("/api/auth", googleRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/expenses", expensesRouter);
+app.use("/api/contacts", contactsRouter);
+app.use("/api/loans", loansRouter);
+app.use("/api/reports", reportsRouter);
 
 const errorHandler: ErrorRequestHandler = (
   error,
