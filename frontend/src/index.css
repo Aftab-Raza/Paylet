@@ -1,0 +1,54 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #18332f;
+  background: #f3f7f6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+.welcome {
+  width: min(100% - 32px, 760px);
+  margin: 80px auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: #086b58;
+  background: #d9f3e9;
+  font-size: 14px;
+}
+
+h1 {
+  margin: 20px 0 8px;
+  font-size: clamp(40px, 8vw, 64px);
+  letter-spacing: -2px;
+}
+
+p {
+  line-height: 1.7;
+  color: #52665f;
+}
+
+.status-card {
+  margin-top: 32px;
+  padding: 24px;
+  border: 1px solid #dce8e2;
+  border-radius: 20px;
+  background: white;
+}
+
+h2 {
+  margin-top: 0;
+  font-size: 18px;
+}
