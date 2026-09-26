@@ -8,6 +8,8 @@ import type { User } from "./lib/api";
 
 import GoogleAuth from "./components/GoogleAuth";
 
+import Profile from "./components/Profile";
+
 
 
 type Mode = "login" | "register";
@@ -314,126 +316,15 @@ function App() {
 
 
 
-  if (user) {
-
+   if (user) {
     return (
-
-      <main className="signed-in-page">
-
-        <header className="app-header">
-
-          <a className="brand" href="/">
-
-            <span className="brand-mark">P</span>
-
-            <span>Paylet</span>
-
-          </a>
-
-
-
-          <button
-
-            type="button"
-
-            className="button button-outline"
-
-            onClick={() => void handleLogout()}
-
-            disabled={busy}
-
-          >
-
-            {busy ? "Logging out…" : "Log out"}
-
-          </button>
-
-        </header>
-
-
-
-        <section className="welcome-card">
-
-          <span className="eyebrow">YOU’RE SIGNED IN</span>
-
-
-
-          <div className="profile-initial" aria-hidden="true">
-
-            {user.displayName.charAt(0).toUpperCase()}
-
-          </div>
-
-
-
-          <h1>Welcome, {user.displayName}.</h1>
-
-          <p>Your Paylet account is ready.</p>
-
-
-
-          <dl className="profile-details">
-
-            <div>
-
-              <dt>Username</dt>
-
-              <dd>@{user.username}</dd>
-
-            </div>
-
-
-
-            <div>
-
-              <dt>Email</dt>
-
-              <dd>{user.email}</dd>
-
-            </div>
-
-
-
-            <div>
-
-              <dt>Default currency</dt>
-
-              <dd>{user.defaultCurrency}</dd>
-
-            </div>
-
-          </dl>
-
-          <GoogleAuth link disabled={busy} />
-
-
-
-          <p className="development-note">
-
-            Expense tracking, shared bills, and your dashboard are coming
-
-            in the next build steps.
-
-          </p>
-
-
-
-          {error && (
-
-            <p className="error-message" role="alert">
-
-              {error}
-
-            </p>
-
-          )}
-
-        </section>
-
-      </main>
-
+      <Profile
+        onUserChange={setUser}
+        onLogout={handleLogout}
+        logoutBusy={busy}
+        logoutError={error}
+      />
     );
-
   }
 
 

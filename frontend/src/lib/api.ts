@@ -24,8 +24,9 @@ export async function api<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const headers = new Headers(options.headers);
+  const isFormData = options.body instanceof FormData;
 
-  if (options.body && !headers.has("Content-Type")) {
+  if (options.body && !isFormData && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
 
@@ -58,10 +59,7 @@ export async function api<T>(
   }
 
   if (!data) {
-    throw new ApiError(
-      "Unexpected server response. Please try again.",
-      502
-    );
+    throw new ApiError("Unexpected server response.", 502);
   }
 
   return data as T;

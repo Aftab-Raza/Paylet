@@ -574,3 +574,170 @@ dd {
   font-size: 13px;
   line-height: 1.6;
 }
+
+.profile-page {
+  padding: 40px 0 64px;
+}
+
+.profile-page > h1 {
+  margin: 14px 0 8px;
+  font-size: clamp(30px, 5vw, 44px);
+  letter-spacing: -1.5px;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.4fr);
+  gap: 24px;
+  margin-top: 28px;
+  align-items: start;
+}
+
+.profile-panel {
+  min-width: 0;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+}
+
+.profile-panel h2 {
+  margin-top: 0;
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+
+.avatar-preview {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  margin-bottom: 20px;
+  border-radius: 30px;
+  overflow: hidden;
+  background: #173425;
+  color: var(--green);
+  font-size: 44px;
+  font-weight: 750;
+}
+
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-handle,
+.profile-member {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  line-height: 1.6;
+}
+
+.profile-handle {
+  margin-top: -8px;
+}
+
+.profile-member {
+  font-size: 12px;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.button-danger {
+  background: #351b23;
+  border-color: #753441;
+  color: var(--red);
+}
+
+.profile-fields-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.profile-fields-row > div {
+  min-width: 0;
+}
+
+select,
+textarea {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #141920;
+  color: #f5f7fa;
+  font: inherit;
+  font-size: 16px;
+}
+
+select {
+  min-height: 52px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 110px;
+}
+
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: #101419;
+}
+
+input[type="file"] {
+  padding: 10px;
+  font-size: 12px;
+}
+
+input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #29394b;
+  color: #f5f7fa;
+  cursor: pointer;
+}
+
+.connection-card {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.connection-card h3 {
+  font-size: 15px;
+}
+
+.connected-label {
+  color: var(--green);
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-panel {
+    padding: 22px;
+  }
+
+  .profile-fields-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}

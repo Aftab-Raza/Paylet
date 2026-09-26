@@ -5,6 +5,7 @@ import { prisma } from "./lib/prisma.js";
 import { sessionMiddleware } from "./lib/session.js";
 import { authRouter } from "./routes/auth.js";
 import { googleRouter } from "./routes/google.js";
+import { profileRouter } from "./routes/profile.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
@@ -66,7 +67,7 @@ app.get("/api/health/db", async (_req, res) => {
 app.use("/api", sessionMiddleware);
 app.use("/api/auth", googleRouter);
 app.use("/api/auth", authRouter);
-
+app.use("/api/profile", profileRouter);
 const errorHandler: ErrorRequestHandler = (
   error,
   _req,
