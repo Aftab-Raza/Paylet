@@ -1,11 +1,14 @@
 import "dotenv/config";
 import express from "express";
 import type { ErrorRequestHandler } from "express";
+
 import { prisma } from "./lib/prisma.js";
 import { sessionMiddleware } from "./lib/session.js";
+
 import { authRouter } from "./routes/auth.js";
 import { googleRouter } from "./routes/google.js";
 import { profileRouter } from "./routes/profile.js";
+import { expensesRouter } from "./routes/expenses.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
@@ -17,7 +20,7 @@ if (!appOrigin) {
 
 app.disable("x-powered-by");
 
-// Check the origin of requests that change data.
+// Protect requests that change data.
 app.use("/api", (req, res, next) => {
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     next();
@@ -44,6 +47,8 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.get("/api/health/db", async (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+
   try {
     await prisma.$queryRaw`SELECT 1`;
 
@@ -54,7 +59,9 @@ app.get("/api/health/db", async (_req, res) => {
   } catch (error) {
     console.error(
       "Database check failed:",
-      error instanceof Error ? error.message : "Unknown database error"
+      error instanceof Error
+        ? error.message
+        : "Unknown database error"
     );
 
     res.status(503).json({
@@ -65,9 +72,12 @@ app.get("/api/health/db", async (_req, res) => {
 });
 
 app.use("/api", sessionMiddleware);
+
 app.use("/api/auth", googleRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api/expenses", expensesRouter);
+
 const errorHandler: ErrorRequestHandler = (
   error,
   _req,
@@ -81,11 +91,9 @@ const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  // Temporary diagnostics for local development.
   console.error("Request failed:", {
     name: error?.name,
     code: error?.code,
-    message: error?.message,
   });
 
   res.status(500).json({
@@ -97,16 +105,18 @@ app.use(errorHandler);
 
 async function start() {
   try {
-    await prisma.$connect();
+    await prisma.$queryRaw`SELECT 1`;
 
     app.listen(port, "127.0.0.1", () => {
       console.log(`Paylet API: http://localhost:${port}`);
-      console.log("Run /api/health/db to verify database queries.");
+      console.log("PostgreSQL query succeeded");
     });
   } catch (error) {
     console.error(
       "Startup failed:",
-      error instanceof Error ? error.message : "Unknown startup error"
+      error instanceof Error
+        ? error.message
+        : "Unknown startup error"
     );
 
     await prisma.$disconnect();

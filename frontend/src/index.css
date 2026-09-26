@@ -741,3 +741,188 @@ input[type="file"]::file-selector-button {
     gap: 0;
   }
 }
+
+/* Paylet expense dashboard */
+
+.dashboard-page {
+  padding: 36px 0 64px;
+}
+
+.dashboard-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.dashboard-heading h1 {
+  margin: 12px 0;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -1.3px;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-back {
+  width: min(1100px, calc(100% - 40px));
+  margin: 20px auto 0;
+}
+
+.month-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.month-toolbar label {
+  margin-top: 0;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.summary-card {
+  min-width: 0;
+  padding: 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.summary-card p {
+  margin: 0 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.summary-card strong {
+  color: var(--green);
+  font-size: clamp(24px, 3vw, 34px);
+  overflow-wrap: anywhere;
+}
+
+.expense-editor {
+  margin: 24px 0;
+}
+
+.expense-list {
+  margin-top: 32px;
+}
+
+.expense-list > h2 {
+  margin-bottom: 20px;
+  font-size: 20px;
+}
+
+.expense-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.expense-row > div {
+  min-width: 0;
+}
+
+.expense-row h3 {
+  margin: 0;
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.expense-row p,
+.expense-history p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.expense-row-right {
+  text-align: right;
+}
+
+.expense-row-right > strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.expense-row-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.expense-row-actions .button {
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.is-void {
+  border-style: dashed;
+}
+
+.void-label {
+  color: var(--red);
+  font-size: 12px;
+}
+
+.pending-message {
+  padding: 16px;
+  border: 1px solid #675b20;
+  border-radius: 12px;
+  background: #2c2816;
+  color: #fde68a;
+  line-height: 1.6;
+}
+
+.expense-history {
+  margin-top: 24px;
+}
+
+.expense-history article {
+  padding: 16px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .dashboard-heading {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .dashboard-heading > button {
+    margin-bottom: 24px;
+  }
+
+  .expense-row {
+    flex-direction: column;
+  }
+
+  .expense-row-right {
+    text-align: left;
+  }
+
+  .expense-row-actions {
+    justify-content: flex-start;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,4 +1,3 @@
-
 generator client {
   provider               = "prisma-client"
   output                 = "../src/generated/prisma"
@@ -25,6 +24,39 @@ model User {
   emailVerifiedAt DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  expenses        Expense[]
 
   @@map("users")
+}
+
+model Expense {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @db.Uuid
+  user        User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+  amountMinor BigInt
+  currency    String            @db.VarChar(3)
+  minorUnit   Int
+  purpose     String            @db.VarChar(200)
+  category    String            @db.VarChar(40)
+  spentOn     DateTime          @db.Date
+  version     Int               @default(1)
+  voidedAt    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  revisions   ExpenseRevision[]
+
+  @@index([userId, spentOn])
+  @@map("expenses")
+}
+
+model ExpenseRevision {
+  id        String   @id @default(uuid()) @db.Uuid
+  expenseId String   @db.Uuid
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Restrict)
+  action    String   @db.VarChar(20)
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([expenseId, createdAt])
+  @@map("expense_revisions")
 }

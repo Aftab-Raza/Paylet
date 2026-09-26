@@ -8,7 +8,7 @@ import type { User } from "./lib/api";
 
 import GoogleAuth from "./components/GoogleAuth";
 
-import Profile from "./components/Profile";
+import Dashboard from "./components/Dashboard";
 
 
 
@@ -316,9 +316,10 @@ function App() {
 
 
 
-   if (user) {
+     if (user) {
     return (
-      <Profile
+      <Dashboard
+        user={user}
         onUserChange={setUser}
         onLogout={handleLogout}
         logoutBusy={busy}
