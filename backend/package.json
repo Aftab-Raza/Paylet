@@ -16,12 +16,19 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
+    "argon2": "^0.45.1",
+    "connect-pg-simple": "^10.0.0",
     "dotenv": "^18.0.4",
     "express": "^5.2.1",
-    "pg": "^8.23.0"
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.19.0",
+    "pg": "^8.23.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.6",
+    "@types/express-session": "^1.19.0",
     "@types/node": "^26.6.3",
     "@types/pg": "^8.23.1",
     "prisma": "^7.10.0",
