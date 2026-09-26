@@ -528,3 +528,49 @@ dd {
     transition: none !important;
   }
 }
+
+
+.google-auth {
+  margin-top: 24px;
+}
+
+.google-auth h2 {
+  margin-top: 24px;
+  font-size: 20px;
+}
+
+.google-button {
+  width: 100%;
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  color: #1f1f1f;
+  font-family: Arial, sans-serif;
+  font-weight: 600;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.google-success {
+  padding: 12px 14px;
+  border: 1px solid #28613e;
+  border-radius: 10px;
+  color: #86efac;
+  background: #142d1e;
+  font-size: 13px;
+  line-height: 1.6;
+}
