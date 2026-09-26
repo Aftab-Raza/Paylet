@@ -11,21 +11,24 @@ datasource db {
 }
 
 model User {
-  id              String    @id @default(uuid()) @db.Uuid
-  email           String    @unique @db.VarChar(254)
-  username        String    @unique @db.VarChar(30)
-  displayName     String    @db.VarChar(100)
-  passwordHash    String?
-  googleId        String?   @unique
-  avatarUrl       String?
-  bio             String?   @db.VarChar(250)
-  defaultCurrency String    @default("INR") @db.VarChar(3)
-  timezone        String    @default("Asia/Kolkata") @db.VarChar(100)
-  emailVerifiedAt DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  expenses        Expense[]
-  contacts        Contact[]
+  id               String            @id @default(uuid()) @db.Uuid
+  email            String            @unique @db.VarChar(254)
+  username         String            @unique @db.VarChar(30)
+  displayName      String            @db.VarChar(100)
+  passwordHash     String?
+  googleId         String?           @unique
+  avatarUrl        String?
+  bio              String?           @db.VarChar(250)
+  defaultCurrency  String            @default("INR") @db.VarChar(3)
+  timezone         String            @default("Asia/Kolkata") @db.VarChar(100)
+  emailVerifiedAt  DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  expenses         Expense[]
+  contacts         Contact[]
+  ownedGroups      SplitGroup[]
+  groupMemberships SplitMember[]
+  groupInvitations SplitInvitation[]
 
   @@map("users")
 }
@@ -166,4 +169,50 @@ model ContactMoneyHistory {
 
   @@index([entryId, createdAt])
   @@map("contact_money_history")
+}
+
+model SplitGroup {
+  id        String    @id @default(uuid()) @db.Uuid
+  ownerId   String    @db.Uuid
+  name      String    @db.VarChar(80)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  owner       User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  members     SplitMember[]
+  invitations SplitInvitation[]
+
+  @@index([ownerId, createdAt])
+  @@map("split_groups")
+}
+
+model SplitMember {
+  id       String   @id @default(uuid()) @db.Uuid
+  groupId  String   @db.Uuid
+  userId   String   @db.Uuid
+  joinedAt DateTime @default(now())
+
+  group SplitGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  user  User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([groupId, userId])
+  @@index([userId])
+  @@map("split_members")
+}
+
+model SplitInvitation {
+  id          String    @id @default(uuid()) @db.Uuid
+  groupId     String    @db.Uuid
+  recipientId String    @db.Uuid
+  status      String    @default("PENDING") @db.VarChar(12)
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  group     SplitGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  recipient User       @relation(fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@unique([groupId, recipientId])
+  @@index([recipientId, status])
+  @@map("split_invitations")
 }

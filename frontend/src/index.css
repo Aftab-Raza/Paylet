@@ -1497,3 +1497,60 @@ input[type="file"]::file-selector-button {
     border-color: #ccc;
   }
 }
+.paylet-group-stack {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.paylet-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 18px;
+}
+
+.paylet-group-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid #303743;
+  overflow-wrap: anywhere;
+}
+
+.paylet-group-row:last-child {
+  border-bottom: 0;
+}
+
+.paylet-group-row p {
+  margin: 6px 0 0;
+  color: #aab2c0;
+}
+
+.paylet-group-row > span {
+  color: #75b7ff;
+  text-transform: capitalize;
+}
+
+.paylet-group-stack input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 600px) {
+  .paylet-group-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .paylet-group-row .profile-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .paylet-group-row .profile-actions button {
+    flex: 1;
+  }
+}

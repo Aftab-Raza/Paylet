@@ -12,6 +12,7 @@ import { expensesRouter } from "./routes/expenses.js";
 import { contactsRouter } from "./routes/contacts.js";
 import { loansRouter } from "./routes/loans.js";
 import { reportsRouter } from "./routes/reports.js";
+import { groupsRouter } from "./routes/groups.js";
 
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
@@ -83,6 +84,7 @@ app.use("/api/expenses", expensesRouter);
 app.use("/api/contacts", contactsRouter);
 app.use("/api/loans", loansRouter);
 app.use("/api/reports", reportsRouter);
+app.use("/api/groups", groupsRouter);
 
 const errorHandler: ErrorRequestHandler = (
   error,
