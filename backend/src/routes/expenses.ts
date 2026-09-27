@@ -4,6 +4,8 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "../generated/prisma/client.js";
 import type { Expense } from "../generated/prisma/client.js";
 
+import { monthlySpending } from "../lib/monthlySpending.js";
+
 export const expensesRouter = Router();
 
 const categories = [
@@ -146,19 +148,7 @@ expensesRouter.get("/", async (req, res) => {
   const end = new Date(start);
   end.setUTCMonth(end.getUTCMonth() + 1);
 
-  const expenses = await prisma.expense.findMany({
-    where: {
-      userId: req.session.userId!,
-      spentOn: {
-        gte: start,
-        lt: end,
-      },
-    },
-    orderBy: [
-      { spentOn: "desc" },
-      { createdAt: "desc" },
-    ],
-  });
+  const expenses = await monthlySpending(req.session.userId!, start, end);
 
   const totals = new Map<
     string,
@@ -185,7 +175,7 @@ expensesRouter.get("/", async (req, res) => {
   }
 
   res.json({
-    expenses: expenses.map(serialize),
+    expenses: expenses.map((expense) => ({ ...serialize(expense), source: expense.source, groupId: expense.groupId, billId: expense.billId })),
 
     totals: [...totals.values()].map((total) => ({
       currency: total.currency,

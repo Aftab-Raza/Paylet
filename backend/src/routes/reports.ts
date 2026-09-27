@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
 
+import { monthlySpending } from "../lib/monthlySpending.js";
+
 export const reportsRouter = Router();
 
 function decimalString(amount: bigint, digits: number): string {
@@ -52,20 +54,9 @@ reportsRouter.get("/monthly", async (req, res) => {
     select: { displayName: true },
   });
 
-  const expenses = await prisma.expense.findMany({
-    where: {
-      userId: req.session.userId!,
-      voidedAt: null,
-      spentOn: {
-        gte: start,
-        lt: end,
-      },
-    },
-    orderBy: [
-      { spentOn: "asc" },
-      { createdAt: "asc" },
-    ],
-  });
+  const expenses = (await monthlySpending(req.session.userId!, start, end))
+    .filter((expense) => !expense.voidedAt)
+    .sort((a, b) => a.spentOn.getTime() - b.spentOn.getTime() || a.createdAt.getTime() - b.createdAt.getTime());
 
   const groups = new Map<string, {
     currency: string;
@@ -128,7 +119,7 @@ reportsRouter.get("/monthly", async (req, res) => {
     expenses: expenses.map((expense) => ({
       id: expense.id,
       date: expense.spentOn.toISOString().slice(0, 10),
-      purpose: expense.purpose,
+      purpose: expense.source === "SHARED" ? `${expense.purpose} (your shared portion)` : expense.purpose,
       category: expense.category,
       currency: expense.currency,
       amount: decimalString(

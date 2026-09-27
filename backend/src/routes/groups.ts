@@ -6,6 +6,10 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "../generated/prisma/client.js";
 
+import { groupSettlementsRouter } from "./groupSettlements.js";
+import { moneyString } from "../lib/splitMoney.js";
+import { groupBillsRouter } from "./groupBills.js";
+
 export const groupsRouter = Router();
 
 const uuid = z.string().uuid();
@@ -74,6 +78,27 @@ groupsRouter.use(async (req, res, next) => {
 
   next();
 });
+
+groupsRouter.use("/:groupId/bills", groupBillsRouter);
+groupsRouter.use("/:groupId/settlements", groupSettlementsRouter);
+groupsRouter.get("/settlement-requests", async (req, res) => {
+  const userId = req.session.userId!;
+  const pending = await prisma.groupSettlement.findMany({
+    where: { group: { deletedAt: null, members: { some: { userId } } },
+      AND: [
+        { OR: [{ fromMember: { userId } }, { toMember: { userId } }] },
+        { OR: [
+          { status: "PENDING", creatorId: { not: userId } },
+          { status: "REVERSAL_PENDING", reversalRequester: { userId: { not: userId } } },
+        ] },
+      ],
+    },
+    select: { id: true, groupId: true, status: true, amountMinor: true, currency: true, minorUnit: true, group: { select: { name: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  res.json({ requests: pending.map((p) => ({ id: p.id, groupId: p.groupId, groupName: p.group.name, status: p.status, amount: moneyString(p.amountMinor, p.minorUnit), currency: p.currency })) });
+});
+
 
 const inviteLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -319,16 +344,27 @@ groupsRouter.delete("/:id", async (req, res) => {
   const deleted = await prisma.$transaction(async (tx) => {
     const result = await tx.splitGroup.updateMany({
       where: { id, ownerId: req.session.userId!, deletedAt: null },
-      data: { deletedAt: new Date() },
+      data: { updatedAt: new Date() },
     });
-    if (result.count !== 1) return false;
+    if (result.count !== 1) return "NOT_FOUND";
+    if (await tx.sharedBill.count({ where: { groupId: id, deletedAt: null } })) return "HAS_BILLS";
+    if (await tx.groupSettlement.count({ where: { groupId: id, status: { in: ["PENDING", "CONFIRMED", "REVERSAL_PENDING"] } } })) return "HAS_SETTLEMENTS";
+    await tx.splitGroup.update({ where: { id }, data: { deletedAt: new Date() } });
     await tx.splitInvitation.updateMany({
       where: { groupId: id, status: "PENDING" },
       data: { status: "CANCELLED", respondedAt: new Date() },
     });
-    return true;
+    return "OK";
   });
-  if (!deleted) {
+  if (deleted === "HAS_BILLS") {
+    res.status(409).json({ message: "This group has active bills. Their creators must delete them before the group can be deleted." });
+    return;
+  }
+  if (deleted === "HAS_SETTLEMENTS") {
+    res.status(409).json({ message: "This group has pending or confirmed repayments. Resolve pending requests and reverse confirmed payments with the other person before deleting the group." });
+    return;
+  }
+  if (deleted !== "OK") {
     res.status(404).json({ message: "Group not found or not owned by you." });
     return;
   }

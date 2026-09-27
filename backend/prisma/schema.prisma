@@ -11,24 +11,28 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(uuid()) @db.Uuid
-  email            String            @unique @db.VarChar(254)
-  username         String            @unique @db.VarChar(30)
-  displayName      String            @db.VarChar(100)
-  passwordHash     String?
-  googleId         String?           @unique
-  avatarUrl        String?
-  bio              String?           @db.VarChar(250)
-  defaultCurrency  String            @default("INR") @db.VarChar(3)
-  timezone         String            @default("Asia/Kolkata") @db.VarChar(100)
-  emailVerifiedAt  DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  expenses         Expense[]
-  contacts         Contact[]
-  ownedGroups      SplitGroup[]
-  groupMemberships SplitMember[]
-  groupInvitations SplitInvitation[]
+  id                 String                   @id @default(uuid()) @db.Uuid
+  email              String                   @unique @db.VarChar(254)
+  username           String                   @unique @db.VarChar(30)
+  displayName        String                   @db.VarChar(100)
+  passwordHash       String?
+  googleId           String?                  @unique
+  avatarUrl          String?
+  bio                String?                  @db.VarChar(250)
+  defaultCurrency    String                   @default("INR") @db.VarChar(3)
+  timezone           String                   @default("Asia/Kolkata") @db.VarChar(100)
+  emailVerifiedAt    DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  expenses           Expense[]
+  contacts           Contact[]
+  ownedGroups        SplitGroup[]
+  groupMemberships   SplitMember[]
+  groupInvitations   SplitInvitation[]
+  recordedBills      SharedBill[]
+  billActions        SharedBillHistory[]
+  createdSettlements GroupSettlement[]
+  settlementActions  GroupSettlementHistory[]
 
   @@map("users")
 }
@@ -182,6 +186,8 @@ model SplitGroup {
   owner       User              @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   members     SplitMember[]
   invitations SplitInvitation[]
+  bills       SharedBill[]
+  settlements GroupSettlement[]
 
   @@index([ownerId, createdAt])
   @@map("split_groups")
@@ -195,6 +201,12 @@ model SplitMember {
 
   group SplitGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
   user  User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  paidBills           SharedBill[]
+  shares              SharedBillShare[]
+  sentSettlements     GroupSettlement[] @relation("SettlementSender")
+  receivedSettlements GroupSettlement[] @relation("SettlementRecipient")
+  reversalRequests    GroupSettlement[] @relation("ReversalRequester")
 
   @@unique([groupId, userId])
   @@index([userId])
@@ -215,4 +227,96 @@ model SplitInvitation {
   @@unique([groupId, recipientId])
   @@index([recipientId, status])
   @@map("split_invitations")
+}
+
+model SharedBill {
+  id          String              @id @default(uuid()) @db.Uuid
+  groupId     String              @db.Uuid
+  creatorId   String              @db.Uuid
+  payerId     String              @db.Uuid
+  amountMinor BigInt
+  currency    String              @db.VarChar(3)
+  minorUnit   Int
+  purpose     String              @db.VarChar(200)
+  category    String              @db.VarChar(40)
+  spentOn     DateTime            @db.Date
+  splitMode   String              @db.VarChar(10)
+  deletedAt   DateTime?
+  createdAt   DateTime            @default(now())
+  group       SplitGroup          @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  creator     User                @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  payer       SplitMember         @relation(fields: [payerId], references: [id], onDelete: Restrict)
+  shares      SharedBillShare[]
+  history     SharedBillHistory[]
+
+  @@index([groupId, spentOn])
+  @@map("shared_bills")
+}
+
+model SharedBillShare {
+  id          String      @id @default(uuid()) @db.Uuid
+  billId      String      @db.Uuid
+  memberId    String      @db.Uuid
+  amountMinor BigInt
+  bill        SharedBill  @relation(fields: [billId], references: [id], onDelete: Restrict)
+  member      SplitMember @relation(fields: [memberId], references: [id], onDelete: Restrict)
+
+  @@unique([billId, memberId])
+  @@index([memberId])
+  @@map("shared_bill_shares")
+}
+
+model SharedBillHistory {
+  id        String     @id @default(uuid()) @db.Uuid
+  billId    String     @db.Uuid
+  actorId   String     @db.Uuid
+  action    String     @db.VarChar(12)
+  snapshot  Json
+  createdAt DateTime   @default(now())
+  bill      SharedBill @relation(fields: [billId], references: [id], onDelete: Restrict)
+  actor     User       @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([billId, createdAt])
+  @@map("shared_bill_history")
+}
+
+model GroupSettlement {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  groupId             String                   @db.Uuid
+  creatorId           String                   @db.Uuid
+  fromMemberId        String                   @db.Uuid
+  toMemberId          String                   @db.Uuid
+  amountMinor         BigInt
+  currency            String                   @db.VarChar(3)
+  minorUnit           Int
+  paidOn              DateTime                 @db.Date
+  note                String                   @db.VarChar(300)
+  status              String                   @default("PENDING") @db.VarChar(20)
+  version             Int                      @default(1)
+  reversalRequesterId String?                  @db.Uuid
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  group               SplitGroup               @relation(fields: [groupId], references: [id], onDelete: Restrict)
+  creator             User                     @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  fromMember          SplitMember              @relation("SettlementSender", fields: [fromMemberId], references: [id], onDelete: Restrict)
+  toMember            SplitMember              @relation("SettlementRecipient", fields: [toMemberId], references: [id], onDelete: Restrict)
+  reversalRequester   SplitMember?             @relation("ReversalRequester", fields: [reversalRequesterId], references: [id], onDelete: Restrict)
+  history             GroupSettlementHistory[]
+
+  @@index([groupId, createdAt])
+  @@map("group_settlements")
+}
+
+model GroupSettlementHistory {
+  id           String          @id @default(uuid()) @db.Uuid
+  settlementId String          @db.Uuid
+  actorId      String          @db.Uuid
+  action       String          @db.VarChar(32)
+  snapshot     Json
+  createdAt    DateTime        @default(now())
+  settlement   GroupSettlement @relation(fields: [settlementId], references: [id], onDelete: Restrict)
+  actor        User            @relation(fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([settlementId, createdAt])
+  @@map("group_settlement_history")
 }

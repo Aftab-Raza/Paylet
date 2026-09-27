@@ -3,6 +3,8 @@ import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
+import GroupBills from "./GroupBills";
+import SettlementNotifications from "./SettlementNotifications";
 
 type Person = { id: string; username: string; displayName: string };
 type Group = { id: string; name: string; ownerId: string; members: { id: string; userId: string; user: Person }[] };
@@ -63,6 +65,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
     {notice && <p className="pg-success" role="status">{notice}</p>}
+    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId}/>
     <div className="pg-columns">
       <section className="pg-panel"><h2>People in this group</h2>
         {group.members.map((member) => <div className="pg-row" key={member.id}>
@@ -88,7 +91,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         <div className="pg-grow"><label htmlFor="pg-name">Group name</label><input id="pg-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={busy}/></div>
         <button className="button button-blue" disabled={busy || !name.trim()}>Save name</button>
       </form>
-      <div className="pg-danger-zone"><div><h3>Delete group</h3><p>Hide this group from all members and cancel pending invitations. Records are retained.</p></div>
+      <div className="pg-danger-zone"><div><h3>Delete group</h3><p>Hide this group and cancel pending invitations. Active bills must first be deleted by their creators, and pending or confirmed repayments must be resolved; history is retained.</p></div>
         {!confirming ? <button className="button pg-danger" disabled={busy} onClick={() => setConfirming(true)}>Delete group</button> : <div className="pg-stack">
           <p><strong>Delete “{group.name}”?</strong> This cannot be undone from the app.</p>
           <div className="pg-actions"><button className="button pg-danger" disabled={busy} onClick={() => void remove()}>{busy ? "Deleting…" : "Yes, delete group"}</button><button className="button button-outline" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button></div>
@@ -98,10 +101,10 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   </>;
 }
 
-export default function Groups({ onBack }: { onBack: () => void }) {
+export default function Groups({ onBack, initialGroupId }: { onBack: () => void; initialGroupId?: string | null }) {
   const [data, setData] = useState<Listing | null>(null);
   const [revision, setRevision] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(initialGroupId ?? null);
   const [draft, setDraft] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -143,6 +146,7 @@ export default function Groups({ onBack }: { onBack: () => void }) {
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return <main className="signed-in-page pg-page">
     <header className="pg-between"><div className="brand"><span className="brand-mark">P</span><span>Paylet</span></div><div className="pg-actions"><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}>← Dashboard</button><button className="button button-outline" disabled={busy} onClick={reload}>Refresh</button></div></header>
+    <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}
     {loading ? <p role="status">Loading groups…</p> : selected && data ? <GroupDetails key={selected.id} group={selected} viewerId={data.viewerId} owner={selected.ownerId === data.viewerId} onChange={reload} onBack={() => setSelectedId(null)}/> : <>

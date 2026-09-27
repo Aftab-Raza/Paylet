@@ -99,11 +99,12 @@ const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  console.error("Request failed:", {
-    name: error?.name,
-    code: error?.code,
-  });
-
+ console.error("Request failed:", {
+  name: error?.name,
+  code: error?.code,
+  message: error?.message,
+  meta: error?.meta,
+});
   res.status(500).json({
     message: "Something went wrong. Please try again.",
   });

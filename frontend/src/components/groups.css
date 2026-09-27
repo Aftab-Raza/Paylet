@@ -40,3 +40,62 @@
 .pg-danger { background:#54232e; color:#ffd2d8; border:1px solid #9a4357; }
 @media(max-width:700px) { .pg-columns { grid-template-columns:1fr; }.pg-panel { padding:18px; }.pg-stats>div { padding:16px 10px; }.pg-stats strong { font-size:1.4rem; }.pg-invite .pg-actions { width:100%; }.pg-invite .pg-actions button { flex:1; }.pg-hero { flex-wrap:wrap; } }
 @media(prefers-reduced-motion:reduce) { .pg-card { transition:none; }.pg-card:hover { transform:none; } }
+.pg-page { display:grid; gap:24px; padding-bottom:48px; color:#f4f5f7; }
+.pg-page h1 { font-size:clamp(1.8rem,4vw,2.6rem); letter-spacing:-.04em; margin:8px 0; }
+.pg-page h2 { font-size:1.15rem; margin:0 0 12px; }
+.pg-page h3 { font-size:1rem; margin:0; }
+.pg-page p { line-height:1.6; }
+.pg-page input { width:100%; box-sizing:border-box; min-width:0; border:1px solid #343b47; border-radius:12px; background:#0f1217; padding:13px 15px; color:#f4f5f7; font:inherit; }
+.pg-page input:focus-visible,.pg-page button:focus-visible { outline:3px solid #75b7ff; outline-offset:3px; }
+.pg-page button:disabled { opacity:.5; cursor:not-allowed; }
+.pg-panel { background:#15191f; border:1px solid #2c333e; padding:24px; border-radius:22px; min-width:0; }
+.pg-hero { display:flex; align-items:center; gap:20px; padding-top:12px; padding-bottom:12px; }
+.pg-between { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.pg-kicker { color:#75b7ff; letter-spacing:.13em; font-size:.72rem; font-weight:700; }
+.pg-muted { color:#aab2c0; }
+.pg-stack { display:grid; gap:14px; }
+.pg-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:18px; }
+.pg-columns { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
+.pg-card { display:grid; gap:14px; transition:border-color .15s,transform .15s; }
+.pg-card:hover { border-color:#536579; transform:translateY(-2px); }
+.pg-card h2,.pg-card p { margin:0; overflow-wrap:anywhere; }
+.pg-avatar { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; width:40px; height:40px; border-radius:14px; color:#9ecbff; background:#203049; font-size:.85rem; font-weight:700; }
+.pg-avatar-large { width:54px; height:54px; border-radius:18px; font-size:1.15rem; background:linear-gradient(135deg,#253e56,#23382f); color:#aff2ce; }
+.pg-avatar-list { display:flex; padding:4px 0; }
+.pg-avatar-list .pg-avatar { border:3px solid #15191f; margin-right:-8px; }
+.pg-stats { display:grid; grid-template-columns:repeat(3,1fr); border:1px solid #2c333e; background:#11151a; border-radius:20px; }
+.pg-stats>div { padding:22px; display:grid; gap:8px; }
+.pg-stats strong { font-size:1.7rem; }
+.pg-stats span { color:#aab2c0; font-size:.85rem; }
+.pg-tag { border-radius:30px; padding:5px 10px; background:#252c36; color:#c2d3e9; font-size:.75rem; text-transform:capitalize; }
+.pg-pending { color:#ffe199; background:#3a301b; }.pg-accepted { color:#9cf2bc; background:#193627; }.pg-declined,.pg-cancelled { color:#f9a6ae; background:#3c232b; }
+.pg-row { display:flex; align-items:center; gap:12px; padding:17px 0; border-bottom:1px solid #2c333e; flex-wrap:wrap; }
+.pg-row:last-child { border-bottom:0; }.pg-row p { color:#aab2c0; font-size:.85rem; margin:4px 0 0; }
+.pg-grow { flex:1; min-width:120px; overflow-wrap:anywhere; }.pg-grow label { display:block; margin-bottom:8px; }
+.pg-actions,.pg-inline { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }.pg-inline { align-items:flex-end; }
+.pg-badge { display:inline-flex; align-items:center; justify-content:center; min-width:22px; height:22px; padding:0 6px; box-sizing:border-box; border-radius:99px; color:#09130d; background:#7ee2a8; font-size:.75rem; font-weight:800; }
+.pg-nav { display:inline-flex; gap:8px; align-items:center; }
+.pg-notification { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:#14271f; color:#c6f4d8; border:1px solid #2a6241; border-radius:16px; padding:16px 20px; margin:18px 0; }
+.pg-inbox { border-top:3px solid #75b7ff; }.pg-empty { text-align:center; padding:40px 20px; }
+.pg-error,.pg-success { padding:14px 18px; border-radius:12px; overflow-wrap:anywhere; }.pg-error { color:#ffc3c9; background:#351e24; }.pg-success { color:#acf0c5; background:#183124; }
+.pg-danger-zone { border-top:1px solid #56313b; margin-top:16px; padding-top:22px; display:grid; gap:12px; }.pg-danger-zone p { color:#b9a4aa; }
+.pg-danger { background:#54232e; color:#ffd2d8; border:1px solid #9a4357; }
+@media(max-width:700px) { .pg-columns { grid-template-columns:1fr; }.pg-panel { padding:18px; }.pg-stats>div { padding:16px 10px; }.pg-stats strong { font-size:1.4rem; }.pg-invite .pg-actions { width:100%; }.pg-invite .pg-actions button { flex:1; }.pg-hero { flex-wrap:wrap; } }
+@media(prefers-reduced-motion:reduce) { .pg-card { transition:none; }.pg-card:hover { transform:none; } }
+
+.pg-balance { padding:16px; border:1px solid #33443c; background:#11221a; border-radius:14px; }
+.pg-balance p { color:#bdcfc4; font-size:.85rem; }
+.pg-bill { display:grid; gap:12px; padding:20px 0; border-top:1px solid #343b47; }
+.pg-bill p { margin:0; }.pg-bill details p { margin:10px 0; }.pg-bill summary { cursor:pointer; color:#9bcaff; }
+.pg-bill-deleted { opacity:.65; }
+.pg-bill-form { padding:20px; border:1px solid #344e6a; border-radius:16px; }
+.pg-bill-form fieldset { border:0; margin:0; padding:0; min-width:0; }
+.pg-page select { box-sizing:border-box; width:100%; min-width:0; background:#0f1217; color:#f4f5f7; border:1px solid #343b47; border-radius:12px; padding:13px; font:inherit; }
+.pg-page .pg-check { display:flex; align-items:center; gap:10px; }
+.pg-page .pg-check input { width:18px; height:18px; margin:0; flex-shrink:0; accent-color:#4ade80; }
+.pg-page .pg-share-input { width:140px; }
+
+.pg-settlements { border-top:2px solid #355744; margin-top:20px; padding-top:24px; }
+.pg-payment-pending,.pg-payment-reversal_pending { background:#3a301b; color:#ffe199; }
+.pg-payment-confirmed { background:#193627; color:#9cf2bc; }
+.pg-payment-rejected,.pg-payment-cancelled,.pg-payment-reversed { background:#3c232b; color:#f9a6ae; }

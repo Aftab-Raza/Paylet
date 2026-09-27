@@ -7,10 +7,14 @@ import People from "./People";
 import LoanSummary from "./LoanSummary";
 import Reports from "./Reports";
 import Groups from "./Groups";
+import SettlementNotifications from "./SettlementNotifications";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
 
 type Expense = {
+    source?: "PERSONAL" | "SHARED";
+    groupId?: string;
+    billId?: string;
     id: string;
     amount: string;
     currency: string;
@@ -88,6 +92,7 @@ export default function Dashboard({
     const [showPeople, setShowPeople] = useState(false);
     const [showReports, setShowReports] = useState(false);
     const [showGroups, setShowGroups] = useState(false);
+    const [groupToOpen, setGroupToOpen] = useState<string | null>(null);
     const groupInvites = useGroupInvitations();
 
     const [month, setMonth] = useState(
@@ -280,8 +285,10 @@ export default function Dashboard({
     if (showGroups) {
         return (
             <Groups
+                initialGroupId={groupToOpen}
                 onBack={() => {
                     setShowGroups(false);
+                    setGroupToOpen(null);
                     setRefresh((value) => value + 1);
                 }}
             />
@@ -393,6 +400,8 @@ export default function Dashboard({
                 )}
                 {groupInvites.error && <p className="pg-muted">Group notifications unavailable. Open Groups to retry.</p>}
             </div>
+
+            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => { setGroupToOpen(groupId); setShowGroups(true); }}/>
 
             <section className="dashboard-page">
                 <div className="dashboard-heading">
@@ -535,11 +544,10 @@ export default function Dashboard({
                                 )}
 
                                 {expenseType === "shared" ? (
-                                    <p className="pending-message">
-                                        Shared bills will be enabled in the
-                                        groups-and-splits step. This entry will
-                                        not be saved as a personal expense.
-                                    </p>
+                                    <div className="pending-message">
+                                        <p>Choose a group and add the shared bill there. Only your share counts toward your monthly spending.</p>
+                                        <button type="button" className="button button-blue" onClick={() => { setDraft(null); setShowGroups(true); }}>Open groups</button>
+                                    </div>
                                 ) : (
                                     <>
                                         <div className="profile-fields-row">
@@ -716,6 +724,7 @@ export default function Dashboard({
                             >
                                 <div>
                                     <h3>{expense.purpose}</h3>
+                                    {expense.source === "SHARED" && <span className="pg-tag">Shared · your portion</span>}
 
                                     <p>
                                         {expense.category} · {expense.date}
@@ -734,7 +743,7 @@ export default function Dashboard({
                                     </strong>
 
                                     <div className="expense-row-actions">
-                                        {!expense.voidedAt && (
+                                        {!expense.voidedAt && expense.source !== "SHARED" && (
                                             <>
                                                 <button
                                                     type="button"
@@ -769,16 +778,11 @@ export default function Dashboard({
                                             </>
                                         )}
 
-                                        <button
-                                            type="button"
-                                            className="button button-outline"
-                                            disabled={disabled}
-                                            onClick={() =>
-                                                void openHistory(expense)
-                                            }
-                                        >
-                                            History
-                                        </button>
+                                        {expense.source === "SHARED" ? (
+                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => setShowGroups(true)}>View in Groups</button>
+                                        ) : (
+                                            <button type="button" className="button button-outline" disabled={disabled} onClick={() => void openHistory(expense)}>History</button>
+                                        )}
                                     </div>
                                 </div>
                             </article>
