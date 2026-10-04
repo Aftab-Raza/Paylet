@@ -77,7 +77,7 @@ const expenseSchema = z.object({
     "Choose a supported currency."
   ),
 
-  purpose: z.string().trim().min(1).max(200),
+  purpose: z.string().trim().max(200).default(""),
 
   category: z.string().refine(
     (value) => categories.includes(value),
@@ -104,6 +104,35 @@ function convertAmount(amount: string, currency: string) {
   }
 
   return { amountMinor, minorUnit };
+}
+
+export async function createExpenseInTransaction(tx: Prisma.TransactionClient, userId: string, input: unknown) {
+  const data = expenseSchema.extend({ id: z.string().uuid() }).strict().parse(input);
+  const money = convertAmount(data.amount, data.currency);
+  if (!money) throw new z.ZodError([{ code: "custom", path: ["amount"], message: `Enter a positive amount with at most ${digitsFor(data.currency)} decimal places.` }]);
+      const created = await tx.expense.create({
+        data: {
+          id: data.id,
+          userId: userId,
+          ...money,
+          currency: data.currency,
+          purpose: data.purpose,
+          category: data.category,
+          spentOn: new Date(
+            `${data.date}T00:00:00.000Z`
+          ),
+        },
+      });
+
+      await tx.expenseRevision.create({
+        data: {
+          expenseId: created.id,
+          action: "CREATED",
+          snapshot: serialize(created),
+        },
+      });
+
+      return created;
 }
 
 // All routes require an authenticated user.
@@ -217,29 +246,7 @@ expensesRouter.post("/", async (req, res) => {
 
   try {
     const expense = await prisma.$transaction(async (tx) => {
-      const created = await tx.expense.create({
-        data: {
-          id: parsed.data.id,
-          userId: req.session.userId!,
-          ...money,
-          currency: parsed.data.currency,
-          purpose: parsed.data.purpose,
-          category: parsed.data.category,
-          spentOn: new Date(
-            `${parsed.data.date}T00:00:00.000Z`
-          ),
-        },
-      });
-
-      await tx.expenseRevision.create({
-        data: {
-          expenseId: created.id,
-          action: "CREATED",
-          snapshot: serialize(created),
-        },
-      });
-
-      return created;
+      return createExpenseInTransaction(tx, req.session.userId!, parsed.data);
     });
 
     res.status(201).json({

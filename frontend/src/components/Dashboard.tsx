@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
+import AiQuickAdd from "./AiQuickAdd";
 import Profile from "./Profile";
 import People from "./People";
 import LoanSummary from "./LoanSummary";
@@ -88,6 +89,7 @@ export default function Dashboard({
     logoutBusy,
     logoutError,
 }: Props) {
+    const [showAi, setShowAi] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
     const [showPeople, setShowPeople] = useState(false);
     const [showReports, setShowReports] = useState(false);
@@ -282,6 +284,8 @@ export default function Dashboard({
             setBusy(false);
         }
     }
+    if (showAi) return <AiQuickAdd onBack={() => { setShowAi(false); setRefresh((value) => value + 1); }} />;
+
     if (showGroups) {
         return (
             <Groups
@@ -347,6 +351,7 @@ export default function Dashboard({
                 </a>
 
                 <div className="header-actions">
+                    <button type="button" className="button button-green" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}>AI Quick Add</button>
                     <button
                         type="button"
                         className="button button-blue pg-nav"

@@ -14,6 +14,8 @@ import { loansRouter } from "./routes/loans.js";
 import { reportsRouter } from "./routes/reports.js";
 import { groupsRouter } from "./routes/groups.js";
 
+import { aiRouter } from "./routes/ai.js";
+
 const app = express();
 const port = Number(process.env.PORT ?? 5000);
 const appOrigin = process.env.APP_ORIGIN;
@@ -80,6 +82,7 @@ app.use("/api", sessionMiddleware);
 app.use("/api/auth", googleRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api/ai", aiRouter);
 app.use("/api/expenses", expensesRouter);
 app.use("/api/contacts", contactsRouter);
 app.use("/api/loans", loansRouter);

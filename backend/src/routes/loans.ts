@@ -9,7 +9,7 @@ export const loansRouter = Router();
 
 const currencies = Intl.supportedValuesOf("currency");
 
-class LedgerError extends Error {
+export class LedgerError extends Error {
   status: number;
 
   constructor(message: string, status = 400) {
@@ -81,7 +81,7 @@ const createSchema = z.object({
     (value) => currencies.includes(value),
     "Choose a supported currency."
   ),
-  purpose: z.string().trim().min(1).max(300),
+  purpose: z.string().trim().max(300).default(""),
   date: dateSchema,
 }).strict();
 
@@ -342,17 +342,14 @@ loansRouter.get("/", async (req, res) => {
   });
 });
 
-// Create a money or repayment entry.
-loansRouter.post("/", async (req, res) => {
-  const data = createSchema.parse(req.body);
+export async function createLedgerInTransaction(tx: Prisma.TransactionClient, userId: string, input: unknown) {
+  const data = createSchema.parse(input);
   const minorUnit = digitsFor(data.currency);
   const amountMinor = parseAmount(data.amount, minorUnit);
-
-  const entry = await prisma.$transaction(async (tx) => {
     const contact = await lockContact(
       tx,
       data.contactId,
-      req.session.userId!,
+      userId,
       data.version
     );
 
@@ -379,7 +376,13 @@ loansRouter.post("/", async (req, res) => {
     await validateLedger(tx, data.contactId);
 
     return recordHistory(tx, data.id, "CREATED");
-  });
+}
+
+// Create a money or repayment entry.
+loansRouter.post("/", async (req, res) => {
+  const entry = await prisma.$transaction((tx) =>
+    createLedgerInTransaction(tx, req.session.userId!, req.body)
+  );
 
   res.status(201).json({ entry });
 });
