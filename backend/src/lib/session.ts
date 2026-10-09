@@ -16,7 +16,7 @@ if (!connectionString) {
 
 const PgSession = connectPgSimple(session);
 
-const sessionPool = new pg.Pool({
+export const sessionPool = new pg.Pool({
   connectionString,
 });
 

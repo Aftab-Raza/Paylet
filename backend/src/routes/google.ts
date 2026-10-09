@@ -9,17 +9,11 @@ import {
   CodeChallengeMethod,
 } from "google-auth-library";
 import { prisma } from "../lib/prisma.js";
+import { googleConfig } from "../lib/googleConfig.js";
 
 export const googleRouter = Router();
 
-const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-const redirectUri = process.env.GOOGLE_REDIRECT_URI;
-const appOrigin = process.env.APP_ORIGIN;
-
-if (!clientId || !clientSecret || !redirectUri || !appOrigin) {
-  throw new Error("Google OAuth settings are missing from backend/.env");
-}
+const { clientId, clientSecret, redirectUri, appOrigin } = googleConfig(process.env);
 
 const googleClient = new OAuth2Client(
   clientId,
@@ -157,7 +151,7 @@ googleRouter.post("/google/link", googleLimiter, async (req, res) => {
   res.json({ url });
 });
 
-// Google redirects back here through the Vite proxy.
+// Google redirects back through the frontend's same-origin API proxy.
 googleRouter.get("/google/callback", async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
 

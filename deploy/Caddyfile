@@ -1,0 +1,25 @@
+{
+    email {$ACME_EMAIL}
+    admin off
+}
+
+{$APP_DOMAIN} {
+    header {
+        Strict-Transport-Security "max-age=31536000"
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy no-referrer
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        -Server
+    }
+
+    # Caddy preserves HTTPS and overwrites forwarded headers for secure cookies.
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend:80
+    }
+    # No access log: OAuth callback queries contain sensitive codes.
+}

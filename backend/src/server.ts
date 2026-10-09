@@ -3,7 +3,7 @@ import express from "express";
 import type { ErrorRequestHandler } from "express";
 
 import { prisma } from "./lib/prisma.js";
-import { sessionMiddleware } from "./lib/session.js";
+import { sessionMiddleware, sessionPool } from "./lib/session.js";
 
 import { authRouter } from "./routes/auth.js";
 import { googleRouter } from "./routes/google.js";
@@ -16,15 +16,17 @@ import { groupsRouter } from "./routes/groups.js";
 
 import { aiRouter } from "./routes/ai.js";
 
+import { runtimeConfig } from "./lib/runtimeConfig.js";
+
 const app = express();
-const port = Number(process.env.PORT ?? 5000);
-const appOrigin = process.env.APP_ORIGIN;
-
-if (!appOrigin) {
-  throw new Error("APP_ORIGIN is missing from backend/.env");
-}
-
+const { port, host, appOrigin, trustProxy } = runtimeConfig(process.env);
 app.disable("x-powered-by");
+app.set("trust proxy", trustProxy);
+app.use("/api", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  next();
+});
 
 // Protect requests that change data.
 app.use("/api", (req, res, next) => {
@@ -56,7 +58,7 @@ app.get("/api/health/db", async (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
 
     res.json({
       status: "ok",
@@ -65,9 +67,7 @@ app.get("/api/health/db", async (_req, res) => {
   } catch (error) {
     console.error(
       "Database check failed:",
-      error instanceof Error
-        ? error.message
-        : "Unknown database error"
+      error instanceof Error ? error.name : "Unknown database error"
     );
 
     res.status(503).json({
@@ -102,12 +102,8 @@ const errorHandler: ErrorRequestHandler = (
     return;
   }
 
- console.error("Request failed:", {
-  name: error?.name,
-  code: error?.code,
-  message: error?.message,
-  meta: error?.meta,
-});
+  // Avoid logging Prisma query arguments, personal data, or provider credentials.
+  console.error("Request failed:", { name: error?.name, code: error?.code });
   res.status(500).json({
     message: "Something went wrong. Please try again.",
   });
@@ -115,23 +111,55 @@ const errorHandler: ErrorRequestHandler = (
 
 app.use(errorHandler);
 
+async function closeDatabaseConnections() {
+  await Promise.all([prisma.$disconnect(), sessionPool.end()]);
+}
+
 async function start() {
   try {
-    await prisma.$queryRaw`SELECT 1`;
-
-    app.listen(port, "127.0.0.1", () => {
-      console.log(`Paylet API: http://localhost:${port}`);
+    await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
+    const server = app.listen(port, host, () => {
+      console.log(`Paylet API listening on ${host}:${port}`);
       console.log("PostgreSQL query succeeded");
     });
+    let stopping = false;
+    const shutdown = (exitCode = 0) => {
+      if (stopping) return;
+      stopping = true;
+      // Allow in-flight requests and session writes to finish before closing pools.
+      const deadline = setTimeout(() => process.exit(1), 10_000);
+      deadline.unref();
+      server.close(() => {
+        void closeDatabaseConnections().then(() => {
+          clearTimeout(deadline);
+          process.exitCode = exitCode;
+        }).catch(() => {
+          console.error("Database cleanup failed");
+          process.exit(1);
+        });
+      });
+    };
+    server.on("error", (error: NodeJS.ErrnoException) => {
+      console.error("HTTP server failed:", { code: error.code });
+      shutdown(1);
+    });
+    process.once("SIGTERM", () => shutdown());
+    process.once("SIGINT", () => shutdown());
   } catch (error) {
-    console.error(
-      "Startup failed:",
-      error instanceof Error
-        ? error.message
-        : "Unknown startup error"
-    );
-
-    await prisma.$disconnect();
+    // Log codes only: Prisma messages and metadata can contain connection details.
+    const failure = error as {
+      code?: unknown;
+      meta?: { code?: unknown; driverAdapterError?: { cause?: { originalCode?: unknown } } };
+    } | null;
+    const safeCode = (value: unknown) =>
+      typeof value === "string" && /^[A-Z0-9_]{2,40}$/.test(value) ? value : undefined;
+    console.error("Startup failed:", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      code: safeCode(failure?.code),
+      databaseCode: safeCode(failure?.meta?.code),
+      driverCode: safeCode(failure?.meta?.driverAdapterError?.cause?.originalCode),
+    });
+    await closeDatabaseConnections();
     process.exitCode = 1;
   }
 }

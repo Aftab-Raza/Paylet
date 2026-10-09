@@ -1,0 +1,11 @@
+[Unit]
+Description=Paylet encrypted off-server database backup
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/paylet
+ExecStart=/usr/bin/docker compose --env-file .env.production -f docker-compose.production.yml --profile tools run --rm backup
+TimeoutStartSec=2h

@@ -1,0 +1,11 @@
+[Unit]
+Description=Verify Paylet backups by restoring into a disposable database
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/paylet
+ExecStart=/usr/bin/docker compose --env-file .env.production -f docker-compose.production.yml --profile tools run --rm --entrypoint /scripts/restore-test.sh backup
+TimeoutStartSec=2h

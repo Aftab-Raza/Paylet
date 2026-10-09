@@ -28,6 +28,10 @@
     "sharp": "^0.35.4",
     "zod": "^4.6.5"
   },
+  "overrides": {
+    "deepmerge-ts": "8.0.2",
+    "mysql2": "3.24.5"
+  },
   "devDependencies": {
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "^5.0.6",
