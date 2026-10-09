@@ -16,6 +16,15 @@ export function runtimeConfig(env: NodeJS.ProcessEnv) {
   if (production && origin.protocol !== "https:") {
     throw new Error("APP_ORIGIN must use HTTPS in production");
   }
+  if (env.TRUST_PROXY === "render-vercel") {
+    const proxySecret = env.ORIGIN_SECRET ?? "";
+    if (!production || env.RENDER !== "true" || !/^[a-f0-9]{64,}$/i.test(proxySecret)) {
+      throw new Error("render-vercel proxy mode requires production on Render and an ORIGIN_SECRET of at least 64 hexadecimal characters");
+    }
+    // Only authenticated Vercel requests reach sessions/routes; Vercel overwrites
+    // visitor forwarding headers. Keep this mode paired with the API guard.
+    return { production, port, host, appOrigin, trustProxy: (_address: string) => true, proxySecret };
+  }
   const proxies = (env.TRUST_PROXY ?? "").split(",").map((value) => value.trim()).filter(Boolean);
   for (const proxy of proxies) {
     const [address, prefix, extra] = proxy.split("/");
@@ -25,5 +34,5 @@ export function runtimeConfig(env: NodeJS.ProcessEnv) {
       throw new Error("TRUST_PROXY must contain specific proxy IP addresses or CIDRs (not true or a hop count)");
     }
   }
-  return { production, port, host, appOrigin, trustProxy: proxies.length ? proxies : false as const };
+  return { production, port, host, appOrigin, trustProxy: proxies.length ? proxies : false as const, proxySecret: undefined };
 }

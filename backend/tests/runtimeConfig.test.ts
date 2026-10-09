@@ -28,3 +28,12 @@ test("rejects invalid listen ports", () => {
     assert.throws(() => runtimeConfig({ ...local, PORT: value }));
   }
 });
+test("cloud forwarding trust requires Render and an authenticated Vercel proxy", () => {
+  const env = { NODE_ENV: "production", APP_ORIGIN: "https://paylet-iota.vercel.app", TRUST_PROXY: "render-vercel", ORIGIN_SECRET: "ab".repeat(32), RENDER: "true" };
+  assert.equal(typeof runtimeConfig(env).trustProxy, "function");
+  assert.equal(runtimeConfig(env).proxySecret, env.ORIGIN_SECRET);
+  for (const patch of [{ RENDER: "false" }, { ORIGIN_SECRET: "" }, { ORIGIN_SECRET: "replace_with_secret" }, { NODE_ENV: "development" }]) {
+    assert.throws(() => runtimeConfig({ ...env, ...patch }));
+  }
+  assert.equal(runtimeConfig(local).proxySecret, undefined);
+});

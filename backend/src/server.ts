@@ -17,9 +17,10 @@ import { groupsRouter } from "./routes/groups.js";
 import { aiRouter } from "./routes/ai.js";
 
 import { runtimeConfig } from "./lib/runtimeConfig.js";
+import { authenticatedCloudProxy } from "./lib/cloudProxy.js";
 
 const app = express();
-const { port, host, appOrigin, trustProxy } = runtimeConfig(process.env);
+const { port, host, appOrigin, trustProxy, proxySecret } = runtimeConfig(process.env);
 app.disable("x-powered-by");
 app.set("trust proxy", trustProxy);
 app.use("/api", (_req, res, next) => {
@@ -27,6 +28,8 @@ app.use("/api", (_req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   next();
 });
+
+if (proxySecret) app.use("/api", authenticatedCloudProxy(proxySecret));
 
 // Protect requests that change data.
 app.use("/api", (req, res, next) => {
