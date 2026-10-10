@@ -585,7 +585,7 @@ function App() {
 
                     autoComplete="name"
 
-                    placeholder="Aftab Raza"
+                    placeholder="Your full name"
 
                     minLength={2}
 
@@ -621,7 +621,7 @@ function App() {
 
                     spellCheck={false}
 
-                    placeholder="aftab_raza"
+                    placeholder="your_username"
 
                     minLength={3}
 
