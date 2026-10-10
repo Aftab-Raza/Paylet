@@ -9,6 +9,7 @@ import type { User } from "./lib/api";
 import GoogleAuth from "./components/GoogleAuth";
 
 import Dashboard from "./components/Dashboard";
+import { ArrowRight, ArrowUpRight, Eye, EyeOff, ShieldCheck, Users } from "lucide-react";
 
 
 
@@ -18,7 +19,7 @@ type Mode = "login" | "register";
 
 function App() {
 
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<Mode>(() => new URLSearchParams(window.location.search).get("join") === "paylet" ? "register" : "login");
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -394,7 +395,7 @@ function App() {
 
               >
 
-                ↗
+                <ArrowUpRight size={22} />
 
               </span>
 
@@ -422,7 +423,7 @@ function App() {
 
               >
 
-                ⇄
+                <Users size={22} />
 
               </span>
 
@@ -450,7 +451,7 @@ function App() {
 
               >
 
-                ✓
+                <ShieldCheck size={22} />
 
               </span>
 
@@ -485,6 +486,10 @@ function App() {
       <section className="form-panel" aria-labelledby="auth-title">
 
         <div className="auth-card">
+
+          {new URLSearchParams(window.location.search).get("join") === "paylet" && (
+            <p className="google-success">You're invited to Paylet. Create your own account to join.</p>
+          )}
 
           <div
 
@@ -752,7 +757,7 @@ function App() {
 
                 >
 
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
 
                 </button>
 
@@ -808,7 +813,7 @@ function App() {
 
 
 
-                {!busy && <span aria-hidden="true">→</span>}
+                {!busy && <ArrowRight size={20} aria-hidden="true" />}
 
               </button>
 

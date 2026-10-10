@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { ArrowDownLeft, ArrowUpRight, RefreshCw } from "lucide-react";
 
 type CurrencyTotal = {
   currency: string;
@@ -90,7 +91,7 @@ export default function LoanSummary({
           disabled={!current}
           onClick={() => setRetry((value) => value + 1)}
         >
-          Refresh totals
+          <RefreshCw size={17} /> Refresh totals
         </button>
       </div>
 
@@ -125,7 +126,7 @@ export default function LoanSummary({
 
           <div className="loan-summary-grid">
                         <section className="loan-summary-card lent-summary">
-              <p className="loan-summary-label">Total lent</p>
+              <p className="loan-summary-label"><ArrowDownLeft size={18} /> Owed to you</p>
 
               <strong className="loan-summary-value">
                 {total.currency} {total.owedToYou}
@@ -146,7 +147,7 @@ export default function LoanSummary({
             </section>
 
             <section className="loan-summary-card borrowed-summary">
-              <p className="loan-summary-label">Total borrowed</p>
+              <p className="loan-summary-label"><ArrowUpRight size={18} /> Total borrowed</p>
               <strong className="loan-summary-value">
                 {total.currency} {total.totalBorrowed}
               </strong>

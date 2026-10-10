@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import LoanBook from "./LoanBook";
+import { ArrowLeft, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
+import Modal from "./Modal";
+import InvitePaylet from "./InvitePaylet";
 
 type Contact = {
   id: string;
@@ -27,6 +30,7 @@ type Props = {
 };
 
 export default function People({ onBack }: Props) {
+  const [showInvite, setShowInvite] = useState(false);
     const [selectedContactId, setSelectedContactId] =
     useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -230,7 +234,7 @@ export default function People({ onBack }: Props) {
             onBack();
           }}
         >
-          ← Dashboard
+          <ArrowLeft size={18} /> Dashboard
         </button>
       </header>
 
@@ -244,17 +248,20 @@ export default function People({ onBack }: Props) {
             </p>
           </div>
 
+          <div className="profile-actions">
+          <button className="button button-purple" disabled={busy} onClick={() => setShowInvite(true)}><UserPlus size={18} /> Invite to Paylet</button>
           <button
             type="button"
-            className="button button-green"
-            disabled={busy || Boolean(draft) || loading}
+            className="button button-primary"
+            disabled={busy || loading}
             onClick={addContact}
           >
-            + Add person
+            <Plus size={18} /> Add person
           </button>
+          </div>
         </div>
 
-        {error && (
+        {error && !draft && (
           <p className="error-message" role="alert">{error}</p>
         )}
 
@@ -263,14 +270,15 @@ export default function People({ onBack }: Props) {
         )}
 
         {draft && (
-          <section className="profile-panel expense-editor">
-            <h2>{editing ? "Edit contact" : "Add a person"}</h2>
+          <Modal title={editing ? "Edit contact" : "Add a person"} busy={busy} onClose={() => { setDraft(null); setError(""); }}>
+            {error && <p className="error-message" role="alert">{error}</p>}
 
             <form onSubmit={saveContact}>
               <fieldset disabled={busy}>
                 <label htmlFor="contact-name">Name</label>
                 <input
                   id="contact-name"
+                  data-autofocus
                   placeholder="Uncle or a person’s name"
                   value={draft.name}
                   maxLength={100}
@@ -315,21 +323,22 @@ export default function People({ onBack }: Props) {
                     type="submit"
                     className="button button-green"
                   >
-                    {busy ? "Saving…" : "Save contact"}
+                    <Check size={18} /> {busy ? "Saving…" : "Save contact"}
                   </button>
 
                   <button
                     type="button"
                     className="button button-outline"
-                    onClick={() => setDraft(null)}
+                    onClick={() => { setDraft(null); setError(""); }}
                   >
                     Cancel
                   </button>
                 </div>
               </fieldset>
             </form>
-          </section>
+          </Modal>
         )}
+        {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
 
         <div className="people-toolbar">
           <div className="people-search">
@@ -360,7 +369,7 @@ export default function People({ onBack }: Props) {
             disabled={busy || Boolean(draft)}
             onClick={reload}
           >
-            Reload
+            <RefreshCw size={18} /> Refresh
           </button>
         </div>
 

@@ -11,6 +11,9 @@ import Groups from "./Groups";
 import SettlementNotifications from "./SettlementNotifications";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
+import { ArrowDownLeft, ArrowUpRight, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet } from "lucide-react";
+import Modal from "./Modal";
+import InvitePaylet from "./InvitePaylet";
 
 type Expense = {
     source?: "PERSONAL" | "SHARED";
@@ -94,6 +97,11 @@ export default function Dashboard({
     const [showPeople, setShowPeople] = useState(false);
     const [showReports, setShowReports] = useState(false);
     const [showGroups, setShowGroups] = useState(false);
+    const [showInvite, setShowInvite] = useState(false);
+    const [query, setQuery] = useState("");
+    const [category, setCategory] = useState("");
+    const [showVoided, setShowVoided] = useState(false);
+    const [voidTarget, setVoidTarget] = useState<Expense | null>(null);
     const [groupToOpen, setGroupToOpen] = useState<string | null>(null);
     const groupInvites = useGroupInvitations();
 
@@ -162,6 +170,22 @@ export default function Dashboard({
         loaded.refresh === refresh;
 
     const disabled = busy || logoutBusy;
+    const visibleExpenses = (loaded?.summary.expenses ?? []).filter((expense) =>
+        (showVoided || !expense.voidedAt) && (!category || expense.category === category) &&
+        `${expense.purpose} ${expense.category} ${expense.amount} ${expense.currency}`.toLowerCase().includes(query.trim().toLowerCase())
+    );
+
+    function changeMonth(value: string) {
+        setMonth(value);
+        setHistory(null);
+        setError("");
+    }
+
+    function shiftMonth(offset: number) {
+        const [year, monthNumber] = month.split("-").map(Number);
+        const next = new Date(Date.UTC(year, monthNumber - 1 + offset, 1)).toISOString().slice(0, 7);
+        if (next >= "1900-01" && next <= "2199-12") changeMonth(next);
+    }
 
     function updateDraft(field: keyof Expense, value: string) {
         setDraft((current) =>
@@ -232,12 +256,6 @@ export default function Dashboard({
     }
 
     async function voidExpense(expense: Expense) {
-        const confirmed = window.confirm(
-            "Void this expense? It will be excluded from monthly totals, but its history will remain."
-        );
-
-        if (!confirmed) return;
-
         setBusy(true);
         setError("");
         setNotice("");
@@ -253,6 +271,7 @@ export default function Dashboard({
             setHistory(null);
             setRefresh((value) => value + 1);
             setNotice("Expense voided.");
+            setVoidTarget(null);
         } catch (err) {
             setError(
                 err instanceof Error
@@ -343,7 +362,7 @@ export default function Dashboard({
     }
 
     return (
-        <main className="signed-in-page">
+        <main className="signed-in-page home-page">
             <header className="app-header">
                 <a className="brand" href="/">
                     <span className="brand-mark">P</span>
@@ -351,14 +370,15 @@ export default function Dashboard({
                 </a>
 
                 <div className="header-actions">
-                    <button type="button" className="button button-green" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}>AI Quick Add</button>
+                    <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
+                    <button type="button" className="button button-purple" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
                     <button
                         type="button"
                         className="button button-blue pg-nav"
                         disabled={busy || Boolean(draft)}
                         onClick={() => setShowGroups(true)}
                     >
-                        Groups
+                        <Users size={18} /> Groups
                         {groupInvites.invitations.length > 0 && (
                             <span className="pg-badge" aria-label={`${groupInvites.invitations.length} pending invitations`}>
                                 {groupInvites.invitations.length}
@@ -371,7 +391,7 @@ export default function Dashboard({
                         disabled={disabled || Boolean(draft)}
                         onClick={() => setShowReports(true)}
                     >
-                        Reports
+                        <BarChart3 size={18} /> Reports
                     </button>
                     <button
                         type="button"
@@ -379,7 +399,7 @@ export default function Dashboard({
                         disabled={disabled || Boolean(draft)}
                         onClick={() => setShowPeople(true)}
                     >
-                        People
+                        <UserRound size={18} /> People
                     </button>
 
                     <button
@@ -388,7 +408,7 @@ export default function Dashboard({
                         disabled={disabled || Boolean(draft)}
                         onClick={() => setShowProfile(true)}
                     >
-                        My profile
+                        <span className="nav-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span> My profile
                     </button>
                 </div>
             </header>
@@ -412,31 +432,40 @@ export default function Dashboard({
                 <div className="dashboard-heading">
                     <div>
                         <span className="eyebrow">
-                            YOUR PERSONAL EXPENSES
+                            YOUR MONEY, AT A GLANCE
                         </span>
 
                         <h1>Hello, {user.displayName}.</h1>
 
                         <p className="form-description">
-                            See where your spending goes.
+                            A little clarity for your everyday spending.
                         </p>
                     </div>
 
                     <button
                         type="button"
-                        className="button button-green"
+                        className="button button-primary"
                         disabled={
                             disabled ||
-                            Boolean(draft) ||
                             !ready
                         }
                         onClick={beginAdd}
                     >
-                        + Add expense
+                        <Plus size={20} /> Add expense
                     </button>
                 </div>
 
+                <nav className="quick-actions" aria-label="Quick actions">
+                    <button onClick={beginAdd} disabled={disabled || !ready}><span className="action-symbol orange"><Plus /></span><span>Add expense</span></button>
+                    <button onClick={() => setShowAi(true)} disabled={disabled}><span className="action-symbol purple"><Sparkles /></span><span>AI Quick Add</span></button>
+                    <button onClick={() => setShowGroups(true)} disabled={disabled}><span className="action-symbol blue"><Users /></span><span>Split a bill</span></button>
+                    <button onClick={() => setShowPeople(true)} disabled={disabled}><span className="action-symbol green"><ArrowDownLeft /></span><span>Lend & borrow</span></button>
+                    <button onClick={() => setShowReports(true)} disabled={disabled}><span className="action-symbol blue"><BarChart3 /></span><span>Reports</span></button>
+                    <button onClick={() => setShowInvite(true)} disabled={disabled}><span className="action-symbol purple"><UserPlus /></span><span>Invite a friend</span></button>
+                </nav>
+
                 <div className="month-toolbar">
+                    <button type="button" className="button button-outline icon-button" title="Previous month" aria-label="Previous month" disabled={disabled || month === "1900-01"} onClick={() => shiftMonth(-1)}><ChevronLeft size={20} /></button>
                     <div>
                         <label htmlFor="expense-month">Month</label>
 
@@ -449,13 +478,12 @@ export default function Dashboard({
                             disabled={disabled}
                             onChange={(event) => {
                                 if (event.target.value) {
-                                    setMonth(event.target.value);
-                                    setHistory(null);
-                                    setError("");
+                                    changeMonth(event.target.value);
                                 }
                             }}
                         />
                     </div>
+                    <button type="button" className="button button-outline icon-button" title="Next month" aria-label="Next month" disabled={disabled || month === "2199-12"} onClick={() => shiftMonth(1)}><ChevronRight size={20} /></button>
 
                     <button
                         type="button"
@@ -466,11 +494,11 @@ export default function Dashboard({
                             setRefresh((value) => value + 1);
                         }}
                     >
-                        Reload
+                        <RefreshCw size={17} /> Refresh
                     </button>
                 </div>
 
-                {(error || logoutError) && (
+                {(error || logoutError) && !draft && !voidTarget && (
                     <p className="error-message" role="alert">
                         {error || logoutError}
                     </p>
@@ -478,10 +506,9 @@ export default function Dashboard({
 
                 {notice && (
                     <p className="google-success" role="status">
-                        {notice}
+                        <CheckCircle2 size={18} /> {notice}
                     </p>
                 )}
-                <LoanSummary refreshKey={refresh} />
                 {!ready && !error && (
                     <p role="status">Loading expenses…</p>
                 )}
@@ -489,7 +516,7 @@ export default function Dashboard({
                 {ready && loaded && (
                     <div className="summary-grid">
                         <article className="summary-card">
-                            <p>Active expenses</p>
+                            <p><ReceiptText size={18} /> Active expenses</p>
                             <strong>{loaded.summary.count}</strong>
                         </article>
 
@@ -500,7 +527,7 @@ export default function Dashboard({
                                     key={total.currency}
                                 >
                                     <p>
-                                        Monthly spending · {total.currency}
+                                        <Wallet size={18} /> Monthly spending · {total.currency}
                                     </p>
                                     <strong>{total.amount}</strong>
                                 </article>
@@ -508,7 +535,7 @@ export default function Dashboard({
                         ) : (
                             <article className="summary-card">
                                 <p>
-                                    Monthly spending · {user.defaultCurrency}
+                                    <Wallet size={18} /> Monthly spending · {user.defaultCurrency}
                                 </p>
                                 <strong>0</strong>
                             </article>
@@ -517,10 +544,8 @@ export default function Dashboard({
                 )}
 
                 {draft && (
-                    <section className="profile-panel expense-editor">
-                        <h2>
-                            {editing ? "Edit expense" : "Add expense"}
-                        </h2>
+                    <Modal title={editing ? "Edit expense" : "Add expense"} busy={disabled} onClose={() => { setDraft(null); setError(""); }}>
+                        {error && <p className="error-message" role="alert">{error}</p>}
 
                         <form onSubmit={saveExpense}>
                             <fieldset disabled={disabled}>
@@ -563,6 +588,7 @@ export default function Dashboard({
 
                                                 <input
                                                     id="expense-amount"
+                                                    data-autofocus
                                                     inputMode="decimal"
                                                     placeholder="100.00"
                                                     value={draft.amount}
@@ -691,43 +717,54 @@ export default function Dashboard({
                                             className="button button-green"
                                             type="submit"
                                         >
-                                            {busy ? "Saving…" : "Save expense"}
+                                            <CheckCircle2 size={18} /> {busy ? "Saving…" : "Save expense"}
                                         </button>
                                     )}
 
                                     <button
                                         className="button button-outline"
                                         type="button"
-                                        onClick={() => setDraft(null)}
+                                        onClick={() => { setDraft(null); setError(""); }}
                                     >
                                         Cancel
                                     </button>
                                 </div>
                             </fieldset>
                         </form>
-                    </section>
+                    </Modal>
                 )}
 
                 {ready && loaded && (
                     <section className="expense-list">
-                        <h2>This month’s activity</h2>
+                        <div className="activity-heading"><h2><ReceiptText size={20} /> This month's activity</h2><span className="activity-count">{visibleExpenses.length} {visibleExpenses.length === 1 ? "transaction" : "transactions"}</span></div>
+                        <div className="activity-filters">
+                            <div className="search-field"><Search size={18} /><input aria-label="Search expenses" placeholder="Search expenses..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+                            <select aria-label="Filter by category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{Array.from(new Set(loaded.summary.expenses.map((expense) => expense.category))).sort().map((item) => <option key={item}>{item}</option>)}</select>
+                            <label className="people-checkbox"><input type="checkbox" checked={showVoided} onChange={(event) => setShowVoided(event.target.checked)} /> Show voided</label>
+                        </div>
 
                         {loaded.summary.expenses.length === 0 && (
-                            <div className="profile-panel">
+                            <div className="empty-activity">
+                                <ReceiptText size={36} />
                                 <h3>No expenses recorded</h3>
                                 <p>
                                     Add your first personal expense to get started.
                                 </p>
+                                <button className="button button-primary" disabled={disabled} onClick={beginAdd}><Plus size={18} /> Add expense</button>
                             </div>
                         )}
 
-                        {loaded.summary.expenses.map((expense) => (
+                        {loaded.summary.expenses.length > 0 && visibleExpenses.length === 0 && <div className="empty-activity"><Search size={28} /><h3>No matching expenses</h3><button className="button button-outline" onClick={() => { setQuery(""); setCategory(""); setShowVoided(true); }}>Clear filters</button></div>}
+
+                        {visibleExpenses.map((expense) => (
                             <article
                                 className={`expense-row ${expense.voidedAt ? "is-void" : ""
                                     }`}
                                 key={expense.id}
                             >
-                                <div>
+                                <div className="transaction-detail">
+                                    <span className={`transaction-icon ${expense.source === "SHARED" ? "purple" : "orange"}`} aria-hidden="true">{expense.source === "SHARED" ? <Users size={20} /> : <ArrowUpRight size={20} />}</span>
+                                    <div>
                                     <h3>{expense.purpose}</h3>
                                     {expense.source === "SHARED" && <span className="pg-tag">Shared · your portion</span>}
 
@@ -740,6 +777,7 @@ export default function Dashboard({
                                             Voided · excluded from totals
                                         </span>
                                     )}
+                                    </div>
                                 </div>
 
                                 <div className="expense-row-right">
@@ -753,7 +791,7 @@ export default function Dashboard({
                                                 <button
                                                     type="button"
                                                     className="button button-blue"
-                                                    disabled={disabled || Boolean(draft)}
+                                                    disabled={disabled}
                                                     onClick={() => {
                                                         setDraft({ ...expense });
                                                         setEditing(true);
@@ -767,7 +805,7 @@ export default function Dashboard({
                                                         });
                                                     }}
                                                 >
-                                                    Edit
+                                                    <Pencil size={15} /> Edit
                                                 </button>
 
                                                 <button
@@ -775,18 +813,18 @@ export default function Dashboard({
                                                     className="button button-danger"
                                                     disabled={disabled || Boolean(draft)}
                                                     onClick={() =>
-                                                        void voidExpense(expense)
+                                                        setVoidTarget(expense)
                                                     }
                                                 >
-                                                    Void
+                                                    <CircleSlash size={15} /> Void
                                                 </button>
                                             </>
                                         )}
 
                                         {expense.source === "SHARED" ? (
-                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => setShowGroups(true)}>View in Groups</button>
+                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => { setGroupToOpen(expense.groupId ?? null); setShowGroups(true); }}><Users size={15} /> View in Groups</button>
                                         ) : (
-                                            <button type="button" className="button button-outline" disabled={disabled} onClick={() => void openHistory(expense)}>History</button>
+                                            <button type="button" className="button button-outline" disabled={disabled} onClick={() => void openHistory(expense)}><History size={15} /> History</button>
                                         )}
                                     </div>
                                 </div>
@@ -796,8 +834,8 @@ export default function Dashboard({
                 )}
 
                 {history && (
-                    <section className="profile-panel expense-history">
-                        <h2>Expense history</h2>
+                    <Modal title="Expense history" onClose={() => setHistory(null)}>
+                    <div className="expense-history">
 
                         {history.map((revision) => (
                             <article key={revision.id}>
@@ -831,8 +869,17 @@ export default function Dashboard({
                         >
                             Close history
                         </button>
-                    </section>
+                    </div>
+                    </Modal>
                 )}
+                <LoanSummary refreshKey={refresh} />
+                {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
+                {voidTarget && <Modal title="Void this expense?" busy={busy} onClose={() => { setVoidTarget(null); setError(""); }}>
+                    <p><strong>{voidTarget.purpose}</strong> · {voidTarget.currency} {voidTarget.amount}</p>
+                    <p className="form-description">This expense will be excluded from your totals. Its history will remain available.</p>
+                    {error && <p className="error-message" role="alert">{error}</p>}
+                    <div className="profile-actions"><button className="button button-danger" disabled={busy} onClick={() => void voidExpense(voidTarget)}><CircleSlash size={18} /> {busy ? "Voiding..." : "Void expense"}</button><button className="button button-outline" disabled={busy} onClick={() => { setVoidTarget(null); setError(""); }}>Keep expense</button></div>
+                </Modal>}
             </section>
         </main>
     );

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
+import { ArrowLeft, Download, Printer, RefreshCw } from "lucide-react";
 
 type Report = {
   month: string;
@@ -169,7 +170,7 @@ export default function Reports({ timezone, onBack }: Props) {
           className="button button-outline"
           onClick={onBack}
         >
-          ← Dashboard
+          <ArrowLeft size={18} /> Dashboard
         </button>
       </header>
 
@@ -199,7 +200,7 @@ export default function Reports({ timezone, onBack }: Props) {
             className="button button-outline"
             onClick={() => setRefresh((value) => value + 1)}
           >
-            Reload
+            <RefreshCw size={18} /> Refresh
           </button>
 
           <button
@@ -208,7 +209,7 @@ export default function Reports({ timezone, onBack }: Props) {
             disabled={!report || report.count === 0}
             onClick={downloadCsv}
           >
-            Download CSV
+            <Download size={18} /> Download CSV
           </button>
 
           <button
@@ -217,7 +218,7 @@ export default function Reports({ timezone, onBack }: Props) {
             disabled={!report}
             onClick={() => window.print()}
           >
-            Print / Save PDF
+            <Printer size={18} /> Print / Save PDF
           </button>
         </div>
 
