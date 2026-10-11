@@ -39,8 +39,10 @@ type Ledger = {
     nickname: string | null;
     isArchived: boolean;
     version: number;
+    linkedUserId: string | null;
   };
   entries: Entry[];
+  sharedEntryIds: string[];
   totals: Totals[];
 };
 
@@ -331,6 +333,17 @@ export default function LoanBook({ contactId, onBack }: Props) {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function toggleShare(entry: Entry) {
+    if (!ledger?.contact.linkedUserId || busy) return;
+    const shared = ledger.sharedEntryIds.includes(entry.id);
+    if (!shared && !window.confirm(`Share only this ${entry.kind === "REPAYMENT" ? "repayment" : "money entry"} with the connected user? They will see the amount, purpose, and date. Other entries stay private.`)) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await api(`/loans/${entry.id}/share`, { method: shared ? "DELETE" : "POST" });
+      setNotice(shared ? "Sharing stopped for this entry." : "This entry is now shared."); reload();
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to change sharing."); } finally { setBusy(false); }
   }
 
   const entries = ledger?.entries.filter((entry) =>
@@ -655,6 +668,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
                   </strong>
 
                   <div className="expense-row-actions">
+                    {!entry.deletedAt && contact?.linkedUserId && <button type="button" className={ledger?.sharedEntryIds.includes(entry.id) ? "button button-outline" : "button button-purple"} disabled={disabled} onClick={() => void toggleShare(entry)}>{ledger?.sharedEntryIds.includes(entry.id) ? "Stop sharing" : "Share this entry"}</button>}
                     {!entry.deletedAt && (
                       <button
                         type="button"

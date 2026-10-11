@@ -26,6 +26,8 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/groups/invitations") data = { invitations: [] };
     else if (path === "/groups/settlement-requests") data = { requests: [] };
     else if (path === "/groups") data = { viewerId: user.id, groups: [] };
+    else if (path === "/contacts/link-requests") data = { requests: [] };
+    else if (path === "/contacts/shared-entries") data = { entries: [] };
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
     else if (path.startsWith("/reports")) data = { month: "2026-10", name: "October 2026", count: 0, currencies: [], expenses: [] };
@@ -122,6 +124,22 @@ test("void requires confirmation and keeps the version contract", async ({ page 
   await page.getByRole("button", { name: "Void expense", exact: true }).click();
   expect((await request).postDataJSON()).toEqual({ version: 1 });
   await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("past money entries remain hidden until individually shared", async ({ page }) => {
+  await mockApi(page);
+  let shared = false;
+  await page.route("**/api/contacts/shared-entries", (route) => route.fulfill({ json: {
+    entries: shared ? [{ id: "entry-1", owner: { displayName: "Alex" }, direction: "BORROWED", kind: "REPAYMENT", amount: "100.00", currency: "INR", purpose: "Old repayment", date: "2026-10-01" }] : [],
+  } }));
+  await page.goto("/");
+  await page.getByRole("button", { name: "People", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Shared with you" })).toHaveCount(0);
+  await expect(page.getByText("Old repayment")).toHaveCount(0);
+  shared = true;
+  await page.getByRole("button", { name: "Refresh" }).click();
+  await expect(page.getByText("Old repayment")).toBeVisible();
+  await expect(page.getByText(/repayment · borrowed from you/)).toBeVisible();
 });
 
 for (const width of [320, 360, 390, 768, 1440]) {

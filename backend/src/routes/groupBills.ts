@@ -33,14 +33,17 @@ const includeBill = {
   shares: { orderBy: { memberId: "asc" as const }, include: { member: { include: { user: { select: userFields } } } } },
 } as const;
 type Bill = Prisma.SharedBillGetPayload<{ include: typeof includeBill }>;
+function memberUser(member: Bill["payer"]) {
+  return member.user ?? { id: "", displayName: member.offlineName ?? "Offline person", username: "" };
+}
 function serialize(bill: Bill) {
   return {
     id: bill.id, groupId: bill.groupId, creatorId: bill.creatorId, creator: bill.creator,
-    payerId: bill.payerId, payer: bill.payer.user, amount: moneyString(bill.amountMinor, bill.minorUnit),
+    payerId: bill.payerId, payer: memberUser(bill.payer), amount: moneyString(bill.amountMinor, bill.minorUnit),
     currency: bill.currency, minorUnit: bill.minorUnit, purpose: bill.purpose, category: bill.category,
     date: bill.spentOn.toISOString().slice(0, 10), splitMode: bill.splitMode,
     deletedAt: bill.deletedAt?.toISOString() ?? null, createdAt: bill.createdAt.toISOString(),
-    shares: bill.shares.map((s) => ({ memberId: s.memberId, user: s.member.user, amount: moneyString(s.amountMinor, bill.minorUnit) })),
+    shares: bill.shares.map((s) => ({ memberId: s.memberId, user: memberUser(s.member), amount: moneyString(s.amountMinor, bill.minorUnit) })),
   };
 }
 async function lockGroup(tx: Prisma.TransactionClient, groupId: string, userId: string) {
@@ -83,7 +86,7 @@ groupBillsRouter.post<{ groupId: string }>("/", async (req, res) => {
     await lockGroup(tx, groupId, userId);
     const members = await tx.splitMember.findMany({ where: { groupId }, select: { id: true } });
     const valid = new Set(members.map((m) => m.id));
-    if (!valid.has(body.payerId) || shares.some((s) => !valid.has(s.memberId))) throw new BillError(400, "Payer and participants must be accepted members of this group.");
+    if (!valid.has(body.payerId) || shares.some((s) => !valid.has(s.memberId))) throw new BillError(400, "Payer and participants must be members of this group.");
     const created = await tx.sharedBill.create({ data: {
       id: body.id, groupId, creatorId: userId, payerId: body.payerId, amountMinor: amount,
       currency: body.currency, minorUnit: digits, purpose: body.purpose, category: body.category,

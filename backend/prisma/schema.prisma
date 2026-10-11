@@ -29,6 +29,8 @@ model User {
   ownedGroups        SplitGroup[]
   groupMemberships   SplitMember[]
   groupInvitations   SplitInvitation[]
+  incomingContactLinks ContactLinkRequest[] @relation("ContactLinkRecipient")
+  linkedContacts     Contact[]              @relation("LinkedContact")
   recordedBills      SharedBill[]
   billActions        SharedBillHistory[]
   createdSettlements GroupSettlement[]
@@ -83,8 +85,13 @@ model Contact {
   user         User                @relation(fields: [userId], references: [id], onDelete: Restrict)
   loans        Loan[]
   moneyEntries ContactMoneyEntry[]
+  linkedUserId String? @db.Uuid
+  linkedUser User? @relation("LinkedContact", fields: [linkedUserId], references: [id], onDelete: Restrict)
+  linkRequest ContactLinkRequest?
+  groupMembers SplitMember[]
 
   @@index([userId, isArchived, name])
+  @@unique([userId, linkedUserId])
   @@map("contacts")
 }
 
@@ -157,6 +164,7 @@ model ContactMoneyEntry {
 
   contact Contact               @relation(fields: [contactId], references: [id], onDelete: Restrict)
   history ContactMoneyHistory[]
+  share ContactMoneyShare?
 
   @@index([contactId, entryDate])
   @@map("contact_money_entries")
@@ -173,6 +181,30 @@ model ContactMoneyHistory {
 
   @@index([entryId, createdAt])
   @@map("contact_money_history")
+}
+
+model ContactLinkRequest {
+  id String @id @default(uuid()) @db.Uuid
+  contactId String @unique @db.Uuid
+  recipientId String @db.Uuid
+  status String @default("PENDING") @db.VarChar(12)
+  createdAt DateTime @default(now())
+  respondedAt DateTime?
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Restrict)
+  recipient User @relation("ContactLinkRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, status])
+  @@map("contact_link_requests")
+}
+
+model ContactMoneyShare {
+  entryId String @id @db.Uuid
+  recipientId String @db.Uuid
+  sharedAt DateTime @default(now())
+  entry ContactMoneyEntry @relation(fields: [entryId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId])
+  @@map("contact_money_shares")
 }
 
 model SplitGroup {
@@ -196,11 +228,14 @@ model SplitGroup {
 model SplitMember {
   id       String   @id @default(uuid()) @db.Uuid
   groupId  String   @db.Uuid
-  userId   String   @db.Uuid
+  userId   String?  @db.Uuid
+  contactId String? @db.Uuid
+  offlineName String? @db.VarChar(100)
   joinedAt DateTime @default(now())
 
   group SplitGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
-  user  User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user  User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: Restrict)
 
   paidBills           SharedBill[]
   shares              SharedBillShare[]
@@ -209,6 +244,7 @@ model SplitMember {
   reversalRequests    GroupSettlement[] @relation("ReversalRequester")
 
   @@unique([groupId, userId])
+  @@unique([groupId, contactId])
   @@index([userId])
   @@map("split_members")
 }

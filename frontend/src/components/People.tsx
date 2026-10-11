@@ -15,7 +15,11 @@ type Contact = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  linkedUser: { id: string; displayName: string; username: string } | null;
+  linkRequest: { status: string; recipient: { username: string } } | null;
 };
+type LinkRequest = { id: string; name: string; owner: { displayName: string; username: string }; groups: string[] };
+type SharedEntry = { id: string; owner: { displayName: string }; direction: string; kind: string; amount: string; currency: string; purpose: string; date: string };
 
 type Draft = {
   id: string;
@@ -34,6 +38,10 @@ export default function People({ onBack }: Props) {
     const [selectedContactId, setSelectedContactId] =
     useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [linkRequests, setLinkRequests] = useState<LinkRequest[]>([]);
+  const [sharedEntries, setSharedEntries] = useState<SharedEntry[]>([]);
+  const [linkingContactId, setLinkingContactId] = useState<string | null>(null);
+  const [linkUsername, setLinkUsername] = useState("");
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
 
@@ -50,13 +58,17 @@ export default function People({ onBack }: Props) {
   useEffect(() => {
     const controller = new AbortController();
 
-    api<{ contacts: Contact[] }>("/contacts", {
-      signal: controller.signal,
-    })
-      .then((result) => {
+    Promise.all([
+      api<{ contacts: Contact[] }>("/contacts", { signal: controller.signal }),
+      api<{ requests: LinkRequest[] }>("/contacts/link-requests", { signal: controller.signal }),
+      api<{ entries: SharedEntry[] }>("/contacts/shared-entries", { signal: controller.signal }),
+    ])
+      .then(([result, links, shared]) => {
         if (controller.signal.aborted) return;
 
         setContacts(result.contacts);
+        setLinkRequests(links.requests);
+        setSharedEntries(shared.entries);
         setLoading(false);
         setError("");
       })
@@ -73,6 +85,24 @@ export default function People({ onBack }: Props) {
 
     return () => controller.abort();
   }, [refresh]);
+
+  async function requestLink(contactId: string) {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await api(`/contacts/${contactId}/link-request`, { method: "POST", body: JSON.stringify({ username: linkUsername.trim() }) });
+      setLinkingContactId(null); setLinkUsername(""); setNotice("Connection request sent. They must accept before the account is linked."); reload();
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to send request."); } finally { setBusy(false); }
+  }
+
+  async function respondToLink(id: string, action: "ACCEPT" | "DECLINE") {
+    if (busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await api(`/contacts/link-requests/${id}/respond`, { method: "POST", body: JSON.stringify({ action }) });
+      setNotice(action === "ACCEPT" ? "Connection accepted. You can see joined groups in Groups." : "Connection declined."); reload();
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to respond."); } finally { setBusy(false); }
+  }
 
   function reload() {
     setLoading(true);
@@ -269,6 +299,18 @@ export default function People({ onBack }: Props) {
           <p className="google-success" role="status">{notice}</p>
         )}
 
+        {linkRequests.length > 0 && <section className="profile-panel"><h2>Connection requests</h2>
+          {linkRequests.map((request) => <div className="pg-row" key={request.id}>
+            <div className="pg-grow"><strong>{request.owner.displayName} (@{request.owner.username}) wants to connect you with their record for {request.name}.</strong>
+              <p>{request.groups.length ? `Accepting also joins: ${request.groups.join(", ")}. You will see their group bill history.` : "No groups will be joined."} Their private money records and notes remain hidden unless shared individually.</p></div>
+            <div className="pg-actions"><button type="button" className="button button-green" disabled={busy} onClick={() => void respondToLink(request.id, "ACCEPT")}>Accept</button><button type="button" className="button button-outline" disabled={busy} onClick={() => void respondToLink(request.id, "DECLINE")}>Decline</button></div>
+          </div>)}
+        </section>}
+
+        {sharedEntries.length > 0 && <section className="profile-panel"><h2>Shared with you</h2>
+          {sharedEntries.map((entry) => <div className="pg-row" key={entry.id}><div className="pg-grow"><strong>{entry.purpose || (entry.kind === "REPAYMENT" ? "Repayment" : "Money entry")}</strong><p>{entry.owner.displayName} shared this {entry.kind === "REPAYMENT" ? "repayment" : "money entry"} · {entry.direction === "LENT" ? "lent to you" : "borrowed from you"} · {entry.date}</p></div><strong>{entry.currency} {entry.amount}</strong></div>)}
+        </section>}
+
         {draft && (
           <Modal title={editing ? "Edit contact" : "Add a person"} busy={busy} onClose={() => { setDraft(null); setError(""); }}>
             {error && <p className="error-message" role="alert">{error}</p>}
@@ -415,10 +457,18 @@ export default function People({ onBack }: Props) {
                       ? "Archived contact"
                       : "Private contact"}
                   </span>
+                  {contact.linkedUser ? <p className="profile-member">Connected to @{contact.linkedUser.username}. Past money entries remain private until you share them individually.</p> : contact.linkRequest?.status === "PENDING" ? <p className="profile-member">Connection request pending for @{contact.linkRequest.recipient.username}.</p> : null}
 
                   {contact.notes && (
                     <p className="contact-note">{contact.notes}</p>
                   )}
+                  {!contact.linkedUser && !contact.isArchived && <div className="connection-card">
+                    {linkingContactId === contact.id ? <form onSubmit={(event) => { event.preventDefault(); void requestLink(contact.id); }}>
+                      <label htmlFor={`link-${contact.id}`}>Their exact Paylet username</label>
+                      <input id={`link-${contact.id}`} value={linkUsername} onChange={(event) => setLinkUsername(event.target.value)} maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
+                      <div className="profile-actions"><button className="button button-purple" disabled={busy || linkUsername.trim().length < 3}>Send connection request</button><button type="button" className="button button-outline" onClick={() => setLinkingContactId(null)}>Cancel</button></div>
+                    </form> : <button type="button" className="button button-purple" disabled={busy} onClick={() => { setLinkingContactId(contact.id); setLinkUsername(""); }}>Connect to Paylet account</button>}
+                  </div>}
 
                                     <div className="profile-actions">
                     <button

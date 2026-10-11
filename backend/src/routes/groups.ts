@@ -26,6 +26,7 @@ const inviteInput = z
     username: z.string().trim().min(1).max(30),
   })
   .strict();
+const offlineInput = z.object({ contactId: uuid }).strict();
 
 const responseInput = z
   .object({
@@ -50,11 +51,23 @@ const groupFields = {
     select: {
       id: true,
       userId: true,
+      contactId: true,
+      offlineName: true,
       joinedAt: true,
       user: { select: publicMemberFields },
     },
   },
 } as const;
+
+type GroupRow = Prisma.SplitGroupGetPayload<{ select: typeof groupFields }>;
+function serializeGroup(group: GroupRow, viewerId: string) {
+  return { ...group, members: group.members.map((member) => ({
+    id: member.id, userId: member.userId, joinedAt: member.joinedAt,
+    contactId: group.ownerId === viewerId ? member.contactId : null,
+    user: member.user ?? { id: "", username: "", displayName: member.offlineName ?? "Offline person" },
+    offline: member.userId === null,
+  })) };
+}
 
 groupsRouter.use(async (req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
@@ -124,7 +137,7 @@ groupsRouter.get("/", async (req, res) => {
     select: groupFields,
   });
 
-  res.json({ viewerId: userId, groups });
+  res.json({ viewerId: userId, groups: groups.map((group) => serializeGroup(group, userId)) });
 });
 
 // Creating the group and joining its owner happen together.
@@ -144,7 +157,24 @@ groupsRouter.post("/", async (req, res) => {
     select: groupFields,
   });
 
-  res.status(201).json({ group });
+  res.status(201).json({ group: serializeGroup(group, userId) });
+});
+
+groupsRouter.post("/:id/offline-members", async (req, res) => {
+  const groupId = uuid.parse(req.params.id);
+  const { contactId } = offlineInput.parse(req.body);
+  const ownerId = req.session.userId!;
+  const result = await prisma.$transaction(async (tx) => {
+    const active = await tx.splitGroup.updateMany({ where: { id: groupId, ownerId, deletedAt: null }, data: { updatedAt: new Date() } });
+    if (active.count !== 1) return "NOT_FOUND";
+    const contact = await tx.contact.findFirst({ where: { id: contactId, userId: ownerId, isArchived: false }, select: { name: true, linkedUserId: true } });
+    if (!contact) return "NO_CONTACT";
+    if (contact.linkedUserId) return "LINKED";
+    await tx.splitMember.create({ data: { groupId, contactId, offlineName: contact.name } });
+    return "OK";
+  });
+  if (result !== "OK") { res.status(result === "NOT_FOUND" || result === "NO_CONTACT" ? 404 : 409).json({ message: result === "LINKED" ? "This person has a Paylet account. Invite them by username." : "Group or active contact not found." }); return; }
+  res.status(201).json({ message: "Offline person added to the group." });
 });
 
 // Incoming invitations belong only to their recipient.

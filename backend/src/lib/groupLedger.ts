@@ -49,7 +49,7 @@ export async function groupLedger(tx: Prisma.TransactionClient, groupId: string)
 export async function publicLedger(tx: Prisma.TransactionClient, groupId: string) {
   const ledger = await groupLedger(tx, groupId);
   const members = await tx.splitMember.findMany({ where: { groupId }, include: { user: { select: { id: true, displayName: true, username: true } } } });
-  const users = new Map(members.map((m) => [m.id, m.user]));
+  const users = new Map(members.map((m) => [m.id, m.user ?? { id: "", username: "", displayName: m.offlineName ?? "Offline person" }]));
   return {
     balances: ledger.balances.map((b) => ({ memberId: b.memberId, user: users.get(b.memberId)!, currency: b.currency,
       paid: moneyString(b.paid, b.minorUnit), share: moneyString(b.share, b.minorUnit),

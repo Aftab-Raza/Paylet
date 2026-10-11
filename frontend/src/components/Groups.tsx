@@ -9,7 +9,7 @@ import { ArrowLeft, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
 
 type Person = { id: string; username: string; displayName: string };
-type Group = { id: string; name: string; ownerId: string; members: { id: string; userId: string; user: Person }[] };
+type Group = { id: string; name: string; ownerId: string; members: { id: string; userId: string | null; contactId: string | null; offline: boolean; user: Person }[] };
 type Listing = { viewerId: string; groups: Group[] };
 type Sent = { id: string; status: string; recipient: Person };
 const message = (error: unknown) => error instanceof Error ? error.message : "Request failed. Please try again.";
@@ -28,6 +28,8 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   const [sentError, setSentError] = useState("");
   const [sentLoading, setSentLoading] = useState(owner);
   const [revision, setRevision] = useState(0);
+  const [contacts, setContacts] = useState<{ id: string; name: string; linkedUser: Person | null; isArchived: boolean }[]>([]);
+  const [offlineContactId, setOfflineContactId] = useState("");
   useEffect(() => {
     if (!owner) return;
     const controller = new AbortController();
@@ -36,6 +38,24 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       .catch((err: unknown) => { if (!controller.signal.aborted) { setSentError(message(err)); setSentLoading(false); } });
     return () => controller.abort();
   }, [group.id, owner, revision]);
+  useEffect(() => {
+    if (!owner) return;
+    const controller = new AbortController();
+    api<{ contacts: typeof contacts }>("/contacts", { signal: controller.signal })
+      .then((result) => { if (!controller.signal.aborted) setContacts(result.contacts); })
+      .catch((err: unknown) => { if (!controller.signal.aborted) setError(message(err)); });
+    return () => controller.abort();
+  }, [owner]);
+
+  async function addOffline(event: FormEvent) {
+    event.preventDefault();
+    if (!offlineContactId || busy) return;
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await api(`/groups/${group.id}/offline-members`, { method: "POST", body: JSON.stringify({ contactId: offlineContactId }) });
+      setOfflineContactId(""); setNotice("Offline person added. You can include them in shared bills."); onChange();
+    } catch (err) { setError(message(err)); } finally { setBusy(false); }
+  }
 
   async function save(event: FormEvent, kind: "rename" | "invite") {
     event.preventDefault();
@@ -72,12 +92,22 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       <section className="pg-panel"><h2>People in this group</h2>
         {group.members.map((member) => <div className="pg-row" key={member.id}>
           <span className="pg-avatar" aria-hidden="true">{initials(member.user.displayName)}</span>
-          <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>@{member.user.username}</p></div>
-          <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : "Member"}</span>
+          <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>{member.offline ? "Not on Paylet yet" : `@${member.user.username}`}</p></div>
+          <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : member.offline ? "Offline" : "Member"}</span>
         </div>)}
         <p className="pg-muted">Your personal expenses and private lending records stay private.</p>
       </section>
       {owner && <section className="pg-panel pg-stack">
+        <h2>Add an offline person</h2><p className="pg-muted">Choose a private contact from People. They can be included in bills before joining Paylet.</p>
+        <form className="pg-stack" onSubmit={(event) => void addOffline(event)}>
+          <label htmlFor="pg-offline-contact">Person</label>
+          <select id="pg-offline-contact" value={offlineContactId} onChange={(event) => setOfflineContactId(event.target.value)} disabled={busy} required>
+            <option value="">Choose a person</option>
+            {contacts.filter((contact) => !contact.isArchived && !contact.linkedUser && !group.members.some((member) => member.contactId === contact.id)).map((contact) => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
+          </select>
+          <button className="button button-primary" disabled={busy || !offlineContactId}><Plus size={18} /> Add to group</button>
+        </form>
+        <p className="pg-muted">Need someone new? Add them in People first.</p>
         <h2>Invite a friend</h2><p className="pg-muted">They join only after accepting your invitation.</p>
         <form className="pg-stack" onSubmit={(event) => void save(event, "invite")}>
           <label htmlFor="pg-username">Exact Paylet username</label>

@@ -320,6 +320,7 @@ loansRouter.get("/", async (req, res) => {
       nickname: true,
       isArchived: true,
       version: true,
+      linkedUserId: true,
     },
   });
 
@@ -335,11 +336,38 @@ loansRouter.get("/", async (req, res) => {
     ],
   });
 
+  const shared = await prisma.contactMoneyShare.findMany({
+    where: { entryId: { in: entries.map((entry) => entry.id) } },
+    select: { entryId: true },
+  });
+
   res.json({
     contact,
     entries: entries.map(serialize),
+    sharedEntryIds: shared.map((item) => item.entryId),
     totals: summarize(entries),
   });
+});
+
+loansRouter.post("/:id/share", async (req, res) => {
+  const id = z.string().uuid().parse(req.params.id);
+  const outcome = await prisma.$transaction(async (tx) => {
+    const entry = await tx.contactMoneyEntry.findFirst({ where: { id, voidedAt: null, contact: { userId: req.session.userId!, linkedUserId: { not: null } } }, select: { contact: { select: { linkedUserId: true } } } });
+    if (!entry?.contact.linkedUserId) return false;
+    await tx.contactMoneyShare.upsert({ where: { entryId: id }, create: { entryId: id, recipientId: entry.contact.linkedUserId }, update: { recipientId: entry.contact.linkedUserId, sharedAt: new Date() } });
+    return true;
+  });
+
+  if (!outcome) { res.status(404).json({ message: "Connect this contact before sharing an active entry." }); return; }
+  res.json({ message: "This entry is now visible to the connected user." });
+});
+
+loansRouter.delete("/:id/share", async (req, res) => {
+  const id = z.string().uuid().parse(req.params.id);
+  const entry = await prisma.contactMoneyEntry.findFirst({ where: { id, contact: { userId: req.session.userId! } }, select: { id: true } });
+  if (!entry) { res.status(404).json({ message: "Entry not found." }); return; }
+  await prisma.contactMoneyShare.deleteMany({ where: { entryId: id } });
+  res.json({ message: "Sharing stopped for this entry." });
 });
 
 export async function createLedgerInTransaction(tx: Prisma.TransactionClient, userId: string, input: unknown) {

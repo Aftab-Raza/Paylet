@@ -31,9 +31,12 @@ const include = {
   creator: { select: personFields },
 } as const;
 type Payment = Prisma.GroupSettlementGetPayload<{ include: typeof include }>;
+function memberUser(member: Payment["fromMember"]) {
+  return member.user ?? { id: "", displayName: member.offlineName ?? "Offline person", username: "" };
+}
 function serialize(s: Payment) {
   return { id: s.id, groupId: s.groupId, creatorId: s.creatorId, creator: s.creator,
-    fromMemberId: s.fromMemberId, toMemberId: s.toMemberId, fromUser: s.fromMember.user, toUser: s.toMember.user,
+    fromMemberId: s.fromMemberId, toMemberId: s.toMemberId, fromUser: memberUser(s.fromMember), toUser: memberUser(s.toMember),
     amount: moneyString(s.amountMinor, s.minorUnit), currency: s.currency,
     paidOn: s.paidOn.toISOString().slice(0, 10), note: s.note, status: s.status, version: s.version,
     reversalRequesterId: s.reversalRequesterId, createdAt: s.createdAt.toISOString(), updatedAt: s.updatedAt.toISOString() };
@@ -72,6 +75,7 @@ groupSettlementsRouter.post<Params>("/", async (req, res) => {
     await lock(tx, groupId, userId);
     const members = await tx.splitMember.findMany({ where: { groupId, id: { in: [body.fromMemberId, body.toMemberId] } }, select: { id: true, userId: true } });
     if (members.length !== 2 || !members.some((m) => m.userId === userId)) throw new SettlementError(403, "You can record payments only between yourself and another member of this group.");
+    if (members.some((m) => m.userId === null)) throw new SettlementError(409, "Repayment confirmation becomes available after this offline person connects their Paylet account.");
     const ledger = await groupLedger(tx, groupId);
     const debt = ledger.debts.find((d) => d.fromMemberId === body.fromMemberId && d.toMemberId === body.toMemberId && d.currency === body.currency);
     if (!debt) throw new SettlementError(409, "There is no outstanding amount in that direction and currency.");
