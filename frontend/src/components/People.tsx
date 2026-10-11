@@ -53,33 +53,31 @@ export default function People({ onBack }: Props) {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [optionalError, setOptionalError] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
 
-    Promise.all([
+    Promise.allSettled([
       api<{ contacts: Contact[] }>("/contacts", { signal: controller.signal }),
       api<{ requests: LinkRequest[] }>("/contacts/link-requests", { signal: controller.signal }),
       api<{ entries: SharedEntry[] }>("/contacts/shared-entries", { signal: controller.signal }),
     ])
-      .then(([result, links, shared]) => {
+      .then(([contactsResult, linksResult, sharedResult]) => {
         if (controller.signal.aborted) return;
 
-        setContacts(result.contacts);
-        setLinkRequests(links.requests);
-        setSharedEntries(shared.entries);
-        setLoading(false);
-        setError("");
-      })
-      .catch((err: unknown) => {
-        if (controller.signal.aborted) return;
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Unable to load contacts."
-        );
+        if (contactsResult.status === "fulfilled") {
+          setContacts(contactsResult.value.contacts);
+          setError("");
+        } else {
+          setError(contactsResult.reason instanceof Error
+            ? contactsResult.reason.message
+            : "Unable to load contacts.");
+        }
+        setLinkRequests(linksResult.status === "fulfilled" ? linksResult.value.requests : []);
+        setSharedEntries(sharedResult.status === "fulfilled" ? sharedResult.value.entries : []);
+        setOptionalError(linksResult.status === "rejected" || sharedResult.status === "rejected");
         setLoading(false);
       });
 
@@ -293,6 +291,9 @@ export default function People({ onBack }: Props) {
 
         {error && !draft && (
           <p className="error-message" role="alert">{error}</p>
+        )}
+        {optionalError && !error && (
+          <p className="form-description" role="status">Connection requests or shared entries are temporarily unavailable. Your contacts are still here.</p>
         )}
 
         {notice && (

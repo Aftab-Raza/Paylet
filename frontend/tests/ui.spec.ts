@@ -142,6 +142,34 @@ test("past money entries remain hidden until individually shared", async ({ page
   await expect(page.getByText(/repayment · borrowed from you/)).toBeVisible();
 });
 
+test("People still shows contacts when optional sharing requests fail", async ({ page }) => {
+  await mockApi(page);
+  const contacts = [{
+    id: "contact-1", name: "Priya", nickname: null, notes: null,
+    isArchived: false, version: 1, createdAt: "2026-10-01", updatedAt: "2026-10-01",
+    linkedUser: null, linkRequest: null,
+  }];
+  await page.route("**/api/contacts", (route) => {
+    if (route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      contacts.push({ ...contacts[0], ...body, nickname: body.nickname || null, notes: body.notes || null });
+      return route.fulfill({ status: 201, json: { contact: contacts.at(-1) } });
+    }
+    return route.fulfill({ json: { contacts } });
+  });
+  await page.route("**/api/contacts/link-requests", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
+  await page.route("**/api/contacts/shared-entries", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
+  await page.goto("/");
+  await page.getByRole("button", { name: "People", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("Your contacts are still here.");
+  await page.getByRole("button", { name: "Add person" }).click();
+  await page.getByLabel("Name", { exact: true }).fill("New contact");
+  await page.getByRole("button", { name: "Save contact" }).click();
+  await expect(page.getByRole("heading", { name: "New contact" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
+});
+
 for (const width of [320, 360, 390, 768, 1440]) {
   test(`layout and dialogs fit ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
