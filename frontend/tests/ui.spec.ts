@@ -162,13 +162,74 @@ test("People still shows contacts when optional sharing requests fail", async ({
   await page.goto("/");
   await page.getByRole("button", { name: "People", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
-  await expect(page.getByRole("status")).toContainText("Your contacts are still here.");
+  await expect(page.getByText("Connection requests or shared entries are temporarily unavailable. Your contacts are still here.")).toHaveCount(0);
   await page.getByRole("button", { name: "Add person" }).click();
   await page.getByLabel("Name", { exact: true }).fill("New contact");
   await page.getByRole("button", { name: "Save contact" }).click();
   await expect(page.getByRole("heading", { name: "New contact" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
 });
+
+test("People sends username requests and preserves the form after a failure", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: [{ id: "contact-1", name: "Priya", nickname: null, notes: null, isArchived: false, version: 1, linkedUser: null, linkRequest: null }] } }));
+  let fail = true;
+  await page.route("**/api/contacts/contact-1/link-request", (route) => {
+    expect(route.request().postDataJSON()).toEqual({ username: "@Priya_123" });
+    return route.fulfill({ status: fail ? 409 : 201, json: { message: fail ? "No Paylet account has that username." : "Connection request sent." } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "People", exact: true }).click();
+  await page.getByRole("button", { name: "Connect to Paylet account" }).click();
+  await page.getByLabel("Their exact Paylet username").fill("@Priya_123");
+  await page.getByRole("button", { name: "Send connection request" }).click();
+  await expect(page.getByRole("alert")).toHaveText("No Paylet account has that username.");
+  await expect(page.getByLabel("Their exact Paylet username")).toHaveValue("@Priya_123");
+  fail = false;
+  await page.getByRole("button", { name: "Send connection request" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Connection request sent." })).toBeVisible();
+});
+
+for (const owner of [true, false]) {
+  test(`group payer is self and other member bill deletion is ${owner ? "allowed for owner" : "hidden for member"}`, async ({ page }) => {
+    await mockApi(page);
+    const other = { id: "other-user", displayName: "Priya", username: "priya" };
+    const members = [{ id: "self-member", userId: user.id, user }, { id: "other-member", userId: other.id, user: other }, { id: "offline-member", userId: null, user: { id: "", displayName: "Offline friend", username: "" } }];
+    await page.route("**/api/groups", (route) => route.fulfill({ json: { viewerId: user.id, groups: [{ id: "group-1", name: "Weekend", ownerId: owner ? user.id : other.id, members }] } }));
+    await page.route("**/api/groups/group-1/invitations", (route) => route.fulfill({ json: { invitations: [] } }));
+    let deleted = false;
+    await page.route("**/api/groups/group-1/bills", (route) => {
+      if (route.request().method() === "POST") {
+        expect(route.request().postDataJSON().payerId).toBe("self-member");
+        expect(route.request().postDataJSON().participants).toContainEqual({ memberId: "offline-member" });
+        return route.fulfill({ status: 201, json: {} });
+      }
+      return route.fulfill({ json: { balances: [], bills: [{ ...initialExpense, id: "bill-1", creatorId: other.id, creator: other, payer: other, deletedAt: deleted ? "2026-10-12" : null, shares: [] }] } });
+    });
+    await page.route("**/api/groups/group-1/bills/bill-1", (route) => { expect(route.request().method()).toBe("DELETE"); deleted = true; return route.fulfill({ json: {} }); });
+    await page.goto("/");
+    await page.getByRole("button", { name: "Groups", exact: true }).click();
+    await page.getByRole("button", { name: /Open group/ }).click();
+    const bill = page.getByRole("article").filter({ hasText: "Lunch with friends" });
+    await expect(bill).toBeVisible();
+    await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(owner ? 1 : 0);
+    await page.getByRole("button", { name: "+ Add expense", exact: true }).click();
+    await expect(page.getByLabel("Who paid?")).toHaveAttribute("readonly", "");
+    await expect(page.getByLabel("Who paid?")).toHaveValue("Aftab (You)");
+    await page.getByLabel("Total amount").fill("100");
+    await page.getByLabel("Purpose", { exact: true }).fill("Dinner");
+    await page.getByRole("button", { name: "Save shared expense" }).click();
+    await expect(page.getByText(/Bill saved/)).toBeVisible();
+    if (owner) {
+      page.once("dialog", (dialog) => dialog.accept());
+      await bill.getByRole("button", { name: "Delete", exact: true }).click();
+      await expect(bill).toHaveCount(0);
+      await page.getByLabel("Show deleted bills").check();
+      await expect(bill).toBeVisible();
+      await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0);
+    }
+  });
+}
 
 for (const width of [320, 360, 390, 768, 1440]) {
   test(`layout and dialogs fit ${width}px`, async ({ page }) => {

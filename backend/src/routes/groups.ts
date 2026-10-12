@@ -387,7 +387,7 @@ groupsRouter.delete("/:id", async (req, res) => {
     return "OK";
   });
   if (deleted === "HAS_BILLS") {
-    res.status(409).json({ message: "This group has active bills. Their creators must delete them before the group can be deleted." });
+    res.status(409).json({ message: "This group has active bills. You or their creators must delete them before the group can be deleted." });
     return;
   }
   if (deleted === "HAS_SETTLEMENTS") {

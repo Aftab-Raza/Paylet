@@ -53,7 +53,6 @@ export default function People({ onBack }: Props) {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [optionalError, setOptionalError] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -77,7 +76,6 @@ export default function People({ onBack }: Props) {
         }
         setLinkRequests(linksResult.status === "fulfilled" ? linksResult.value.requests : []);
         setSharedEntries(sharedResult.status === "fulfilled" ? sharedResult.value.entries : []);
-        setOptionalError(linksResult.status === "rejected" || sharedResult.status === "rejected");
         setLoading(false);
       });
 
@@ -292,9 +290,6 @@ export default function People({ onBack }: Props) {
         {error && !draft && (
           <p className="error-message" role="alert">{error}</p>
         )}
-        {optionalError && !error && (
-          <p className="form-description" role="status">Connection requests or shared entries are temporarily unavailable. Your contacts are still here.</p>
-        )}
 
         {notice && (
           <p className="google-success" role="status">{notice}</p>
@@ -466,7 +461,7 @@ export default function People({ onBack }: Props) {
                   {!contact.linkedUser && !contact.isArchived && <div className="connection-card">
                     {linkingContactId === contact.id ? <form onSubmit={(event) => { event.preventDefault(); void requestLink(contact.id); }}>
                       <label htmlFor={`link-${contact.id}`}>Their exact Paylet username</label>
-                      <input id={`link-${contact.id}`} value={linkUsername} onChange={(event) => setLinkUsername(event.target.value)} maxLength={30} autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
+                      <input id={`link-${contact.id}`} value={linkUsername} onChange={(event) => setLinkUsername(event.target.value)} maxLength={31} autoCapitalize="none" autoCorrect="off" spellCheck={false} required />
                       <div className="profile-actions"><button className="button button-purple" disabled={busy || linkUsername.trim().length < 3}>Send connection request</button><button type="button" className="button button-outline" onClick={() => setLinkingContactId(null)}>Cancel</button></div>
                     </form> : <button type="button" className="button button-purple" disabled={busy} onClick={() => { setLinkingContactId(contact.id); setLinkUsername(""); }}>Connect to Paylet account</button>}
                   </div>}

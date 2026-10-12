@@ -269,7 +269,7 @@ contactsRouter.get("/shared-entries", async (req, res) => {
 
 contactsRouter.post("/:id/link-request", linkRequestLimiter, async (req, res) => {
   const contactId = z.string().uuid().parse(req.params.id);
-  const { username } = z.object({ username: z.string().trim().min(3).max(30) }).strict().parse(req.body);
+  const { username } = z.object({ username: z.string().trim().transform((value) => value.replace(/^@/, "").toLowerCase()).pipe(z.string().min(3).max(30).regex(/^[a-z0-9_]+$/, "Use letters, numbers, or underscores for the username.")) }).strict().parse(req.body);
   const ownerId = req.session.userId!;
   const outcome = await prisma.$transaction(async (tx) => {
     const contact = await tx.contact.findFirst({ where: { id: contactId, userId: ownerId }, select: { linkedUserId: true } });
@@ -283,3 +283,16 @@ contactsRouter.post("/:id/link-request", linkRequestLimiter, async (req, res) =>
   if (outcome !== "OK") { res.status(outcome === "NOT_FOUND" ? 404 : 409).json({ message: outcome === "LINKED" ? "This contact is already connected." : outcome === "NO_USER" ? "No Paylet account has that username." : "Contact not found." }); return; }
   res.status(201).json({ message: "Connection request sent. They must accept it first." });
 });
+
+const contactErrors: import("express").ErrorRequestHandler = (error, _req, res, next) => {
+  if (error instanceof z.ZodError) {
+    res.status(400).json({ message: error.issues[0]?.message ?? "Invalid contact request." });
+    return;
+  }
+  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    res.status(409).json({ message: "This contact connection changed. Refresh and try again." });
+    return;
+  }
+  next(error);
+};
+contactsRouter.use(contactErrors);

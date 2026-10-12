@@ -87,7 +87,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
     {notice && <p className="pg-success" role="status">{notice}</p>}
-    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId}/>
+    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
     <div className="pg-columns">
       <section className="pg-panel"><h2>People in this group</h2>
         {group.members.map((member) => <div className="pg-row" key={member.id}>

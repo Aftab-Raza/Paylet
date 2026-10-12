@@ -84,11 +84,13 @@ groupBillsRouter.post<{ groupId: string }>("/", async (req, res) => {
   } catch (error) { throw new BillError(400, error instanceof Error ? error.message : "Invalid amount."); }
   const bill = await prisma.$transaction(async (tx) => {
     await lockGroup(tx, groupId, userId);
-    const members = await tx.splitMember.findMany({ where: { groupId }, select: { id: true } });
+    const members = await tx.splitMember.findMany({ where: { groupId }, select: { id: true, userId: true } });
+    const payer = members.find((member) => member.userId === userId);
+    if (!payer || body.payerId !== payer.id) throw new BillError(403, "You can record an expense only as yourself.");
     const valid = new Set(members.map((m) => m.id));
     if (!valid.has(body.payerId) || shares.some((s) => !valid.has(s.memberId))) throw new BillError(400, "Payer and participants must be members of this group.");
     const created = await tx.sharedBill.create({ data: {
-      id: body.id, groupId, creatorId: userId, payerId: body.payerId, amountMinor: amount,
+      id: body.id, groupId, creatorId: userId, payerId: payer.id, amountMinor: amount,
       currency: body.currency, minorUnit: digits, purpose: body.purpose, category: body.category,
       spentOn: new Date(`${body.date}T00:00:00.000Z`), splitMode: body.splitMode,
       shares: { create: shares },
@@ -104,8 +106,8 @@ groupBillsRouter.delete<{ groupId: string; id: string }>("/:id", async (req, res
   const userId = req.session.userId!;
   await prisma.$transaction(async (tx) => {
     await lockGroup(tx, groupId, userId);
-    const updated = await tx.sharedBill.updateMany({ where: { id, groupId, creatorId: userId, deletedAt: null }, data: { deletedAt: new Date() } });
-    if (updated.count !== 1) throw new BillError(409, "Only the person who recorded an active bill can delete it. Refresh and try again.");
+    const updated = await tx.sharedBill.updateMany({ where: { id, groupId, deletedAt: null, OR: [{ creatorId: userId }, { group: { ownerId: userId } }] }, data: { deletedAt: new Date() } });
+    if (updated.count !== 1) throw new BillError(409, "Only the bill creator or group owner can delete an active bill. Refresh and try again.");
     const bill = await tx.sharedBill.findUniqueOrThrow({ where: { id }, include: includeBill });
     await tx.sharedBillHistory.create({ data: { billId: id, actorId: userId, action: "DELETED", snapshot: serialize(bill) } });
   });

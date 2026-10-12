@@ -8,4 +8,8 @@ Contact notes and loan/repayment history remain private. Connecting does not sha
 
 ## Deployment order
 
+Group members can record an expense only with themselves as payer. Offline people can still participate in the split. The bill creator or the group owner can delete an active bill; deletion preserves its audit history and excludes its shares from active totals. This permission update needs no additional migration.
+
+Username connection requests accept an optional `@` prefix and ignore letter case. If the live API returns `Cannot POST /api/contacts/.../link-request` or `Cannot GET /api/contacts/link-requests`, Render is still running an older backend. Deploy the latest pushed commit on Render, not just Vercel. A healthy database check alone does not confirm these routes or migrations exist.
+
 This feature requires migration `20261011000100_offline_members_contact_links`. Back up or branch the production Neon database, then run `prisma migrate deploy` against the **direct** Neon connection URL. Confirm the migration succeeds before deploying the Render backend, then deploy the Vercel frontend. Do not point a new backend at an unmigrated database. Local Docker Compose applies the migration automatically through its `migrate` service; it does not remove the `paylet_db` volume.
