@@ -39,7 +39,7 @@ async function mockApi(page: Page, signedIn = true) {
 
 test("expense modal saves the existing API contract and edit keeps the version", async ({ page }) => {
   const writes = await mockApi(page);
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   const dialog = page.getByRole("dialog", { name: "Add expense", exact: true });
   await expect(dialog).toBeVisible();
@@ -61,7 +61,7 @@ test("expense modal saves the existing API contract and edit keeps the version",
 
 test("dialog traps focus, Escape closes, filters and history work", async ({ page }) => {
   await mockApi(page);
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   const add = page.getByRole("button", { name: "Add expense", exact: true }).first();
   await add.click();
   for (let i = 0; i < 14; i++) {
@@ -84,7 +84,7 @@ test("failed save stays in the dialog and retains the draft", async ({ page }) =
     if (route.request().method() !== "POST") return route.fallback();
     await route.fulfill({ status: 503, json: { message: "Please try again." } });
   });
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   await page.getByLabel("Amount", { exact: true }).fill("12");
   await page.getByLabel("Purpose", { exact: true }).fill("Keep this draft");
@@ -95,7 +95,7 @@ test("failed save stays in the dialog and retains the draft", async ({ page }) =
 
 test("invitation is a private-data-free signup link and opens registration", async ({ page, context }) => {
   const writes = await mockApi(page);
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "Invite a friend" }).click();
   const invite = await page.getByLabel("Invitation link").inputValue();
   expect(invite).toBe("http://127.0.0.1:5187/?join=paylet");
@@ -114,7 +114,7 @@ test("invitation is a private-data-free signup link and opens registration", asy
 test("void requires confirmation and keeps the version contract", async ({ page }) => {
   const writes = await mockApi(page);
   await page.route("**/api/expenses/expense-1/void", (route) => route.fulfill({ json: {} }));
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "Void", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("Lunch with friends");
   await page.getByRole("button", { name: "Keep expense" }).click();
@@ -132,7 +132,7 @@ test("past money entries remain hidden until individually shared", async ({ page
   await page.route("**/api/contacts/shared-entries", (route) => route.fulfill({ json: {
     entries: shared ? [{ id: "entry-1", owner: { displayName: "Alex" }, direction: "BORROWED", kind: "REPAYMENT", amount: "100.00", currency: "INR", purpose: "Old repayment", date: "2026-10-01" }] : [],
   } }));
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "People", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Shared with you" })).toHaveCount(0);
   await expect(page.getByText("Old repayment")).toHaveCount(0);
@@ -159,7 +159,7 @@ test("People still shows contacts when optional sharing requests fail", async ({
   });
   await page.route("**/api/contacts/link-requests", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
   await page.route("**/api/contacts/shared-entries", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "People", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
   await expect(page.getByText("Connection requests or shared entries are temporarily unavailable. Your contacts are still here.")).toHaveCount(0);
@@ -178,7 +178,7 @@ test("People sends username requests and preserves the form after a failure", as
     expect(route.request().postDataJSON()).toEqual({ username: "@Priya_123" });
     return route.fulfill({ status: fail ? 409 : 201, json: { message: fail ? "No Paylet account has that username." : "Connection request sent." } });
   });
-  await page.goto("/");
+  await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "People", exact: true }).click();
   await page.getByRole("button", { name: "Connect to Paylet account" }).click();
   await page.getByLabel("Their exact Paylet username").fill("@Priya_123");
@@ -207,7 +207,7 @@ for (const owner of [true, false]) {
       return route.fulfill({ json: { balances: [], bills: [{ ...initialExpense, id: "bill-1", creatorId: other.id, creator: other, payer: other, deletedAt: deleted ? "2026-10-12" : null, shares: [] }] } });
     });
     await page.route("**/api/groups/group-1/bills/bill-1", (route) => { expect(route.request().method()).toBe("DELETE"); deleted = true; return route.fulfill({ json: {} }); });
-    await page.goto("/");
+    await page.goto("/?view=dashboard");
     await page.getByRole("button", { name: "Groups", exact: true }).click();
     await page.getByRole("button", { name: /Open group/ }).click();
     const bill = page.getByRole("article").filter({ hasText: "Lunch with friends" });
@@ -231,11 +231,131 @@ for (const owner of [true, false]) {
   });
 }
 
+test("public homepage opens login and registration and supports browser back", async ({ page }) => {
+  await mockApi(page, false);
+  await page.route("**/api/auth/login", (route) => route.fulfill({ json: { user } }));
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("contentinfo")).toContainText("About Paylet");
+  await page.getByRole("button", { name: "Get started", exact: true }).click();
+  await expect(page.getByLabel("Your name")).toBeVisible();
+  await expect(page).toHaveURL(/view=register/);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await page.getByRole("banner").getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByLabel("Email address").fill("test@example.com");
+  await page.getByLabel("Password", { exact: true }).fill("test-password");
+  await page.getByRole("button", { name: "Log in", exact: true }).last().click();
+  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+  await expect(page).toHaveURL(/view=dashboard/);
+  await page.reload();
+  await expect(page.getByLabel("Email address")).toBeVisible();
+});
+
+test("logout requires confirmation, cancel preserves session, and failure can retry", async ({ page }) => {
+  await mockApi(page);
+  let logoutCalls = 0;
+  await page.route("**/api/auth/logout", (route) => {
+    logoutCalls++;
+    return route.fulfill({ status: logoutCalls === 1 ? 503 : 200, json: { message: logoutCalls === 1 ? "Please try again." : "Logged out." } });
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Stay signed in" })).toBeFocused();
+  await dialog.getByRole("button", { name: "Stay signed in" }).click();
+  expect(logoutCalls).toBe(0);
+  await page.getByRole("banner").getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("button", { name: "My profile" }).click();
+  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await dialog.getByRole("button", { name: "Yes, log out" }).click();
+  await expect(dialog.getByRole("alert")).toHaveText("Please try again.");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Yes, log out" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("banner").getByRole("button", { name: "Log in", exact: true })).toBeVisible();
+  expect(logoutCalls).toBe(2);
+});
+
+test("Google error returns still open authentication instead of hiding on homepage", async ({ page }) => {
+  await mockApi(page, false);
+  await page.goto("/?google=expired");
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  await expect(page.getByText("Google sign-in expired. Please try again.")).toBeVisible();
+});
+
+for (const width of [320, 390, 1440]) {
+  test(`lending balances are legible and homepage fits ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await mockApi(page);
+    await page.route("**/api/loans/summary", (route) => route.fulfill({ json: { totals: [{ currency: "INR", minorUnit: 2, totalLent: "5000.00", repaymentsReceived: "1000.00", owedToYou: "4000.00", totalBorrowed: "3000.00", repaymentsMade: "500.00", youOwe: "2500.00" }] } }));
+    await page.goto("/?view=dashboard");
+    const outstanding = page.locator(".outstanding-line");
+    await expect(outstanding).toContainText("You still owe");
+    await expect(outstanding).toContainText("INR 2500.00");
+    const contrast = await outstanding.evaluate((element) => {
+      const rgb = getComputedStyle(element.querySelector("dt")!).color.match(/\d+/g)!.slice(0, 3).map(Number);
+      const linear = rgb.map((value) => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
+      const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      return 1.05 / (luminance + 0.05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await outstanding.scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `test-results/lending-${width}.png`, fullPage: true });
+    await page.goto("/");
+    const hero = page.locator(".landing-hero-image");
+    await expect(hero).toBeVisible();
+    await expect.poll(() => hero.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await hero.evaluate((image) => (image as HTMLImageElement).decode());
+    const preview = page.locator(".landing-product");
+    await preview.scrollIntoViewIfNeeded();
+    await expect.poll(() => preview.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await page.evaluate(() => scrollTo(0, 0));
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    const nextSection = await page.locator("#about").boundingBox();
+    expect(nextSection!.y).toBeLessThan(900);
+    const copy = await page.locator(".landing-hero-copy").boundingBox();
+    const image = await hero.boundingBox();
+    expect(copy!.y).toBeGreaterThanOrEqual(image!.y);
+    expect(copy!.y + copy!.height).toBeLessThanOrEqual(image!.y + image!.height);
+    const header = await page.getByRole("banner").boundingBox();
+    const title = await page.locator("#landing-title").boundingBox();
+    expect(header!.y + header!.height).toBeLessThanOrEqual(title!.y);
+    await page.getByText("Do I need to connect my bank account?", { exact: true }).click();
+    await expect(page.getByText("No. Paylet records the expenses and money entries you add.", { exact: false })).toBeVisible();
+    await page.evaluate(() => scrollTo(0, 0));
+    await page.screenshot({ path: `test-results/landing-${width}.png`, fullPage: true });
+  });
+}
+
+test("cinematic hero fits short phones and wide screens with a visible next section", async ({ page }) => {
+  await mockApi(page, false);
+  for (const [width, height] of [[320, 568], [390, 844], [1920, 1080]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Get started", exact: true })).toBeVisible();
+    const hero = await page.locator(".landing-hero").boundingBox();
+    const title = await page.locator("#landing-title").boundingBox();
+    const header = await page.getByRole("banner").boundingBox();
+    const action = await page.getByRole("button", { name: "Get started", exact: true }).boundingBox();
+    expect(header!.y + header!.height).toBeLessThanOrEqual(title!.y);
+    expect(action!.y + action!.height).toBeLessThanOrEqual(hero!.y + hero!.height);
+    expect((await page.locator("#about").boundingBox())!.y).toBeLessThan(height);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect.poll(() => page.locator(".landing-hero-image").evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+    await page.locator(".landing-hero-image").evaluate((image) => (image as HTMLImageElement).decode());
+    await page.screenshot({ path: `test-results/cinematic-${width}-${height}.png` });
+  }
+});
+
 for (const width of [320, 360, 390, 768, 1440]) {
   test(`layout and dialogs fit ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await mockApi(page);
-    await page.goto("/");
+    await page.goto("/?view=dashboard");
     await expect(page.getByRole("heading", { name: "Lunch with friends" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/dashboard-${width}.png`, fullPage: true });

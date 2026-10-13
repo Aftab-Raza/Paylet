@@ -9,17 +9,29 @@ import type { User } from "./lib/api";
 import GoogleAuth from "./components/GoogleAuth";
 
 import Dashboard from "./components/Dashboard";
-import { ArrowRight, ArrowUpRight, Eye, EyeOff, ShieldCheck, Users } from "lucide-react";
+import LandingPage from "./components/LandingPage";
+import Modal from "./components/Modal";
+import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, EyeOff, LogOut, ShieldCheck, Users } from "lucide-react";
 
 
 
 type Mode = "login" | "register";
+type View = "home" | "login" | "register" | "dashboard";
+function currentView(): View {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("join") === "paylet") return "register";
+  if (params.has("google")) return params.get("google") === "linked" ? "dashboard" : "login";
+  const view = params.get("view");
+  return view === "login" || view === "register" || view === "dashboard" ? view : "home";
+}
 
 
 
 function App() {
 
-  const [mode, setMode] = useState<Mode>(() => new URLSearchParams(window.location.search).get("join") === "paylet" ? "register" : "login");
+  const [view, setView] = useState<View>(currentView);
+  const [mode, setMode] = useState<Mode>(() => currentView() === "register" ? "register" : "login");
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   const [user, setUser] = useState<User | null>(null);
 
@@ -48,6 +60,35 @@ function App() {
 
 
   const isRegister = mode === "register";
+
+  function navigate(next: View) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("join");
+    url.searchParams.delete("google");
+    url.hash = "";
+    if (next === "home") url.searchParams.delete("view");
+    else url.searchParams.set("view", next);
+    window.history.pushState(null, "", url);
+    setView(next);
+    if (next === "login" || next === "register") setMode(next);
+    setError("");
+    setPassword("");
+    setShowPassword(false);
+    window.scrollTo(0, 0);
+  }
+
+  useEffect(() => {
+    function handleBack() {
+      const next = currentView();
+      setView(next);
+      if (next === "login" || next === "register") setMode(next);
+      setPassword("");
+      setError("");
+      setConfirmLogout(false);
+    }
+    window.addEventListener("popstate", handleBack);
+    return () => window.removeEventListener("popstate", handleBack);
+  }, []);
 
 
 
@@ -133,7 +174,7 @@ function App() {
 
   function changeMode(nextMode: Mode) {
 
-    setMode(nextMode);
+    navigate(nextMode);
 
     setError("");
 
@@ -188,6 +229,7 @@ function App() {
 
 
       setUser(result.user);
+      navigate("dashboard");
 
       setPassword("");
 
@@ -238,6 +280,8 @@ function App() {
 
 
       setUser(null);
+      setConfirmLogout(false);
+      navigate("home");
 
       setMode("login");
 
@@ -262,6 +306,22 @@ function App() {
   }
 
 
+
+  async function requestLogout() {
+    if (busy) return;
+    setError("");
+    setConfirmLogout(true);
+  }
+
+  const logoutDialog = confirmLogout && <Modal title="Log out of Paylet?" busy={busy} onClose={() => { setConfirmLogout(false); setError(""); }}>
+    <p className="logout-confirm-copy">Are you sure you want to log out? You can sign in again whenever you are ready.</p>
+    {error && <p className="error-message" role="alert">{error}</p>}
+    <div className="profile-actions"><button className="button button-outline" data-autofocus disabled={busy} onClick={() => { setConfirmLogout(false); setError(""); }}>Stay signed in</button><button className="button button-danger" disabled={busy} onClick={() => void handleLogout()}><LogOut size={18} />{busy ? "Logging out..." : "Yes, log out"}</button></div>
+  </Modal>;
+
+  if (view === "home") {
+    return <><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
+  }
 
   if (checking || sessionError) {
 
@@ -319,13 +379,13 @@ function App() {
 
      if (user) {
     return (
-      <Dashboard
+      <><Dashboard
         user={user}
         onUserChange={setUser}
-        onLogout={handleLogout}
+        onLogout={requestLogout}
         logoutBusy={busy}
         logoutError={error}
-      />
+      />{logoutDialog}</>
     );
   }
 
@@ -486,6 +546,7 @@ function App() {
       <section className="form-panel" aria-labelledby="auth-title">
 
         <div className="auth-card">
+          <button type="button" className="auth-home-link" disabled={busy} onClick={() => navigate("home")}><ArrowLeft size={17} /> Back to home</button>
 
           {new URLSearchParams(window.location.search).get("join") === "paylet" && (
             <p className="google-success">You're invited to Paylet. Create your own account to join.</p>

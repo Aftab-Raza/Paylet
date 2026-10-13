@@ -115,6 +115,12 @@ small, .form-description, .pg-muted, .pg-row p, .pg-stats span, .pg-danger-zone 
 .loan-summary-card { border-radius: 8px; background: white; }
 .loan-summary-value { font-size: 28px; }
 .loan-summary-label { display: flex; align-items: center; gap: 8px; }
+.loan-summary-card dt { color: #535964; }
+.loan-summary-card dd { color: #25272d; margin: 0; overflow-wrap: anywhere; }
+.loan-summary-card .outstanding-line dt, .loan-summary-card .outstanding-line dd { color: #225b9c; }
+.loan-summary-card dl > div > * { min-width: 0; }
+.loan-summary-card dt { flex: 1; }
+.loan-summary-card dd { flex: 1; }
 .loan-amounts > div { background: transparent; border: 0; border-left: 2px solid var(--border); border-radius: 0; }
 .status-unpaid, .status-partial, .pg-pending, .pg-payment-pending, .pg-payment-reversal_pending { color: #805409; background: #fff1ce; }
 .status-paid, .pg-accepted, .pg-payment-confirmed { color: #1b7248; background: #e4f4eb; }

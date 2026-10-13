@@ -1,0 +1,7 @@
+# Cinematic landing hero
+
+Generated with the built-in image generation tool. Saved asset: `frontend/public/paylet-cinematic-hero.png`.
+
+## Final prompt
+
+Use case: ads-marketing. Asset type: full-bleed cinematic website hero background for Paylet, a personal expense and shared-bill tracker. Create a polished wide 16:9 photographic mosaic inspired by streaming-service landing page compositions, but no Netflix branding or movies. Mosaic of six to nine edge-to-edge rectangular photographic scenes showing everyday spending and shared moments: friends sharing dinner in a modern Indian cafe, closeup takeaway coffee and receipt, fresh groceries, a small group enjoying a city trip, friends carrying shopping bags, someone reviewing a paper bill next to their phone. Diverse young Indian adults. Real natural editorial photography, detailed authentic objects, charcoal and rich neutral tones with subtle orange accents in clothes and cafe lighting, restrained blue and green touches. Slight diagonal arrangement of the scene strips across the whole canvas, each photograph clearly recognizable, no borders or rounded cards. Keep central area less visually busy for large white website text which will be added in code. Dramatic but clearly exposed photographs, crisp focus, premium contrast, no blacked-out or blurred subjects. No text, letters, numbers, logos, watermarks, fake UI, floating coins, glowing spheres, or bokeh decorations. Deliver the wide image only.
