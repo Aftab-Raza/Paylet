@@ -23,6 +23,7 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/expenses/expense-1" && method === "PATCH") { expenses = expenses.map((item) => item.id === "expense-1" ? { ...item, ...body } : item); }
     else if (path.endsWith("/history")) data = { history: [{ id: "rev-1", action: "CREATED", createdAt: "2026-10-10T09:00:00Z", snapshot: initialExpense }] };
     else if (path === "/loans/summary") data = { totals: [] };
+    else if (path === "/loans/people-summary") data = { summaries: [] };
     else if (path === "/groups/invitations") data = { invitations: [] };
     else if (path === "/groups/settlement-requests") data = { requests: [] };
     else if (path === "/groups") data = { viewerId: user.id, groups: [] };
@@ -697,4 +698,27 @@ test("all testimonials page loads more and expands long reviews", async ({ page 
   await page.setViewportSize({ width: 360, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/testimonials-all-mobile.png", fullPage: true });
+});
+test("balance cards open People and horizontal contact cards show recorded and outstanding money", async ({ page }) => {
+  await mockApi(page);
+  const total = { currency: "INR", minorUnit: 2, totalLent: "500.00", repaymentsReceived: "100.00", owedToYou: "400.00", totalBorrowed: "200.00", repaymentsMade: "50.00", youOwe: "150.00" };
+  await page.route("**/api/loans/summary", (route) => route.fulfill({ json: { totals: [total] } }));
+  await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: ["Priya", "Rahul"].map((name, index) => ({ id: `person-${index}`, name, nickname: null, notes: null, isArchived: false, version: 1, createdAt: "2026-10-01", updatedAt: "2026-10-01", linkedUser: null, linkRequest: null })) } }));
+  await page.route("**/api/loans/people-summary", (route) => route.fulfill({ json: { summaries: [{ contactId: "person-0", totals: [total, { ...total, currency: "USD", owedToYou: "5.00" }] }] } }));
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "Owed to you INR 400.00. Open People" }).click();
+  await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
+  const card = page.locator(".person-card").filter({ hasText: "Priya" });
+  await expect(card.locator(".person-recorded").first()).toContainText("500.00");
+  await expect(card.locator(".person-outstanding").first()).toContainText("400.00");
+  await expect(card.locator(".person-outstanding").first()).toContainText("150.00");
+  await expect(card).toContainText("USD");
+  await expect(page.getByText("No money records", { exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/people-horizontal-desktop.png", fullPage: true });
+  await page.setViewportSize({ width: 360, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/people-horizontal-mobile.png", fullPage: true });
+  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await page.getByRole("button", { name: "Total borrowed INR 200.00. Open People" }).click();
+  await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 });

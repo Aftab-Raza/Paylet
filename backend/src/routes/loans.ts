@@ -287,6 +287,16 @@ loansRouter.use(async (req, res, next) => {
 });
 
 // Keeps the existing dashboard LoanSummary component working.
+loansRouter.get("/people-summary", async (req, res) => {
+  const entries = await prisma.contactMoneyEntry.findMany({ where: { voidedAt: null, contact: { userId: req.session.userId! } } });
+  const byContact = new Map<string, ContactMoneyEntry[]>();
+  for (const entry of entries) {
+    const group = byContact.get(entry.contactId) ?? [];
+    group.push(entry); byContact.set(entry.contactId, group);
+  }
+  res.json({ summaries: [...byContact].map(([contactId, records]) => ({ contactId, totals: summarize(records) })) });
+});
+
 loansRouter.get("/summary", async (req, res) => {
   const contactId = req.query.contactId === undefined
     ? undefined

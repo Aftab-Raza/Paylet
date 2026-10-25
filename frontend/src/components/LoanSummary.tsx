@@ -16,6 +16,7 @@ type CurrencyTotal = {
 type Props = {
   contactId?: string;
   refreshKey?: number;
+  onOpenPeople?: () => void;
 };
 
 type Result = {
@@ -27,6 +28,7 @@ type Result = {
 export default function LoanSummary({
   contactId,
   refreshKey = 0,
+  onOpenPeople,
 }: Props) {
   const [retry, setRetry] = useState(0);
   const [result, setResult] = useState<Result | null>(null);
@@ -126,6 +128,7 @@ export default function LoanSummary({
 
           <div className="loan-summary-grid">
                         <section className="loan-summary-card lent-summary">
+              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Owed to you ${total.currency} ${total.owedToYou}. Open People`} />}
               <p className="loan-summary-label"><ArrowDownLeft size={18} /> Owed to you</p>
 
               <strong className="loan-summary-value">
@@ -147,6 +150,7 @@ export default function LoanSummary({
             </section>
 
             <section className="loan-summary-card borrowed-summary">
+              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Total borrowed ${total.currency} ${total.totalBorrowed}. Open People`} />}
               <p className="loan-summary-label"><ArrowUpRight size={18} /> Total borrowed</p>
               <strong className="loan-summary-value">
                 {total.currency} {total.totalBorrowed}

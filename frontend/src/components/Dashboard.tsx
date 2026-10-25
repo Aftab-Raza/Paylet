@@ -885,7 +885,7 @@ export default function Dashboard({
                     </div>
                     </Modal>
                 )}
-                <LoanSummary refreshKey={refresh} />
+                <LoanSummary refreshKey={refresh} onOpenPeople={() => setShowPeople(true)} />
                 {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
                 {voidTarget && <Modal title="Void this expense?" busy={busy} onClose={() => { setVoidTarget(null); setError(""); }}>
                     <p><strong>{voidTarget.purpose}</strong> · {voidTarget.currency} {voidTarget.amount}</p>

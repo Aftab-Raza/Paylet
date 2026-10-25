@@ -7,6 +7,9 @@ import { useHistoryParam } from "../lib/navigation";
 import { ArrowLeft, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
+import "./people-cards.css";
+
+type PersonTotal = { currency: string; minorUnit: number; totalLent: string; totalBorrowed: string; owedToYou: string; youOwe: string };
 
 type Contact = {
   id: string;
@@ -39,6 +42,8 @@ export default function People({ onBack }: Props) {
   const [showInvite, setShowInvite] = useState(false);
   const [selectedContactId, setSelectedContactId] = useHistoryParam("person");
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [money, setMoney] = useState<Record<string, PersonTotal[]> | null>(null);
+  const [moneyError, setMoneyError] = useState(false);
   const [linkRequests, setLinkRequests] = useState<LinkRequest[]>([]);
   const [sharedEntries, setSharedEntries] = useState<SharedEntry[]>([]);
   const [linkingContactId, setLinkingContactId] = useState<string | null>(null);
@@ -63,8 +68,9 @@ export default function People({ onBack }: Props) {
       api<{ contacts: Contact[] }>("/contacts", { signal: controller.signal }),
       api<{ requests: LinkRequest[] }>("/contacts/link-requests", { signal: controller.signal }),
       api<{ entries: SharedEntry[] }>("/contacts/shared-entries", { signal: controller.signal }),
+      api<{ summaries: { contactId: string; totals: PersonTotal[] }[] }>("/loans/people-summary", { signal: controller.signal }),
     ])
-      .then(([contactsResult, linksResult, sharedResult]) => {
+      .then(([contactsResult, linksResult, sharedResult, moneyResult]) => {
         if (controller.signal.aborted) return;
 
         if (contactsResult.status === "fulfilled") {
@@ -77,6 +83,9 @@ export default function People({ onBack }: Props) {
         }
         setLinkRequests(linksResult.status === "fulfilled" ? linksResult.value.requests : []);
         setSharedEntries(sharedResult.status === "fulfilled" ? sharedResult.value.entries : []);
+        if (moneyResult.status === "fulfilled") {
+          setMoney(Object.fromEntries(moneyResult.value.summaries.map((item) => [item.contactId, item.totals]))); setMoneyError(false);
+        } else { setMoney(null); setMoneyError(true); }
         setLoading(false);
       });
 
@@ -435,9 +444,10 @@ export default function People({ onBack }: Props) {
               </section>
             )}
 
-            <div className="people-grid">
+            <div className="people-grid people-list">
               {visibleContacts.map((contact) => (
-                <article className="profile-panel" key={contact.id}>
+                <article className="profile-panel person-card" key={contact.id}>
+                  <div className="person-identity">
                   <div className="contact-avatar" aria-hidden="true">
                     {contact.name.charAt(0).toUpperCase()}
                   </div>
@@ -460,6 +470,15 @@ export default function People({ onBack }: Props) {
                   {contact.notes && (
                     <p className="contact-note">{contact.notes}</p>
                   )}
+                  </div>
+                  <div className="person-money" aria-label={`Money with ${contact.name}`}>
+                    {moneyError ? <p className="profile-member">Amounts unavailable. <button type="button" className="person-money-retry" onClick={reload}>Retry</button></p> : !money ? <p className="profile-member">Loading amounts...</p> : !(money[contact.id]?.length) ? <p className="profile-member">No money records</p> : money[contact.id].map((total) => <div className="person-currency" key={`${total.currency}:${total.minorUnit}`}>
+                      <span className="person-currency-label">{total.currency}</span>
+                      <dl className="person-recorded"><div><dt>Lent</dt><dd>{total.totalLent}</dd></div><div><dt>Borrowed</dt><dd>{total.totalBorrowed}</dd></div></dl>
+                      <span className="person-outstanding-label">Outstanding</span><dl className="person-outstanding"><div><dt>Owed to you</dt><dd>{total.owedToYou}</dd></div><div><dt>You owe</dt><dd>{total.youOwe}</dd></div></dl>
+                    </div>)}
+                  </div>
+                  <div className="person-actions">
                   {!contact.linkedUser && !contact.isArchived && <div className="connection-card">
                     {linkingContactId === contact.id ? <form onSubmit={(event) => { event.preventDefault(); void requestLink(contact.id); }}>
                       <label htmlFor={`link-${contact.id}`}>Their exact Paylet username</label>
@@ -501,6 +520,7 @@ export default function People({ onBack }: Props) {
                     >
                       {contact.isArchived ? "Restore" : "Archive"}
                     </button>
+                  </div>
                   </div>
                 </article>
               ))}
