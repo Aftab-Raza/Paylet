@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import LoanBook from "./LoanBook";
+import { useHistoryParam } from "../lib/navigation";
 import { ArrowLeft, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
@@ -35,8 +36,7 @@ type Props = {
 
 export default function People({ onBack }: Props) {
   const [showInvite, setShowInvite] = useState(false);
-    const [selectedContactId, setSelectedContactId] =
-    useState<string | null>(null);
+  const [selectedContactId, setSelectedContactId] = useHistoryParam("person");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [linkRequests, setLinkRequests] = useState<LinkRequest[]>([]);
   const [sharedEntries, setSharedEntries] = useState<SharedEntry[]>([]);

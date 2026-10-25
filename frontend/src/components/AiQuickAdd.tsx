@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import "./ai-quick-add.css";
+import { ArrowLeft, Camera, Check, CheckCircle2, FileImage, ImagePlus, LoaderCircle, Pencil, ReceiptText, ScanLine, Sparkles, Trash2, Type, Wallet } from "lucide-react";
+import { useNavigationGuard } from "../lib/navigation";
 
 type Intent = "EXPENSE" | "LENT" | "BORROWED" | "REPAYMENT_RECEIVED" | "REPAYMENT_PAID";
 type Contact = { id: string; name: string; nickname: string | null; isArchived: boolean; version: number };
@@ -35,6 +37,12 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
   const [receipt, setReceipt] = useState<Receipt | null>(null);
   const inFlight = useRef(false);
   const mounted = useRef(true);
+  const uploadRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  useNavigationGuard(() => {
+    if (pending) { window.alert("Confirm the save result with Retry same entry before leaving this page."); return false; }
+    return !(text || photo || draft) || window.confirm("Leave and discard this unsaved entry?");
+  });
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
@@ -132,36 +140,35 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
     ? new Intl.DateTimeFormat("en", { weekday: "long", year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${draft.date}T00:00:00Z`)) : "Choose a date";
 
   return <main className="pqa">
-    <header className="pqa-header"><div><span className="pqa-kicker">PAYLET / AI QUICK ADD</span><h1>Type or scan. Review. Save.</h1><p>One expense, loan or repayment at a time.</p></div>
-      <button type="button" className="pqa-btn pqa-outline" onClick={onBack} disabled={locked}>Back to dashboard</button></header>
-    <div className="pqa-steps" aria-label="Entry steps"><span>01 · Describe</span><span>02 · Review</span><span>03 · Confirm</span></div>
+    <header className="pqa-header"><div><span className="pqa-kicker">PAYLET / AI QUICK ADD</span><h1>Add it in your own words.</h1><p>One expense, loan or repayment. You stay in control.</p></div>
+      <button type="button" className="pqa-btn pqa-outline" onClick={onBack} disabled={locked}><ArrowLeft size={18} /> Back to dashboard</button></header>
+    <div className="pqa-steps" aria-label="Entry steps"><span aria-current={!draft && !receipt ? "step" : undefined}><Type size={16} /> 1. Describe</span><span aria-current={draft ? "step" : undefined}><Pencil size={16} /> 2. Review</span><span aria-current={receipt ? "step" : undefined}><CheckCircle2 size={16} /> 3. Save</span></div>
     {loadError && <div className="pqa-error" role="alert">{loadError} <button className="pqa-btn pqa-outline" onClick={() => setLoadKey((value) => value + 1)}>Reload options</button></div>}
     {error && <div className="pqa-error" role="alert">{error}</div>}
     {receipt && <div className="pqa-success" role="status">{receipt.alreadySaved ? "This entry was already saved. No duplicate was added." : "Saved successfully."} {receipt.type === "EXPENSE" ? "Find it in expenses and the report for its date." : "Find it in People. The person's totals and dashboard lending totals have been updated."}</div>}
     {pending && <section className="pqa-card"><h2>Confirming your save</h2><p>Your reviewed entry is locked until its save is confirmed. Retry sends the same entry ID.</p><button className="pqa-btn pqa-green" type="button" disabled={busy} onClick={() => void save(pending)}>{busy ? "Saving…" : "Retry same entry"}</button></section>}
     {!loaded && !loadError && <p role="status">Loading your contacts and currencies…</p>}
     <div className="pqa-layout"><section className="pqa-card">
-      <h2>What happened?</h2><p className="pqa-muted">Type in English or Hinglish, or scan one bill photo. Purpose is optional.</p>
-      <div className="pqa-steps"><button type="button" className={`pqa-btn ${inputMode === "text" ? "pqa-blue" : "pqa-outline"}`} aria-pressed={inputMode === "text"} disabled={locked} onClick={() => switchInput("text")}>Type an entry</button><button type="button" className={`pqa-btn ${inputMode === "photo" ? "pqa-blue" : "pqa-outline"}`} aria-pressed={inputMode === "photo"} disabled={locked} onClick={() => switchInput("photo")}>Scan a bill</button></div>
+      <div className="pqa-title-row"><Sparkles size={22} /><h2>What happened?</h2></div><p className="pqa-muted">Write naturally in English or Hinglish, or use a bill photo.</p>
+      <div className="pqa-input-modes" role="group" aria-label="Input method"><button type="button" aria-pressed={inputMode === "text"} disabled={locked} onClick={() => switchInput("text")}><Type size={18} /> Type an entry</button><button type="button" aria-pressed={inputMode === "photo"} disabled={locked} onClick={() => switchInput("photo")}><ScanLine size={18} /> Scan a bill</button></div>
       <form onSubmit={(event) => void prepare(event)}>
         {inputMode === "text" ? <>
         <label htmlFor="ai-text">Your entry</label>
         <textarea id="ai-text" required minLength={3} maxLength={2000} rows={6} value={text} disabled={locked} onChange={(event) => { setText(event.target.value); setPreview(null); setDraft(null); setReviewed(false); }} placeholder="I lent Uncle 250 rupees for groceries today" />
         </> : <>
-          <label>Bill photo<input key={photoKey} type="file" accept="image/jpeg,image/png,image/webp" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} /><small>JPG, PNG or WebP · Up to 6 MB · One bill per scan</small></label>
-          <label>Take a photo<input key={`camera-${photoKey}`} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} /></label>
-          {photo && <><img src={photo.url} alt="Selected bill to scan" style={{ width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: 12, background: "#111" }} /><p className="pqa-muted">{photo.file.name}</p><button type="button" className="pqa-btn pqa-outline" disabled={locked} onClick={() => { choosePhoto(undefined); setPhotoKey((value) => value + 1); }}>Remove photo</button></>}
+          <div className="pqa-upload-actions"><button type="button" className="button button-blue" disabled={locked} onClick={() => cameraRef.current?.click()}><Camera size={28} /> Scan with camera</button><button type="button" className="button button-outline" disabled={locked} onClick={() => uploadRef.current?.click()}><ImagePlus size={28} /> Upload photo</button><p className="pqa-upload-hint">JPG, PNG or WebP · Up to 6 MB · One bill per scan</p></div><input ref={uploadRef} key={photoKey} className="pqa-hidden-input" aria-label="Bill photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} /><input ref={cameraRef} key={`camera-${photoKey}`} className="pqa-hidden-input" aria-label="Camera photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} />
+          {photo && <><img src={photo.url} alt="Selected bill to scan" className="pqa-receipt-photo" /><p className="pqa-muted">{photo.file.name}</p><button type="button" className="pqa-btn pqa-outline" disabled={locked} onClick={() => { choosePhoto(undefined); setPhotoKey((value) => value + 1); }}><Trash2 size={17} /> Remove photo</button></>}
           <label>Notes (optional)<textarea maxLength={2000} rows={2} value={photoNotes} disabled={locked} onChange={(event) => { setPhotoNotes(event.target.value); setPreview(null); setDraft(null); setReviewed(false); }} placeholder="For example: the currency is INR" /></label>
           <p className="pqa-note">This prepares one personal expense using the bill's final total. For shared bills, use Groups. Confirm only spending you actually paid.</p>
         </>}
         <p className="pqa-muted">{inputMode === "photo" ? "The selected bill image, notes and date/currency context are sent to Groq when you scan. Paylet does not keep the photo after processing." : "Only this text and date/currency context are sent to Groq."} Your saved contact list and financial history are not sent.</p>
-        <button className="pqa-btn pqa-blue" type="submit" disabled={locked || !loaded || (inputMode === "photo" && !photo)}>{busy && !pending ? "Preparing preview…" : inputMode === "photo" ? "Scan and preview" : "Prepare preview"}</button>
+        <button className="pqa-btn pqa-primary" type="submit" disabled={locked || !loaded || (inputMode === "photo" && !photo)}>{busy && !pending ? <LoaderCircle size={18} className="pqa-spinner" /> : <Sparkles size={18} />}{busy && !pending ? "Preparing preview..." : inputMode === "photo" ? "Scan and review" : "Review with AI"}</button>
       </form>
       {inputMode === "text" && <div className="pqa-examples"><span className="pqa-muted">Try an example</span>{["I spent 200 rupees on lunch today", "Maine Uncle ko 250 rupees udhaar diye groceries ke liye", "Uncle returned 200 rupees of the money I lent him today"].map((example) => <button type="button" key={example} disabled={locked} onClick={() => { setText(example); setPreview(null); setDraft(null); setReviewed(false); }}>{example}</button>)}</div>}
     </section>
-    <section className="pqa-card" aria-live="polite">
-      <h2>Review your entry</h2>
-      {!preview && !draft && <p className="pqa-muted">Your preview will appear here. Nothing is saved until you confirm.</p>}
+    <section className="pqa-card" aria-live="polite" id="ai-review">
+      <div className="pqa-title-row"><ReceiptText size={22} /><h2>Review your entry</h2></div>
+      {!preview && !draft && <div className="pqa-empty-review">{busy ? <LoaderCircle size={38} className="pqa-spinner" /> : <FileImage size={42} />}<h3>{busy ? "Reading your entry..." : "Your next entry starts here"}</h3><p>{busy ? "Preparing the details for you to check." : "Add a description or a bill photo. Nothing is saved until you review and confirm."}</p></div>}
       {preview && <>
         {preview.draft.merchantName && <p><strong>Merchant detected:</strong> {preview.draft.merchantName}<br /><small>The merchant name prefills Purpose. Keep it there to include it in your saved expense, or edit/clear it.</small></p>}
         {preview.draft.questions.length > 0 && <div className="pqa-note"><ul>{preview.draft.questions.map((question, index) => <li key={index}>{question}</li>)}</ul></div>}
@@ -169,7 +176,7 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
         {preview.draft.intent === "UNSUPPORTED" && <p>This entry is outside Quick Add. Use Groups for shared expenses or the relevant dashboard screen.</p>}
         {preview.draft.defaultsUsed.length > 0 && draft && <p className="pqa-muted">Defaults used: {preview.draft.defaultsUsed.join("; ")}. Check these below.</p>}
       </>}
-      {draft && loaded && <form onSubmit={confirm}>
+      {draft && loaded && <><div className="pqa-review-amount"><Wallet size={23} /> {draft.currency} {draft.amount || "0"}</div><div className="pqa-review-tools"><button type="button" className="pqa-btn pqa-blue" disabled={locked} onClick={() => document.querySelector<HTMLSelectElement>("#ai-review select")?.focus()}><Pencil size={16} /> Edit details</button><button type="button" className="pqa-btn pqa-outline" disabled={locked} onClick={() => { setDraft(null); setPreview(null); setReviewed(false); }}><Trash2 size={16} /> Remove draft</button></div><form onSubmit={confirm}>
         <fieldset disabled={locked} className="pqa-fields">
           <label>Entry type<select value={draft.intent} onChange={(event) => { change("intent", event.target.value as Intent); if (draft.contactId === "new") change("contactId", ""); }}>{Object.entries(labels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
           {draft.intent !== "EXPENSE" && <>
@@ -189,10 +196,10 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
           {draft.intent === "EXPENSE" && <label>Category<select value={draft.category} onChange={(event) => change("category", event.target.value)}>{loaded.options.categories.map((category) => <option key={category}>{category}</option>)}</select></label>}
           <div className="pqa-note">{draft.intent === "EXPENSE" ? "Adds to your personal spending for this date." : draft.intent === "LENT" ? "Increases the amount this person owes you." : draft.intent === "BORROWED" ? "Increases the amount you owe this person." : draft.intent === "REPAYMENT_RECEIVED" ? "Reduces this person's total owed to you. It is not income or a personal expense." : "Reduces your total owed to this person. It is not counted again as spending."}</div>
           <label className="pqa-check"><input type="checkbox" checked={reviewed} onChange={(event) => setReviewed(event.target.checked)} required /><span>I checked the type, person, amount, currency, purpose and date.{draft.contactId === "new" ? " Create this private contact with the entry." : ""}</span></label>
-          <button type="submit" className="pqa-btn pqa-green" disabled={!reviewed || (draft.intent !== "EXPENSE" && (!draft.contactId || Boolean(person?.isArchived && !repayment)))}>Confirm and save</button>
+          <button type="submit" className="pqa-btn pqa-green" disabled={!reviewed || (draft.intent !== "EXPENSE" && (!draft.contactId || Boolean(person?.isArchived && !repayment)))}><Check size={18} /> Confirm and save</button>
         </fieldset>
         <p className="pqa-muted">Loan and repayment entries cannot be edited after saving. Delete and recreate an incorrect entry from People.</p>
-      </form>}
+      </form></>}
     </section></div>
   </main>;
 }

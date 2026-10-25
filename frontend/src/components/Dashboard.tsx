@@ -14,6 +14,7 @@ import "./groups.css";
 import { ArrowDownLeft, ArrowUpRight, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
+import { openScreen, useScreen } from "../lib/navigation";
 
 type Expense = {
     source?: "PERSONAL" | "SHARED";
@@ -92,17 +93,16 @@ export default function Dashboard({
     logoutBusy,
     logoutError,
 }: Props) {
-    const [showAi, setShowAi] = useState(false);
-    const [showProfile, setShowProfile] = useState(false);
-    const [showPeople, setShowPeople] = useState(false);
-    const [showReports, setShowReports] = useState(false);
-    const [showGroups, setShowGroups] = useState(false);
+    const [showAi, setShowAi] = useScreen("ai");
+    const [showProfile, setShowProfile] = useScreen("profile");
+    const [showPeople, setShowPeople] = useScreen("people");
+    const [showReports, setShowReports] = useScreen("reports");
+    const [showGroups, setShowGroups] = useScreen("groups");
     const [showInvite, setShowInvite] = useState(false);
     const [query, setQuery] = useState("");
     const [category, setCategory] = useState("");
     const [showVoided, setShowVoided] = useState(false);
     const [voidTarget, setVoidTarget] = useState<Expense | null>(null);
-    const [groupToOpen, setGroupToOpen] = useState<string | null>(null);
     const groupInvites = useGroupInvitations();
 
     const [month, setMonth] = useState(
@@ -110,6 +110,17 @@ export default function Dashboard({
     );
 
     const [refresh, setRefresh] = useState(0);
+    useEffect(() => {
+        let previousScreen = new URLSearchParams(location.search).get("screen");
+        function refreshAfterBack() {
+            const currentScreen = new URLSearchParams(location.search).get("screen");
+            if (previousScreen && !currentScreen) setRefresh((value) => value + 1);
+            previousScreen = currentScreen;
+        }
+        window.addEventListener("popstate", refreshAfterBack);
+        window.addEventListener("paylet:navigate", refreshAfterBack);
+        return () => { window.removeEventListener("popstate", refreshAfterBack); window.removeEventListener("paylet:navigate", refreshAfterBack); };
+    }, []);
 
     const [loaded, setLoaded] = useState<{
         month: string;
@@ -308,10 +319,8 @@ export default function Dashboard({
     if (showGroups) {
         return (
             <Groups
-                initialGroupId={groupToOpen}
                 onBack={() => {
                     setShowGroups(false);
-                    setGroupToOpen(null);
                     setRefresh((value) => value + 1);
                 }}
             />
@@ -426,7 +435,7 @@ export default function Dashboard({
                 {groupInvites.error && <p className="pg-muted">Group notifications unavailable. Open Groups to retry.</p>}
             </div>
 
-            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => { setGroupToOpen(groupId); setShowGroups(true); }}/>
+            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => openScreen("groups", { group: groupId })}/>
 
             <section className="dashboard-page">
                 <div className="dashboard-heading">
@@ -758,7 +767,7 @@ export default function Dashboard({
 
                         {visibleExpenses.map((expense) => (
                             <article
-                                className={`expense-row ${expense.voidedAt ? "is-void" : ""
+                                className={`expense-row expense-tone-${expense.category === "Food" || expense.category === "Groceries" ? "food" : expense.category === "Travel" ? "travel" : "other"} ${expense.voidedAt ? "is-void" : ""
                                     }`}
                                 key={expense.id}
                             >
@@ -822,7 +831,7 @@ export default function Dashboard({
                                         )}
 
                                         {expense.source === "SHARED" ? (
-                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => { setGroupToOpen(expense.groupId ?? null); setShowGroups(true); }}><Users size={15} /> View in Groups</button>
+                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => openScreen("groups", expense.groupId ? { group: expense.groupId } : {})}><Users size={15} /> View in Groups</button>
                                         ) : (
                                             <button type="button" className="button button-outline" disabled={disabled} onClick={() => void openHistory(expense)}><History size={15} /> History</button>
                                         )}

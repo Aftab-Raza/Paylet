@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
+import GoogleIcon from "./GoogleIcon";
 
 type GoogleAuthProps = {
   link?: boolean;
@@ -114,7 +115,7 @@ export default function GoogleAuth({
             disabled={disabled}
             onClick={() => window.location.assign("/api/auth/google")}
           >
-            Sign in with Google
+            <GoogleIcon /> Sign in with Google
           </button>
         </>
       )}

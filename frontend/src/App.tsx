@@ -11,18 +11,20 @@ import GoogleAuth from "./components/GoogleAuth";
 import Dashboard from "./components/Dashboard";
 import LandingPage from "./components/LandingPage";
 import Modal from "./components/Modal";
+import ThemeToggle from "./components/ThemeToggle";
+import PasswordRecovery from "./components/PasswordRecovery";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, EyeOff, LogOut, ShieldCheck, Users } from "lucide-react";
 
 
 
 type Mode = "login" | "register";
-type View = "home" | "login" | "register" | "dashboard";
+type View = "home" | "login" | "register" | "dashboard" | "forgot" | "reset";
 function currentView(): View {
   const params = new URLSearchParams(window.location.search);
   if (params.get("join") === "paylet") return "register";
   if (params.has("google")) return params.get("google") === "linked" ? "dashboard" : "login";
   const view = params.get("view");
-  return view === "login" || view === "register" || view === "dashboard" ? view : "home";
+  return view === "login" || view === "register" || view === "dashboard" || view === "forgot" || view === "reset" ? view : "home";
 }
 
 
@@ -61,14 +63,16 @@ function App() {
 
   const isRegister = mode === "register";
 
-  function navigate(next: View) {
+  function navigate(next: View, replace = false) {
     const url = new URL(window.location.href);
     url.searchParams.delete("join");
     url.searchParams.delete("google");
+    for (const key of ["screen", "person", "group"]) url.searchParams.delete(key);
     url.hash = "";
     if (next === "home") url.searchParams.delete("view");
     else url.searchParams.set("view", next);
-    window.history.pushState(null, "", url);
+    if (replace) window.history.replaceState(null, "", url);
+    else window.history.pushState(null, "", url);
     setView(next);
     if (next === "login" || next === "register") setMode(next);
     setError("");
@@ -229,7 +233,7 @@ function App() {
 
 
       setUser(result.user);
-      navigate("dashboard");
+      navigate("dashboard", true);
 
       setPassword("");
 
@@ -319,8 +323,12 @@ function App() {
     <div className="profile-actions"><button className="button button-outline" data-autofocus disabled={busy} onClick={() => { setConfirmLogout(false); setError(""); }}>Stay signed in</button><button className="button button-danger" disabled={busy} onClick={() => void handleLogout()}><LogOut size={18} />{busy ? "Logging out..." : "Yes, log out"}</button></div>
   </Modal>;
 
+  if (view === "forgot" || view === "reset") {
+    return <><ThemeToggle /><PasswordRecovery key={view} reset={view === "reset"} onLogin={() => { setUser(null); navigate("login"); }} onForgot={() => navigate("forgot")} /></>;
+  }
+
   if (view === "home") {
-    return <><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
+    return <><ThemeToggle /><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
   }
 
   if (checking || sessionError) {
@@ -379,7 +387,7 @@ function App() {
 
      if (user) {
     return (
-      <><Dashboard
+      <><ThemeToggle /><Dashboard
         user={user}
         onUserChange={setUser}
         onLogout={requestLogout}
@@ -393,7 +401,7 @@ function App() {
 
   return (
 
-    <main className="auth-layout">
+    <><ThemeToggle /><main className="auth-layout">
 
       <section className="intro-panel" aria-label="About Paylet">
 
@@ -882,6 +890,7 @@ function App() {
 
           </form>
 
+          {!isRegister && <button type="button" className="forgot-password-link" disabled={busy} onClick={() => navigate("forgot")}>Forgot password?</button>}
           <GoogleAuth disabled={busy} />
 
 
@@ -896,7 +905,7 @@ function App() {
 
       </section>
 
-    </main>
+    </main></>
 
   );
 

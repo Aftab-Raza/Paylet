@@ -64,7 +64,7 @@ const dummyHash = argon2.hash(
   { type: argon2.argon2id }
 );
 
-async function startSession(req: Request, userId: string) {
+async function startSession(req: Request, userId: string, authVersion = 0) {
   await new Promise<void>((resolve, reject) => {
     req.session.regenerate((error) => {
       if (error) reject(error);
@@ -73,6 +73,7 @@ async function startSession(req: Request, userId: string) {
   });
 
   req.session.userId = userId;
+  req.session.authVersion = authVersion;
 
   await new Promise<void>((resolve, reject) => {
     req.session.save((error) => {
@@ -161,7 +162,7 @@ authRouter.post("/login", authLimiter, async (req, res) => {
     return;
   }
 
-  await startSession(req, user.id);
+  await startSession(req, user.id, user.authVersion);
 
   const publicUser = await prisma.user.findUnique({
     where: { id: user.id },

@@ -49,6 +49,8 @@ async function createLoginSession(req: Request, userId: string) {
   });
 
   req.session.userId = userId;
+  const current = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { authVersion: true } });
+  req.session.authVersion = current.authVersion;
   await saveSession(req);
 }
 

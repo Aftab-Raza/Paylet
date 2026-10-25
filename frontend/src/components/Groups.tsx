@@ -7,6 +7,7 @@ import GroupBills from "./GroupBills";
 import SettlementNotifications from "./SettlementNotifications";
 import { ArrowLeft, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
+import { useHistoryParam } from "../lib/navigation";
 
 type Person = { id: string; username: string; displayName: string };
 type Group = { id: string; name: string; ownerId: string; members: { id: string; userId: string | null; contactId: string | null; offline: boolean; user: Person }[] };
@@ -133,10 +134,10 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   </>;
 }
 
-export default function Groups({ onBack, initialGroupId }: { onBack: () => void; initialGroupId?: string | null }) {
+export default function Groups({ onBack }: { onBack: () => void; initialGroupId?: string | null }) {
   const [data, setData] = useState<Listing | null>(null);
   const [revision, setRevision] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(initialGroupId ?? null);
+  const [selectedId, setSelectedId] = useHistoryParam("group");
   const [draft, setDraft] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);

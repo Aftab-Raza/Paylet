@@ -16,6 +16,8 @@ model User {
   username           String                   @unique @db.VarChar(30)
   displayName        String                   @db.VarChar(100)
   passwordHash       String?
+  authVersion        Int                      @default(0)
+  passwordResets     PasswordResetToken[]
   googleId           String?                  @unique
   avatarUrl          String?
   bio                String?                  @db.VarChar(250)
@@ -37,6 +39,17 @@ model User {
   settlementActions  GroupSettlementHistory[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  tokenHash String @id @db.VarChar(64)
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 model Expense {

@@ -228,6 +228,10 @@ for (const owner of [true, false]) {
       await expect(bill).toBeVisible();
       await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(0);
     }
+    await page.goBack();
+    await expect(page.getByRole("heading", { name: "Your groups", exact: true })).toBeVisible();
+    await page.goForward();
+    await expect(page.getByRole("heading", { name: "Weekend", exact: true })).toBeVisible();
   });
 }
 
@@ -349,6 +353,125 @@ test("cinematic hero fits short phones and wide screens with a visible next sect
     await page.locator(".landing-hero-image").evaluate((image) => (image as HTMLImageElement).decode());
     await page.screenshot({ path: `test-results/cinematic-${width}-${height}.png` });
   }
+});
+
+test("theme preference persists and expense cards keep strong colors", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?view=dashboard");
+  if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
+  const expense = page.getByRole("article").filter({ hasText: "Lunch with friends" });
+  await expect(expense).toBeVisible();
+  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(109, 40, 217)");
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(page.getByRole("heading", { name: "Lunch with friends" })).toBeVisible();
+  await page.screenshot({ path: "test-results/dashboard-dark.png", fullPage: true });
+  await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(32, 31, 43)");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await page.screenshot({ path: "test-results/dashboard-purple-light.png", fullPage: true });
+});
+
+test("phone Back closes an expense dialog before leaving the dashboard", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
+  await expect(page.getByRole("dialog", { name: "Add expense", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+});
+
+test("phone Back returns from a person's history to People and then dashboard", async ({ page }) => {
+  await mockApi(page);
+  const contact = { id: "contact-1", name: "Priya", nickname: null, notes: null, isArchived: false, version: 1, linkedUser: null, linkRequest: null };
+  await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: [contact] } }));
+  await page.route(/\/api\/loans\?/, (route) => route.fulfill({ json: { contact, entries: [], totals: [] } }));
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "People", exact: true }).click();
+  await expect(page).toHaveURL(/screen=people/);
+  await page.getByRole("button", { name: "Money history" }).click();
+  await expect(page).toHaveURL(/person=contact-1/);
+  await expect(page.getByRole("heading", { name: "Priya", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Priya", exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
+  await expect(page).not.toHaveURL(/person=/);
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
+});
+
+test("password recovery sends an email request, rejects mismatches, and submits a reset token", async ({ page }) => {
+  await mockApi(page, false);
+  await page.route("**/api/auth/forgot-password", (route) => {
+    expect(route.request().postDataJSON()).toEqual({ email: "alex@example.com" });
+    return route.fulfill({ json: { message: "If an account uses that email, you will receive a password-reset link." } });
+  });
+  const token = "a".repeat(64);
+  let resets = 0;
+  await page.route("**/api/auth/reset-password", (route) => { resets++; expect(route.request().postDataJSON()).toEqual({ token, password: "new-password-for-test" }); return route.fulfill({ json: { message: "Password updated. Sign in with your new password." } }); });
+  await page.goto("/?view=login");
+  await expect(page.getByRole("button", { name: "Sign in with Google" }).locator("svg")).toBeVisible();
+  await page.getByRole("button", { name: "Forgot password?" }).click();
+  await page.getByLabel("Email address").fill("alex@example.com");
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page.getByRole("status")).toContainText("If an account uses that email");
+  await page.goto(`/?view=reset#token=${token}`);
+  await page.getByLabel("New password", { exact: true }).fill("new-password-for-test");
+  await page.getByLabel("Confirm new password").fill("a-different-password");
+  await page.getByRole("button", { name: "Save new password" }).click();
+  await expect(page.getByRole("alert")).toHaveText("The passwords do not match.");
+  expect(resets).toBe(0);
+  await page.getByLabel("Confirm new password").fill("new-password-for-test");
+  await page.getByRole("button", { name: "Save new password" }).click();
+  await expect(page.getByRole("status")).toContainText("Password updated");
+  await expect(page).not.toHaveURL(/token=/);
+  await page.getByRole("button", { name: "Back to log in" }).click();
+  await expect(page.getByLabel("Email address")).toBeVisible();
+  expect(resets).toBe(1);
+});
+
+test("AI text and photo previews require review and reuse the same ID on a failed save", async ({ page }) => {
+  await mockApi(page);
+  const draft = { intent: "EXPENSE", amount: "120.00", currency: "INR", date: "2026-10-25", purpose: "Canteen lunch", category: "Food", contactName: null, questions: [], defaultsUsed: [] };
+  await page.route("**/api/ai/preview", (route) => { expect(route.request().postDataJSON()).toEqual({ text: "Spent 120 on canteen lunch" }); return route.fulfill({ json: { draft, matchedContactIds: [] } }); });
+  await page.route("**/api/ai/receipt-preview", (route) => {
+    expect(route.request().headers()["content-type"]).toContain("multipart/form-data");
+    expect(route.request().postDataBuffer()?.toString()).toContain('name="bill"');
+    return route.fulfill({ json: { draft, matchedContactIds: [] } });
+  });
+  const ids: string[] = [];
+  await page.route("**/api/ai/confirm", (route) => { ids.push(route.request().postDataJSON().id); return route.fulfill({ status: ids.length === 1 ? 503 : 201, json: ids.length === 1 ? { message: "Try again." } : { receipt: { id: ids[0], type: "EXPENSE", contactId: null, alreadySaved: true } } }); });
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
+  await page.getByLabel("Your entry").fill("Spent 120 on canteen lunch");
+  await page.getByRole("button", { name: "Review with AI" }).click();
+  await expect(page.getByRole("button", { name: "Confirm and save" })).toBeDisabled();
+  await page.getByLabel(/I checked the type/).check();
+  await page.getByRole("button", { name: "Confirm and save" }).click();
+  await expect(page.getByRole("button", { name: "Retry same entry" })).toBeVisible();
+  await page.getByRole("button", { name: "Retry same entry" }).click();
+  await expect(page.getByRole("status")).toContainText("No duplicate was added");
+  expect(ids).toHaveLength(2); expect(ids[0]).toBe(ids[1]);
+  await page.getByRole("button", { name: "Scan a bill", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Scan with camera" }).locator("svg")).toBeVisible();
+  await page.getByLabel("Bill photo", { exact: true }).setInputFiles({ name: "bill.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=", "base64") });
+  await expect(page.getByAltText("Selected bill to scan")).toBeVisible();
+  await page.getByRole("button", { name: "Scan and review" }).click();
+  await expect(page.getByLabel("Purpose (optional)")).toHaveValue("Canteen lunch");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: "test-results/ai-photo-review-mobile.png", fullPage: true });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Add it in your own words." })).toBeVisible();
 });
 
 for (const width of [320, 360, 390, 768, 1440]) {

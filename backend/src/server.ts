@@ -6,6 +6,7 @@ import { prisma } from "./lib/prisma.js";
 import { sessionMiddleware, sessionPool } from "./lib/session.js";
 
 import { authRouter } from "./routes/auth.js";
+import { passwordResetRouter } from "./routes/passwordReset.js";
 import { googleRouter } from "./routes/google.js";
 import { profileRouter } from "./routes/profile.js";
 import { expensesRouter } from "./routes/expenses.js";
@@ -18,6 +19,7 @@ import { aiRouter } from "./routes/ai.js";
 
 import { runtimeConfig } from "./lib/runtimeConfig.js";
 import { authenticatedCloudProxy } from "./lib/cloudProxy.js";
+import { sessionVersionGuard } from "./lib/sessionVersion.js";
 
 const app = express();
 const { port, host, appOrigin, trustProxy, proxySecret } = runtimeConfig(process.env);
@@ -61,7 +63,8 @@ app.get("/api/health/db", async (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
 
   try {
-    await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
+    await prisma.user.findFirst({ select: { authVersion: true } });
+    await prisma.passwordResetToken.findFirst({ select: { tokenHash: true } });
 
     res.json({
       status: "ok",
@@ -81,9 +84,11 @@ app.get("/api/health/db", async (_req, res) => {
 });
 
 app.use("/api", sessionMiddleware);
+app.use("/api", sessionVersionGuard);
 
 app.use("/api/auth", googleRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/auth", passwordResetRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/ai", aiRouter);
 app.use("/api/expenses", expensesRouter);
@@ -120,7 +125,8 @@ async function closeDatabaseConnections() {
 
 async function start() {
   try {
-    await prisma.$queryRaw`SELECT 1 FROM users LIMIT 1`;
+    await prisma.user.findFirst({ select: { authVersion: true } });
+    await prisma.passwordResetToken.findFirst({ select: { tokenHash: true } });
     const server = app.listen(port, host, () => {
       console.log(`Paylet API listening on ${host}:${port}`);
       console.log("PostgreSQL query succeeded");
