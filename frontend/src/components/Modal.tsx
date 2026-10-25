@@ -7,9 +7,11 @@ type Props = {
   children: ReactNode;
   onClose: () => void;
   busy?: boolean;
+  className?: string;
+  showClose?: boolean;
 };
 
-export default function Modal({ title, children, onClose, busy = false }: Props) {
+export default function Modal({ title, children, onClose, busy = false, className = "", showClose = true }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const handleBack = useEffectEvent((event: PopStateEvent) => {
@@ -49,7 +51,7 @@ export default function Modal({ title, children, onClose, busy = false }: Props)
   }, [titleId]);
 
   return (
-    <dialog ref={dialogRef} className="paylet-modal" aria-labelledby={titleId}
+    <dialog ref={dialogRef} className={`paylet-modal ${className}`} aria-labelledby={titleId}
       onKeyDown={(event) => {
         if (event.key !== "Tab") return;
         const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
@@ -64,8 +66,8 @@ export default function Modal({ title, children, onClose, busy = false }: Props)
       onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}>
       <div className="modal-heading">
         <h2 id={titleId}>{title}</h2>
-        <button type="button" className="button button-outline icon-button" aria-label="Close dialog"
-          title="Close dialog" disabled={busy} onClick={onClose}><X size={20} /></button>
+        {showClose && <button type="button" className="button button-outline icon-button" aria-label="Close dialog"
+          title="Close dialog" disabled={busy} onClick={onClose}><X size={20} /></button>}
       </div>
       <div className="modal-body">{children}</div>
     </dialog>

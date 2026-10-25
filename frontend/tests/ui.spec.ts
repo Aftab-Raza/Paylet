@@ -271,16 +271,17 @@ test("logout requires confirmation, cancel preserves session, and failure can re
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Stay signed in" })).toBeFocused();
-  await dialog.getByRole("button", { name: "Stay signed in" }).click();
+  await expect(dialog.getByRole("button")).toHaveCount(2);
+  await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeFocused();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   expect(logoutCalls).toBe(0);
   await page.getByRole("banner").getByRole("button", { name: "Dashboard", exact: true }).click();
   await page.getByRole("button", { name: "My profile" }).click();
   await page.getByRole("button", { name: "Log out", exact: true }).click();
-  await dialog.getByRole("button", { name: "Yes, log out" }).click();
+  await dialog.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("Please try again.");
   await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Yes, log out" }).click();
+  await dialog.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("button", { name: "Log in", exact: true })).toBeVisible();
@@ -737,5 +738,21 @@ test("dashboard shortcuts use bold ivory icons in both themes", async ({ page })
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
     await page.setViewportSize({ width: 320, height: 700 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});
+test("logout gradient fits mobile in both themes with only two buttons", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/");
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    await page.getByRole("button", { name: "Log out", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
+    await expect(dialog.getByRole("button")).toHaveCount(2);
+    expect(await dialog.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
+    const box = await dialog.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(360);
+    await dialog.screenshot({ path: `test-results/logout-simple-${theme}.png` });
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   }
 });

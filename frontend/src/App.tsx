@@ -318,10 +318,10 @@ function App() {
     setConfirmLogout(true);
   }
 
-  const logoutDialog = confirmLogout && <Modal title="Log out of Paylet?" busy={busy} onClose={() => { setConfirmLogout(false); setError(""); }}>
-    <p className="logout-confirm-copy">Are you sure you want to log out? You can sign in again whenever you are ready.</p>
+  const logoutDialog = confirmLogout && <Modal title="Log out of Paylet?" className="logout-modal" showClose={false} busy={busy} onClose={() => { setConfirmLogout(false); setError(""); }}>
+    <p className="logout-confirm-copy">Are you sure you want to log out?</p>
     {error && <p className="error-message" role="alert">{error}</p>}
-    <div className="profile-actions"><button className="button button-outline" data-autofocus disabled={busy} onClick={() => { setConfirmLogout(false); setError(""); }}>Stay signed in</button><button className="button button-danger" disabled={busy} onClick={() => void handleLogout()}><LogOut size={18} />{busy ? "Logging out..." : "Yes, log out"}</button></div>
+    <div className="logout-actions"><button className="button button-outline" data-autofocus disabled={busy} onClick={() => { setConfirmLogout(false); setError(""); }}>Cancel</button><button className="button button-danger" disabled={busy} onClick={() => void handleLogout()}><LogOut size={18} />{busy ? "Logging out..." : "Log out"}</button></div>
   </Modal>;
 
   if (view === "forgot" || view === "reset") {
