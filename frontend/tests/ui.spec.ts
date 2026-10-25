@@ -313,10 +313,8 @@ for (const width of [320, 390, 1440]) {
     await outstanding.scrollIntoViewIfNeeded();
     await page.screenshot({ path: `test-results/lending-${width}.png`, fullPage: true });
     await page.goto("/");
-    const hero = page.locator(".landing-hero-image");
+    const hero = page.locator(".landing-interactive-hero");
     await expect(hero).toBeVisible();
-    await expect.poll(() => hero.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-    await hero.evaluate((image) => (image as HTMLImageElement).decode());
     const preview = page.locator(".landing-product");
     await preview.scrollIntoViewIfNeeded();
     await expect.poll(() => preview.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
@@ -352,8 +350,7 @@ test("cinematic hero fits short phones and wide screens with a visible next sect
     expect(action!.y + action!.height).toBeLessThanOrEqual(hero!.y + hero!.height);
     expect((await page.locator("#about").boundingBox())!.y).toBeLessThan(height);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await expect.poll(() => page.locator(".landing-hero-image").evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
-    await page.locator(".landing-hero-image").evaluate((image) => (image as HTMLImageElement).decode());
+    await expect(page.locator(".hero-split")).toBeVisible();
     await page.screenshot({ path: `test-results/cinematic-${width}-${height}.png` });
   }
 });
@@ -379,7 +376,7 @@ test("theme preference persists and expense cards keep strong colors", async ({ 
   await page.screenshot({ path: "test-results/dashboard-dark.png", fullPage: true });
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(32, 31, 43)");
+  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 10, 10)");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   await page.screenshot({ path: "test-results/dashboard-purple-light.png", fullPage: true });
@@ -585,4 +582,71 @@ test("hero shows the real aggregate count and omits unavailable counts", async (
   await page.reload();
   await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
   await expect(page.locator(".landing-community-count strong")).toHaveCount(0);
+});
+test("landing redesign separates sections and supports hover and reduced motion", async ({ page }) => {
+  await mockApi(page, false);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/");
+  if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  const card = page.locator(".landing-money-card").first();
+  await card.scrollIntoViewIfNeeded();
+  await card.hover();
+  await expect.poll(() => card.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
+  const background = (selector: string) => page.locator(selector).evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(await background(".landing-feature-band")).not.toBe(await background(".landing-showcase"));
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: "test-results/landing-redesign-dark.png", fullPage: true });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect.poll(() => card.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await card.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: "test-results/landing-redesign-mobile.png", fullPage: true });
+});
+
+test("capture current Paylet dashboard for landing product preview", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/auth/me", (route) => route.fulfill({ json: { user: { ...user, displayName: "Alex", username: "alex" } } }));
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await page.goto("/?view=dashboard");
+  if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(page.getByRole("heading", { name: "Lunch with friends" })).toBeVisible();
+  await page.screenshot({ path: "test-results/paylet-preview-current.png" });
+});
+test("deep black theme applies across the app without changing light mode", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?view=dashboard");
+  if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  expect(await page.locator(".summary-card").first().evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 10, 10)");
+  await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
+  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  await page.goto("/");
+  expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  await page.screenshot({ path: "test-results/landing-deep-black.png" });
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
+});
+test("hero bill demo splits every paisa locally and validates input", async ({ page }) => {
+  const writes = await mockApi(page, false);
+  await page.goto("/");
+  const demo = page.getByRole("group", { name: "Split the next bill" });
+  await expect(demo.locator(".hero-split-result strong")).toContainText("300.00");
+  await page.getByRole("button", { name: "Fewer friends" }).click();
+  await page.getByLabel("Bill amount").fill("1000");
+  await expect(demo.locator(".hero-split-result strong")).toContainText("333.33");
+  await expect(demo.locator(".hero-split-note")).toContainText("333.34");
+  await page.getByLabel("Bill amount").fill("-10");
+  await expect(page.getByLabel("Bill amount")).toHaveAttribute("aria-invalid", "true");
+  await expect(demo.locator(".hero-split-result strong")).toHaveText("--");
+  await page.getByLabel("Bill amount").fill("0.01");
+  await expect(demo.locator(".hero-split-note")).toContainText("Every paisa accounted for");
+  await page.getByRole("button", { name: "Fewer friends" }).click();
+  await expect(page.getByRole("button", { name: "Fewer friends" })).toBeDisabled();
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.screenshot({ path: "test-results/hero-split-mobile.png" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(writes).toHaveLength(0);
 });

@@ -1,5 +1,5 @@
 :root { --page-bg: #f7f7fb; --surface: #fff; --surface-alt: #f0f1f7; --text: #242332; --muted: #636176; --border: #dadbe7; --purple: #7c3aed; --orange: #7c3aed; --blue-soft: #e9f0ff; --blue-text: #1e4fba; --danger-bg: #fff0f3; --danger-text: #ac253c; --success-bg: #eaf8f0; --success-text: #17683e; }
-:root[data-theme="dark"] { color-scheme: dark; --page-bg: #14131b; --surface: #201f2b; --surface-alt: #2a2938; --text: #f3f1fa; --muted: #b5b2c7; --border: #454153; --purple: #b28aff; --orange: #b28aff; --blue-soft: #1c3155; --blue-text: #a7cbff; --danger-bg: #442431; --danger-text: #ffb5c5; --success-bg: #173b30; --success-text: #95e4bd; --green: #91ddb6; --blue: #a7cbff; --yellow: #f2d18a; --red: #ffb5c5; }
+:root[data-theme="dark"] { color-scheme: dark; --page-bg: #000; --surface: #0a0a0a; --surface-alt: #141414; --text: #f3f1fa; --muted: #b5b2c7; --border: #333; --purple: #b28aff; --orange: #b28aff; --blue-soft: #101d30; --blue-text: #a7cbff; --danger-bg: #28131b; --danger-text: #ffb5c5; --success-bg: #0c241b; --success-text: #95e4bd; --green: #91ddb6; --blue: #a7cbff; --yellow: #f2d18a; --red: #ffb5c5; }
 body { color: var(--text); background: var(--page-bg); }
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; min-width: 40px; padding: 0; flex-shrink: 0; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 .auth-brand-header, .recovery-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -31,7 +31,7 @@ body { color: var(--text); background: var(--page-bg); }
 .home-page .expense-row .button-danger { color: #a82643; }
 .home-page .expense-row.is-void { background: var(--surface-alt); border-color: var(--border); color: var(--text); }
 .home-page .expense-row.is-void h3, .home-page .expense-row.is-void p, .home-page .expense-row.is-void strong { color: var(--muted); }
-[data-theme="dark"] .intro-panel { background: #221b31; }
+[data-theme="dark"] .intro-panel { background: #050505; }
 [data-theme="dark"] .mode-switch, [data-theme="dark"] .status-box { background: var(--surface-alt); }
 [data-theme="dark"] .button-purple, [data-theme="dark"] .action-symbol.purple { color: #e4d3ff; background: #493169; }
 [data-theme="dark"] .blue, [data-theme="dark"] .icon-blue { background: #243a5a; color: #acd0ff; }
