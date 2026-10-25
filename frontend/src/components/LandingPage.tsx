@@ -3,6 +3,7 @@ import type { User } from "../lib/api";
 import "./landing.css";
 import ThemeToggle from "./ThemeToggle";
 import Testimonials from "./Testimonials";
+import CommunityCount from "./CommunityCount";
 
 type Props = {
   user: User | null;
@@ -36,6 +37,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
           <p className="landing-hero-description">Track your spending. Split the bill.<br className="landing-desktop-break" /> Keep money between friends clear.</p>
           <div className="landing-hero-actions"><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Open dashboard" : "Get started"}<ArrowRight size={18} /></button><a href="#about">Explore Paylet <ChevronRight size={17} /></a></div>
           <div className="landing-hero-benefits"><span><Check size={15} /> No bank connection</span><span><Check size={15} /> Your records stay private</span></div>
+          <CommunityCount />
         </div>
       </section>
       <section id="about" className="landing-about landing-width">

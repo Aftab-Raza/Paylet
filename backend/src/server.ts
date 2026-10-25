@@ -15,6 +15,7 @@ import { loansRouter } from "./routes/loans.js";
 import { reportsRouter } from "./routes/reports.js";
 import { groupsRouter } from "./routes/groups.js";
 import { testimonialsRouter } from "./routes/testimonials.js";
+import { communityRouter } from "./routes/community.js";
 
 import { aiRouter } from "./routes/ai.js";
 
@@ -98,6 +99,7 @@ app.use("/api/loans", loansRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/groups", groupsRouter);
 app.use("/api/testimonials", testimonialsRouter);
+app.use("/api/community", communityRouter);
 
 const errorHandler: ErrorRequestHandler = (
   error,

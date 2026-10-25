@@ -30,6 +30,7 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/contacts/shared-entries") data = { entries: [] };
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
+    else if (path === "/community/stats") data = { users: 1250 };
     else if (path === "/testimonials") data = { testimonials: [] };
     else if (path === "/testimonials/mine") data = { testimonial: null };
     else if (path.startsWith("/reports")) data = { month: "2026-10", name: "October 2026", count: 0, currencies: [], expenses: [] };
@@ -575,4 +576,13 @@ test("visitors can read testimonials but must log in to write", async ({ page })
   await page.goto("/");
   await page.getByRole("button", { name: "Log in to write", exact: true }).click();
   await expect(page.getByLabel("Email address")).toBeVisible();
+});
+test("hero shows the real aggregate count and omits unavailable counts", async ({ page }) => {
+  await mockApi(page, false);
+  await page.goto("/");
+  await expect(page.locator(".landing-hero").getByText("1,250+ strong users", { exact: true })).toBeVisible();
+  await page.route("**/api/community/stats", (route) => route.fulfill({ status: 503, json: { message: "Unavailable" } }));
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.locator(".landing-community-count strong")).toHaveCount(0);
 });
