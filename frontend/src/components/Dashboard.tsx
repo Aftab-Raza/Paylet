@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
 import AiQuickAdd from "./AiQuickAdd";
+import ThemeToggle from "./ThemeToggle";
 import Profile from "./Profile";
 import People from "./People";
 import LoanSummary from "./LoanSummary";
@@ -379,6 +380,7 @@ export default function Dashboard({
                 </a>
 
                 <div className="header-actions">
+                    <ThemeToggle />
                     <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
                     <button type="button" className="button button-purple" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
                     <button
@@ -800,6 +802,7 @@ export default function Dashboard({
                                                 <button
                                                     type="button"
                                                     className="button button-blue"
+                                                    title="Edit"
                                                     disabled={disabled}
                                                     onClick={() => {
                                                         setDraft({ ...expense });
@@ -814,26 +817,27 @@ export default function Dashboard({
                                                         });
                                                     }}
                                                 >
-                                                    <Pencil size={15} /> Edit
+                                                    <Pencil size={18} aria-hidden="true" /><span className="expense-action-label">Edit</span>
                                                 </button>
 
                                                 <button
                                                     type="button"
                                                     className="button button-danger"
+                                                    title="Void"
                                                     disabled={disabled || Boolean(draft)}
                                                     onClick={() =>
                                                         setVoidTarget(expense)
                                                     }
                                                 >
-                                                    <CircleSlash size={15} /> Void
+                                                    <CircleSlash size={18} aria-hidden="true" /><span className="expense-action-label">Void</span>
                                                 </button>
                                             </>
                                         )}
 
                                         {expense.source === "SHARED" ? (
-                                            <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => openScreen("groups", expense.groupId ? { group: expense.groupId } : {})}><Users size={15} /> View in Groups</button>
+                                            <button type="button" className="button button-outline" title="View in Groups" disabled={disabled || Boolean(draft)} onClick={() => openScreen("groups", expense.groupId ? { group: expense.groupId } : {})}><Users size={18} aria-hidden="true" /><span className="expense-action-label">View in Groups</span></button>
                                         ) : (
-                                            <button type="button" className="button button-outline" disabled={disabled} onClick={() => void openHistory(expense)}><History size={15} /> History</button>
+                                            <button type="button" className="button button-outline" title="History" disabled={disabled} onClick={() => void openHistory(expense)}><History size={18} aria-hidden="true" /><span className="expense-action-label">History</span></button>
                                         )}
                                     </div>
                                 </div>

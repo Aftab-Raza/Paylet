@@ -361,7 +361,13 @@ test("theme preference persists and expense cards keep strong colors", async ({ 
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   const expense = page.getByRole("article").filter({ hasText: "Lunch with friends" });
   await expect(expense).toBeVisible();
-  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(109, 40, 217)");
+  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(22, 101, 52)");
+  for (const name of ["Edit", "Void", "History"]) {
+    const action = expense.getByRole("button", { name, exact: true });
+    await expect(action).toBeVisible();
+    await expect(action).toHaveAttribute("title", name);
+    expect(await action.evaluate((element) => element.getBoundingClientRect().width)).toBe(44);
+  }
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
@@ -513,3 +519,22 @@ for (const width of [320, 360, 390, 768, 1440]) {
     await visitor.screenshot({ path: `test-results/signup-${width}.png`, fullPage: true });
   });
 }
+test("theme controls live inside page headers on desktop and mobile", async ({ page }) => {
+  await mockApi(page, false);
+  for (const width of [360, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const view of ["", "?view=login", "?view=forgot"]) {
+      await page.goto(`/${view}`);
+      const toggle = page.getByRole("button", { name: /Switch to .* mode/ });
+      await expect(toggle).toHaveCount(1);
+      await expect(page.locator("header").getByRole("button", { name: /Switch to .* mode/ })).toBeVisible();
+      await expect(page.locator(".theme-toolbar")).toHaveCount(0);
+      await toggle.click();
+      const theme = await page.locator("html").getAttribute("data-theme");
+      await page.reload();
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme!);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    }
+    await page.screenshot({ path: `test-results/navbar-theme-${width}.png`, fullPage: true });
+  }
+});

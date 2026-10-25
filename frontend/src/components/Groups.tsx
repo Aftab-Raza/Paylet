@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
@@ -178,7 +179,7 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const selected = data?.groups.find((group) => group.id === selectedId);
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return <main className="signed-in-page pg-page">
-    <header className="pg-between"><div className="brand"><span className="brand-mark">P</span><span>Paylet</span></div><div className="pg-actions"><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy} onClick={reload}><RefreshCw size={18} /> Refresh</button></div></header>
+    <header className="pg-between"><div className="brand"><span className="brand-mark">P</span><span>Paylet</span></div><div className="pg-actions"><ThemeToggle /><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy} onClick={reload}><RefreshCw size={18} /> Refresh</button></div></header>
     <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}

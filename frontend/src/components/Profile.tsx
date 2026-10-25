@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
@@ -163,6 +164,7 @@ export default function Profile({
   return (
     <main className="signed-in-page">
       <header className="app-header">
+        <ThemeToggle />
         <a className="brand" href="/">
           <span className="brand-mark">P</span>
           <span>Paylet</span>

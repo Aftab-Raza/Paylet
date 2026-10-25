@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
@@ -353,6 +354,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
   return (
     <main className="signed-in-page">
       <header className="app-header">
+        <ThemeToggle />
         <span className="brand">
           <span className="brand-mark">P</span>
           <span>Paylet</span>

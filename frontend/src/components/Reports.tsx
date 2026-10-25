@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import { api } from "../lib/api";
 import { ArrowLeft, Download, Printer, RefreshCw } from "lucide-react";
 
@@ -160,6 +161,7 @@ export default function Reports({ timezone, onBack }: Props) {
   return (
     <main className="signed-in-page report-page">
       <header className="app-header report-controls">
+        <ThemeToggle />
         <span className="brand">
           <span className="brand-mark">P</span>
           <span>Paylet</span>

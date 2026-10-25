@@ -9,5 +9,5 @@ export default function ThemeToggle() {
     setTheme(next);
     try { localStorage.setItem("paylet-theme", next); } catch { /* Theme still works when storage is unavailable. */ }
   }
-  return <div className="theme-toolbar"><button type="button" className="theme-toggle button icon-button" onClick={toggle} aria-label={`Switch to ${next} mode`} title={`Switch to ${next} mode`} aria-pressed={theme === "dark"}>{theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}</button></div>;
+  return <button type="button" className="theme-toggle button icon-button" onClick={toggle} aria-label={`Switch to ${next} mode`} title={`Switch to ${next} mode`} aria-pressed={theme === "dark"}>{theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}</button>;
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { ArrowLeft, CheckCircle2, KeyRound, Mail, Send } from "lucide-react";
 import { api } from "../lib/api";
+import ThemeToggle from "./ThemeToggle";
 
 export default function PasswordRecovery({ reset, onLogin, onForgot }: { reset: boolean; onLogin: () => void; onForgot: () => void }) {
   const [email, setEmail] = useState("");
@@ -23,7 +24,7 @@ export default function PasswordRecovery({ reset, onLogin, onForgot }: { reset: 
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to complete this request."); }
     finally { setBusy(false); }
   }
-  return <main className="recovery-page"><a className="brand" href="/"><span className="brand-mark">P</span><span>Paylet</span></a><section className="recovery-panel">
+  return <main className="recovery-page"><header className="recovery-header"><a className="brand" href="/"><span className="brand-mark">P</span><span>Paylet</span></a><ThemeToggle /></header><section className="recovery-panel">
     <span className="action-symbol purple">{reset ? <KeyRound size={26} /> : <Mail size={26} />}</span>
     <h1>{reset ? "Choose a new password" : "Forgot your password?"}</h1>
     <p className="form-description">{reset ? "Use a password with at least 12 characters." : "Enter your account email and we will send you a reset link."}</p>

@@ -1,6 +1,7 @@
 import { ArrowDownLeft, ArrowRight, BarChart3, Check, ChevronRight, LayoutDashboard, LogIn, LogOut, Plus, ReceiptText, ShieldCheck, Users, Wallet } from "lucide-react";
 import type { User } from "../lib/api";
 import "./landing.css";
+import ThemeToggle from "./ThemeToggle";
 
 type Props = {
   user: User | null;
@@ -19,6 +20,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
       <a className="brand" href="/" aria-label="Paylet home"><span className="brand-mark">P</span><span>Paylet</span></a>
       <nav className="landing-nav" aria-label="Main navigation"><a href="#about">About</a><a href="#privacy">Privacy</a></nav>
       <div className="landing-account">
+        <ThemeToggle />
         {user ? <><button className="button button-primary" onClick={onDashboard}><LayoutDashboard size={17} /> Dashboard</button><button className="button button-outline" onClick={() => void onLogout()}><LogOut size={17} /> Log out</button></> : <><button className="button button-outline" disabled={checking} onClick={onLogin}><LogIn size={17} /> Log in</button><button className="button button-primary landing-signup" disabled={checking} onClick={onRegister}>Create account <ArrowRight size={17} /></button></>}
       </div>
     </div></header>

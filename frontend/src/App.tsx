@@ -324,11 +324,11 @@ function App() {
   </Modal>;
 
   if (view === "forgot" || view === "reset") {
-    return <><ThemeToggle /><PasswordRecovery key={view} reset={view === "reset"} onLogin={() => { setUser(null); navigate("login"); }} onForgot={() => navigate("forgot")} /></>;
+    return <PasswordRecovery key={view} reset={view === "reset"} onLogin={() => { setUser(null); navigate("login"); }} onForgot={() => navigate("forgot")} />;
   }
 
   if (view === "home") {
-    return <><ThemeToggle /><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
+    return <><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
   }
 
   if (checking || sessionError) {
@@ -387,7 +387,7 @@ function App() {
 
      if (user) {
     return (
-      <><ThemeToggle /><Dashboard
+      <><Dashboard
         user={user}
         onUserChange={setUser}
         onLogout={requestLogout}
@@ -401,17 +401,17 @@ function App() {
 
   return (
 
-    <><ThemeToggle /><main className="auth-layout">
+    <><main className="auth-layout">
 
       <section className="intro-panel" aria-label="About Paylet">
 
-        <a className="brand" href="/">
+        <header className="auth-brand-header"><a className="brand" href="/">
 
           <span className="brand-mark">P</span>
 
           <span>Paylet</span>
 
-        </a>
+        </a><ThemeToggle /></header>
 
 
 
