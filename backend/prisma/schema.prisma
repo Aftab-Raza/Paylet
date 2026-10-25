@@ -47,6 +47,7 @@ model Testimonial {
   userId String @unique @db.Uuid
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   body String @db.VarChar(600)
+  rating Int?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

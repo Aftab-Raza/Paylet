@@ -540,12 +540,12 @@ test("theme controls live inside page headers on desktop and mobile", async ({ p
 });
 test("testimonials publish with consent, render as text, edit and delete on mobile", async ({ page }) => {
   await mockApi(page);
-  let mine: { id: string; body: string; createdAt: string; user: { displayName: string } } | null = null;
+  let mine: { id: string; body: string; rating: number; createdAt: string; user: { displayName: string; memberSince: string } } | null = null;
   await page.route("**/api/testimonials**", async (route) => {
     const request = route.request();
     if (request.method() === "PUT") {
       const data = request.postDataJSON(); expect(data.consent).toBe(true);
-      mine = { id: "review-1", body: data.body, createdAt: new Date().toISOString(), user: { displayName: "Alex" } };
+      mine = { id: "review-1", body: data.body, rating: data.rating, createdAt: new Date().toISOString(), user: { displayName: "Alex", memberSince: "2026-01" } };
     }
     if (request.method() === "DELETE") mine = null;
     await route.fulfill({ json: request.url().endsWith("/mine") ? { testimonial: mine } : { testimonials: mine ? [mine] : [] } });
@@ -556,9 +556,13 @@ test("testimonials publish with consent, render as text, edit and delete on mobi
   await page.getByLabel("Your experience").fill("Paylet helps me track college expenses. <script>alert(1)</script>");
   await expect(page.getByRole("button", { name: "Publish testimonial" })).toBeDisabled();
   await page.getByRole("checkbox", { name: /Publish my words/ }).check();
+  await expect(page.getByRole("button", { name: "Publish testimonial" })).toBeDisabled();
+  await page.getByRole("radio", { name: "4 out of 5 stars" }).check();
   await page.getByRole("button", { name: "Publish testimonial" }).click();
   await expect(page.locator(".testimonial-card blockquote")).toContainText("<script>alert(1)</script>");
   await expect(page.locator(".testimonial-card script")).toHaveCount(0);
+  await expect(page.getByRole("img", { name: "4 out of 5 stars" })).toBeVisible();
+  await expect(page.getByText("User since January 2026")).toBeVisible();
   await page.locator("#testimonials").screenshot({ path: "test-results/testimonials-mobile.png" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole("button", { name: "Edit your testimonial", exact: true }).click();
@@ -614,6 +618,8 @@ test("capture current Paylet dashboard for landing product preview", async ({ pa
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   await expect(page.getByRole("heading", { name: "Lunch with friends" })).toBeVisible();
   await page.screenshot({ path: "test-results/paylet-preview-current.png" });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await page.screenshot({ path: "test-results/paylet-preview-dark.png" });
 });
 test("deep black theme applies across the app without changing light mode", async ({ page }) => {
   await mockApi(page);
@@ -649,4 +655,46 @@ test("hero bill demo splits every paisa locally and validates input", async ({ p
   await page.screenshot({ path: "test-results/hero-split-mobile.png" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(writes).toHaveLength(0);
+});
+test("hero and dashboard preview switch together with the selected theme", async ({ page }) => {
+  await mockApi(page, false);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
+  const hero = page.locator(".landing-interactive-hero");
+  const image = page.locator(".landing-product");
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
+  expect(await page.locator(".hero-split").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 255, 255)");
+  await expect(image).toHaveAttribute("src", "/paylet-preview.png");
+  await page.screenshot({ path: "test-results/hero-theme-light.png" });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  await expect(image).toHaveAttribute("src", "/paylet-preview-dark.png");
+  await image.scrollIntoViewIfNeeded();
+  await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBe(1440);
+  await image.evaluate((element) => (element as HTMLImageElement).decode());
+  await page.screenshot({ path: "test-results/dashboard-preview-theme-dark.png" });
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(image).toHaveAttribute("src", "/paylet-preview.png");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+test("all testimonials page loads more and expands long reviews", async ({ page }) => {
+  await mockApi(page, false);
+  const review = (id: string) => ({ id, body: "My Paylet experience has been useful. ".repeat(10), rating: id === "old" ? null : 5, createdAt: "2026-10-26T00:00:00Z", user: { displayName: id, memberSince: "2026-01" } });
+  await page.route("**/api/testimonials?**", (route) => {
+    const url = new URL(route.request().url());
+    return route.fulfill({ json: url.searchParams.has("cursor") ? { testimonials: [review("old")], nextCursor: null } : { testimonials: [review("Alex")], nextCursor: "next" } });
+  });
+  await page.goto("/");
+  await page.getByRole("link", { name: "View all testimonials" }).click();
+  await expect(page).toHaveURL(/view=testimonials/);
+  await page.getByRole("button", { name: "Read more", exact: true }).first().click();
+  await expect(page.getByRole("button", { name: "Show less", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Load more", exact: true }).click();
+  await expect(page.locator(".testimonial-card")).toHaveCount(2);
+  await expect(page.getByText("Not rated yet")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Load more", exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "test-results/testimonials-all-mobile.png", fullPage: true });
 });

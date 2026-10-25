@@ -6,6 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 import Testimonials from "./Testimonials";
 import CommunityCount from "./CommunityCount";
 import HeroSplitDemo from "./HeroSplitDemo";
+import DashboardPreview from "./DashboardPreview";
 
 type Props = {
   user: User | null;
@@ -67,7 +68,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
           <article><div className="landing-feature-top"><span className="landing-feature-icon green"><ArrowDownLeft size={25} /></span><span className="landing-feature-number">03</span></div><h3>Money between people</h3><p>Keep track of money lent, money borrowed, and repayments, with a separate record for each person.</p></article>
         </div>
       </section></div>
-      <section className="landing-showcase" aria-labelledby="landing-showcase-title"><div className="landing-width"><div className="landing-section-heading"><span className="landing-eyebrow">THE WHOLE PICTURE</span><h2 id="landing-showcase-title">Less hunting through chats.<br />More knowing where you stand.</h2><p>Expenses, monthly totals, and shared plans, together in your dashboard.</p></div><img className="landing-product" src="/paylet-preview.png" width="1440" height="960" loading="lazy" alt="Paylet dashboard with example expenses, monthly totals, and shortcuts for shared bills and lending" /></div></section>
+      <section className="landing-showcase" aria-labelledby="landing-showcase-title"><div className="landing-width"><div className="landing-section-heading"><span className="landing-eyebrow">THE WHOLE PICTURE</span><h2 id="landing-showcase-title">Less hunting through chats.<br />More knowing where you stand.</h2><p>Expenses, monthly totals, and shared plans, together in your dashboard.</p></div><DashboardPreview /></div></section>
       <section id="privacy" className="landing-privacy">
         <div className="landing-width landing-privacy-inner"><ShieldCheck size={36} className="landing-privacy-icon" /><div><span className="landing-eyebrow">SHARE ON YOUR TERMS</span><h2>Your personal records stay personal.</h2><p>Joining a group or connecting with someone does not reveal your private lending history. You choose which loan or repayment entries to share, and you can stop sharing them.</p></div><button className="button button-purple" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Go to dashboard" : "Create your account"}<ArrowRight size={18} /></button></div>
       </section>

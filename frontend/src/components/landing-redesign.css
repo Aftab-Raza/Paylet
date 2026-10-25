@@ -65,6 +65,8 @@
   .landing-page .button-primary:hover:not(:disabled) { background: #6d28d9; box-shadow: 0 0 22px #a478ff66; }
 }
 .landing-entered { animation: landing-entrance 550ms ease both; }
+.landing-page .testimonial-card { background: linear-gradient(135deg, #151019, #080808); }
+[data-theme="light"] .landing-page .testimonial-card { background: linear-gradient(135deg, #fff, #f0e9ff); }
 .landing-page .landing-interactive-hero::before { display: none; }
 .landing-page .landing-interactive-hero { height: auto; min-height: 0; background: #080808; }
 .landing-page .landing-interactive-hero .landing-hero-copy { height: auto; padding-block: 32px; }
@@ -113,6 +115,7 @@
 @keyframes landing-entrance { from { opacity: .5; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 [data-theme="light"] .landing-page { --landing-card: #fff; --landing-band: #eeeff6; --landing-accent: #7c3aed; }
 [data-theme="light"] .landing-page .landing-header { background: #fffffff5; }
+[data-theme="light"] .testimonials-page-nav .button-outline { color: var(--text); background: var(--surface); border-color: var(--border); }
 [data-theme="light"] .landing-page .landing-feature-band, [data-theme="light"] .landing-page .landing-community-band { background: #f9f9fc; }
 [data-theme="light"] .landing-page .landing-money-card { color: #242332; }
 [data-theme="light"] .landing-page .landing-money-card:not(.landing-money-expense) :is(.landing-money-label, .landing-demo-amount > span, .landing-money-foot) { color: #636176; }
@@ -124,6 +127,19 @@
 [data-theme="light"] .landing-page .landing-questions details { background: #fff; color: #242332; border-color: #dadbe7; }
 [data-theme="light"] .landing-page .landing-questions summary:hover { background: #f4f0fa; }
 [data-theme="light"] .landing-page .landing-final-cta { background: #eee6fa; }
+[data-theme="light"] .landing-page .landing-interactive-hero { background: #f7f7fb; }
+[data-theme="light"] .landing-page .landing-interactive-hero :is(h1, .landing-hook) { color: #242332; }
+[data-theme="light"] .landing-page .landing-interactive-hero h1 span { color: #7c3aed; }
+[data-theme="light"] .landing-page .landing-interactive-hero :is(.landing-hero-description, .landing-hero-benefits) { color: #636176; }
+[data-theme="light"] .landing-page .landing-interactive-hero :is(.landing-eyebrow, .landing-community-count, .landing-hero-actions a) { color: #7130c5; }
+[data-theme="light"] .landing-page .landing-interactive-hero .landing-hero-benefits svg { color: #22643e; }
+[data-theme="light"] .hero-split { background: #fff; border-color: #cbb6ec; color: #242332; }
+[data-theme="light"] :is(.hero-split-heading > span, .hero-split-fields label, .hero-split-note, .hero-split-result > span) { color: #636176; }
+[data-theme="light"] .hero-split-fields label > span { color: #7130c5; }
+[data-theme="light"] :is(.hero-split-fields input, .hero-split-stepper) { background: #f7f7fb; border-color: #dadbe7; color: #242332; }
+[data-theme="light"] .hero-split-stepper button { color: #7130c5; }
+[data-theme="light"] .hero-split-result { border-color: #dadbe7; }
+[data-theme="light"] .hero-split-result strong { color: #166534; }
 [data-theme="dark"] .landing-page { background: #000; --landing-card: #0d0d0d; --landing-band: #080808; --landing-border: #2b2b2b; }
 [data-theme="dark"] .landing-page .landing-header { background: #000000f5; }
 [data-theme="dark"] .landing-page :is(.landing-feature-band, .landing-community-band, .landing-footer, .landing-hero) { background: #000; }

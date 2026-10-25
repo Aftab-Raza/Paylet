@@ -13,18 +13,19 @@ import LandingPage from "./components/LandingPage";
 import Modal from "./components/Modal";
 import ThemeToggle from "./components/ThemeToggle";
 import PasswordRecovery from "./components/PasswordRecovery";
+import TestimonialsPage from "./components/TestimonialsPage";
 import { ArrowLeft, ArrowRight, ArrowUpRight, Eye, EyeOff, LogOut, ShieldCheck, Users } from "lucide-react";
 
 
 
 type Mode = "login" | "register";
-type View = "home" | "login" | "register" | "dashboard" | "forgot" | "reset";
+type View = "home" | "login" | "register" | "dashboard" | "forgot" | "reset" | "testimonials";
 function currentView(): View {
   const params = new URLSearchParams(window.location.search);
   if (params.get("join") === "paylet") return "register";
   if (params.has("google")) return params.get("google") === "linked" ? "dashboard" : "login";
   const view = params.get("view");
-  return view === "login" || view === "register" || view === "dashboard" || view === "forgot" || view === "reset" ? view : "home";
+  return view === "login" || view === "register" || view === "dashboard" || view === "forgot" || view === "reset" || view === "testimonials" ? view : "home";
 }
 
 
@@ -327,6 +328,7 @@ function App() {
     return <PasswordRecovery key={view} reset={view === "reset"} onLogin={() => { setUser(null); navigate("login"); }} onForgot={() => navigate("forgot")} />;
   }
 
+  if (view === "testimonials") return <TestimonialsPage user={user} checking={checking} onLogin={() => navigate("login")} onHome={() => navigate("home")} />;
   if (view === "home") {
     return <><LandingPage user={user} checking={checking} sessionError={sessionError} onLogin={() => navigate("login")} onRegister={() => navigate("register")} onDashboard={() => navigate("dashboard")} onLogout={requestLogout} />{logoutDialog}</>;
   }
