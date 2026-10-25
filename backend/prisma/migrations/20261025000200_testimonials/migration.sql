@@ -1,0 +1,10 @@
+BEGIN;
+CREATE TABLE "testimonials" (
+  "id" UUID NOT NULL PRIMARY KEY,
+  "userId" UUID NOT NULL UNIQUE REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "body" VARCHAR(600) NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL
+);
+CREATE INDEX "testimonials_createdAt_idx" ON "testimonials"("createdAt");
+COMMIT;

@@ -30,6 +30,8 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/contacts/shared-entries") data = { entries: [] };
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
+    else if (path === "/testimonials") data = { testimonials: [] };
+    else if (path === "/testimonials/mine") data = { testimonial: null };
     else if (path.startsWith("/reports")) data = { month: "2026-10", name: "October 2026", count: 0, currencies: [], expenses: [] };
     else { status = 404; data = { message: `Unmocked endpoint: ${path}` }; }
     await route.fulfill({ status, json: data });
@@ -537,4 +539,40 @@ test("theme controls live inside page headers on desktop and mobile", async ({ p
     }
     await page.screenshot({ path: `test-results/navbar-theme-${width}.png`, fullPage: true });
   }
+});
+test("testimonials publish with consent, render as text, edit and delete on mobile", async ({ page }) => {
+  await mockApi(page);
+  let mine: { id: string; body: string; createdAt: string; user: { displayName: string } } | null = null;
+  await page.route("**/api/testimonials**", async (route) => {
+    const request = route.request();
+    if (request.method() === "PUT") {
+      const data = request.postDataJSON(); expect(data.consent).toBe(true);
+      mine = { id: "review-1", body: data.body, createdAt: new Date().toISOString(), user: { displayName: "Alex" } };
+    }
+    if (request.method() === "DELETE") mine = null;
+    await route.fulfill({ json: request.url().endsWith("/mine") ? { testimonial: mine } : { testimonials: mine ? [mine] : [] } });
+  });
+  await page.setViewportSize({ width: 360, height: 900 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Write a testimonial", exact: true }).click();
+  await page.getByLabel("Your experience").fill("Paylet helps me track college expenses. <script>alert(1)</script>");
+  await expect(page.getByRole("button", { name: "Publish testimonial" })).toBeDisabled();
+  await page.getByRole("checkbox", { name: /Publish my words/ }).check();
+  await page.getByRole("button", { name: "Publish testimonial" }).click();
+  await expect(page.locator(".testimonial-card blockquote")).toContainText("<script>alert(1)</script>");
+  await expect(page.locator(".testimonial-card script")).toHaveCount(0);
+  await page.locator("#testimonials").screenshot({ path: "test-results/testimonials-mobile.png" });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole("button", { name: "Edit your testimonial", exact: true }).click();
+  await expect(page.getByLabel("Your experience")).toContainText("college expenses");
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete testimonial", exact: true }).click();
+  await expect(page.getByText("No testimonials yet.", { exact: false })).toBeVisible();
+});
+
+test("visitors can read testimonials but must log in to write", async ({ page }) => {
+  await mockApi(page, false);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Log in to write", exact: true }).click();
+  await expect(page.getByLabel("Email address")).toBeVisible();
 });

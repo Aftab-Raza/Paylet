@@ -18,6 +18,7 @@ model User {
   passwordHash       String?
   authVersion        Int                      @default(0)
   passwordResets     PasswordResetToken[]
+  testimonial        Testimonial?
   googleId           String?                  @unique
   avatarUrl          String?
   bio                String?                  @db.VarChar(250)
@@ -39,6 +40,18 @@ model User {
   settlementActions  GroupSettlementHistory[]
 
   @@map("users")
+}
+
+model Testimonial {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  body String @db.VarChar(600)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("testimonials")
 }
 
 model PasswordResetToken {

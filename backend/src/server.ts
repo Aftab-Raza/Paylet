@@ -14,6 +14,7 @@ import { contactsRouter } from "./routes/contacts.js";
 import { loansRouter } from "./routes/loans.js";
 import { reportsRouter } from "./routes/reports.js";
 import { groupsRouter } from "./routes/groups.js";
+import { testimonialsRouter } from "./routes/testimonials.js";
 
 import { aiRouter } from "./routes/ai.js";
 
@@ -96,6 +97,7 @@ app.use("/api/contacts", contactsRouter);
 app.use("/api/loans", loansRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/groups", groupsRouter);
+app.use("/api/testimonials", testimonialsRouter);
 
 const errorHandler: ErrorRequestHandler = (
   error,
