@@ -722,3 +722,20 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await page.getByRole("button", { name: "Total borrowed INR 200.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 });
+test("dashboard shortcuts use bold ivory icons in both themes", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?view=dashboard");
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    const icons = page.locator(".quick-actions .action-symbol");
+    await expect(icons).toHaveCount(6);
+    for (const icon of await icons.all()) {
+      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 240)");
+      expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("2.5px");
+    }
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
+    await page.setViewportSize({ width: 320, height: 700 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+});

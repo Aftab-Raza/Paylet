@@ -1,6 +1,15 @@
 :root { --page-bg: #f7f7fb; --surface: #fff; --surface-alt: #f0f1f7; --text: #242332; --muted: #636176; --border: #dadbe7; --purple: #7c3aed; --orange: #7c3aed; --blue-soft: #e9f0ff; --blue-text: #1e4fba; --danger-bg: #fff0f3; --danger-text: #ac253c; --success-bg: #eaf8f0; --success-text: #17683e; }
 :root[data-theme="dark"] { color-scheme: dark; --page-bg: #000; --surface: #0a0a0a; --surface-alt: #141414; --text: #f3f1fa; --muted: #b5b2c7; --border: #333; --purple: #b28aff; --orange: #b28aff; --blue-soft: #101d30; --blue-text: #a7cbff; --danger-bg: #28131b; --danger-text: #ffb5c5; --success-bg: #0c241b; --success-text: #95e4bd; --green: #91ddb6; --blue: #a7cbff; --yellow: #f2d18a; --red: #ffb5c5; }
 body { color: var(--text); background: var(--page-bg); }
+.home-page .quick-actions .action-symbol { width: 56px; height: 56px; border-radius: 8px; color: #fffff0; border: 1px solid #ffffff30; box-shadow: inset 0 1px 0 #ffffff26, 0 4px 10px #00000018; transition: transform 180ms ease, box-shadow 180ms ease; }
+.home-page .quick-actions .action-symbol.orange { background: #7c3aed; color: #fffff0; }
+.home-page .quick-actions .action-symbol.purple { background: #6030b5; color: #fffff0; }
+.home-page .quick-actions .action-symbol.blue { background: #1759b8; color: #fffff0; }
+.home-page .quick-actions .action-symbol.green { background: #087443; color: #fffff0; }
+.home-page .quick-actions .action-symbol svg { width: 26px; height: 26px; stroke-width: 2.5; }
+.home-page .quick-actions > button { font-weight: 750; }
+@media (hover: hover) { .home-page .quick-actions > button:hover:not(:disabled) .action-symbol { transform: translateY(-2px); box-shadow: inset 0 1px 0 #ffffff26, 0 6px 16px #7c3aed35; } }
+@media (prefers-reduced-motion: reduce) { .home-page .quick-actions .action-symbol { transition: none; transform: none !important; } }
 .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; min-width: 40px; padding: 0; flex-shrink: 0; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; }
 .auth-brand-header, .recovery-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .header-theme-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
