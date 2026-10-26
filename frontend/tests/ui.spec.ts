@@ -254,7 +254,7 @@ test("public homepage opens login and registration and supports browser back", a
   await page.getByLabel("Email address").fill("test@example.com");
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Log in", exact: true }).last().click();
-  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
   await expect(page).toHaveURL(/view=dashboard/);
   await page.reload();
   await expect(page.getByLabel("Email address")).toBeVisible();
@@ -303,12 +303,15 @@ for (const width of [320, 390, 1440]) {
     await page.goto("/?view=dashboard");
     const outstanding = page.locator(".outstanding-line");
     await expect(outstanding).toContainText("You still owe");
-    await expect(outstanding).toContainText("INR 2500.00");
+    await expect(outstanding).toContainText("₹ 2500.00");
     const contrast = await outstanding.evaluate((element) => {
-      const rgb = getComputedStyle(element.querySelector("dt")!).color.match(/\d+/g)!.slice(0, 3).map(Number);
-      const linear = rgb.map((value) => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
-      const luminance = linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
-      return 1.05 / (luminance + 0.05);
+      const luminance = (color: string) => {
+        const linear = color.match(/\d+/g)!.slice(0, 3).map(Number).map((value) => { const channel = value / 255; return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4; });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      };
+      const text = luminance(getComputedStyle(element.querySelector("dt")!).color);
+      const background = luminance(getComputedStyle(element.closest(".loan-summary-card")!).backgroundColor);
+      return (Math.max(text, background) + 0.05) / (Math.min(text, background) + 0.05);
     });
     expect(contrast).toBeGreaterThanOrEqual(4.5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -357,18 +360,18 @@ test("cinematic hero fits short phones and wide screens with a visible next sect
   }
 });
 
-test("theme preference persists and expense cards keep strong colors", async ({ page }) => {
+test("theme preference persists and compact expense rows retain their actions", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   const expense = page.getByRole("article").filter({ hasText: "Lunch with friends" });
   await expect(expense).toBeVisible();
-  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(22, 101, 52)");
+  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
   for (const name of ["Edit", "Void", "History"]) {
     const action = expense.getByRole("button", { name, exact: true });
     await expect(action).toBeVisible();
     await expect(action).toHaveAttribute("title", name);
-    expect(await action.evaluate((element) => element.getBoundingClientRect().width)).toBe(44);
+    expect(await action.evaluate((element) => element.getBoundingClientRect().width)).toBe(40);
   }
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
@@ -391,7 +394,7 @@ test("phone Back closes an expense dialog before leaving the dashboard", async (
   await expect(page.getByRole("dialog", { name: "Add expense", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
 });
 
 test("phone Back returns from a person's history to People and then dashboard", async ({ page }) => {
@@ -411,7 +414,7 @@ test("phone Back returns from a person's history to People and then dashboard", 
   await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
   await expect(page).not.toHaveURL(/person=/);
   await page.goBack();
-  await expect(page.getByRole("heading", { name: "Hello, Aftab." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
   await page.goForward();
   await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
 });
@@ -707,7 +710,7 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: ["Priya", "Rahul"].map((name, index) => ({ id: `person-${index}`, name, nickname: null, notes: null, isArchived: false, version: 1, createdAt: "2026-10-01", updatedAt: "2026-10-01", linkedUser: null, linkRequest: null })) } }));
   await page.route("**/api/loans/people-summary", (route) => route.fulfill({ json: { summaries: [{ contactId: "person-0", totals: [total, { ...total, currency: "USD", owedToYou: "5.00" }] }] } }));
   await page.goto("/?view=dashboard");
-  await page.getByRole("button", { name: "Owed to you INR 400.00. Open People" }).click();
+  await page.getByRole("button", { name: "Owed to you ₹ 400.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
   const card = page.locator(".person-card").filter({ hasText: "Priya" });
   await expect(card.locator(".person-recorded").first()).toContainText("500.00");
@@ -720,20 +723,21 @@ test("balance cards open People and horizontal contact cards show recorded and o
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: "test-results/people-horizontal-mobile.png", fullPage: true });
   await page.getByRole("button", { name: "Dashboard", exact: true }).click();
-  await page.getByRole("button", { name: "Total borrowed INR 200.00. Open People" }).click();
+  await page.getByRole("button", { name: "Total borrowed ₹ 200.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 });
-test("dashboard shortcuts use bold ivory icons in both themes", async ({ page }) => {
+test("dashboard shortcuts are monochrome except the blue AI highlight in both themes", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   for (const theme of ["light", "dark"]) {
     if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
-    const icons = page.locator(".quick-actions .action-symbol");
-    await expect(icons).toHaveCount(6);
+    const icons = page.locator(".quick-actions > button:not(.dashboard-ai-shortcut) .action-symbol");
+    await expect(icons).toHaveCount(5);
     for (const icon of await icons.all()) {
-      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(255, 255, 240)");
+      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe(theme === "dark" ? "rgb(255, 255, 255)" : "rgb(32, 32, 36)");
       expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("2.5px");
     }
+    expect(await page.locator(".dashboard-ai-shortcut .action-symbol").evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
     await page.setViewportSize({ width: 320, height: 700 });
@@ -755,4 +759,52 @@ test("logout gradient fits mobile in both themes with only two buttons", async (
     await dialog.screenshot({ path: `test-results/logout-simple-${theme}.png` });
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   }
+});
+test("dashboard refresh uses neutral expense rows and solid blue/pink lending cards", async ({ page }) => {
+  await mockApi(page);
+  await page.route("**/api/loans/summary", (route) => route.fulfill({ json: { totals: [{ currency: "INR", minorUnit: 2, totalLent: "5000.00", repaymentsReceived: "1000.00", owedToYou: "4000.00", totalBorrowed: "3000.00", repaymentsMade: "500.00", youOwe: "2500.00" }] } }));
+  await page.goto("/?view=dashboard");
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    for (const selector of [".lent-summary", ".borrowed-summary"]) {
+      expect(await page.locator(selector).evaluate((element) => getComputedStyle(element).backgroundImage)).toBe("none");
+    }
+    await expect(page.locator(".expense-direction .lucide-arrow-up-left")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Owed to you ₹ 4000.00. Open People" })).toBeVisible();
+    await page.setViewportSize({ width: 1440, height: 1080 });
+    await page.screenshot({ path: `test-results/dashboard-refresh-${theme}.png`, fullPage: true });
+    const listWidth = await page.locator(".expense-list").evaluate((element) => element.getBoundingClientRect().width);
+    expect(listWidth).toBeLessThanOrEqual(1040);
+    await page.setViewportSize({ width: 360, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/dashboard-refresh-mobile-${theme}.png`, fullPage: true });
+  }
+});
+test("rupee labels preserve currency codes and floating expense control works while scrolled", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/?view=dashboard");
+  await expect(page.getByRole("img", { name: "waving hand" })).toBeVisible();
+  await expect(page.locator(".expense-row-right > strong").first()).toContainText("₹ 250.00");
+  const fab = page.locator(".dashboard-fab");
+  await expect(fab).toBeEnabled();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.evaluate(() => scrollTo(0, document.body.scrollHeight));
+    const box = await fab.boundingBox();
+    expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+    expect(box!.y + box!.height).toBeLessThan(800);
+    expect(await fab.evaluate((element) => getComputedStyle(element).position)).toBe("fixed");
+  }
+  await fab.click();
+  const dialog = page.getByRole("dialog", { name: "Add expense", exact: true });
+  await expect(dialog).toBeVisible(); await expect(fab).toBeHidden();
+  const currency = dialog.getByLabel("Currency", { exact: true });
+  await expect(currency).toHaveValue("INR");
+  await expect(currency.locator('option[value="INR"]')).toHaveText("₹");
+  await currency.selectOption("USD"); await expect(currency).toHaveValue("USD");
+  await expect(currency.locator('option[value="USD"]')).toHaveText("USD");
+  await page.getByRole("button", { name: "Close dialog" }).click();
+  await expect(fab).toBeVisible(); await expect(fab).toBeFocused();
+  expect(await page.locator(".dashboard-add-expense").evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
+  await page.screenshot({ path: "test-results/dashboard-rupee-fab.png" });
 });

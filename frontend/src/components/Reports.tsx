@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
 import { api } from "../lib/api";
 import { ArrowLeft, Download, Printer, RefreshCw } from "lucide-react";
@@ -256,7 +257,7 @@ export default function Reports({ timezone, onBack }: Props) {
                   className="summary-card"
                   key={`${group.currency}:${group.minorUnit}`}
                 >
-                  <p>Total spending · {group.currency}</p>
+                  <p>Total spending · {currencyLabel(group.currency)}</p>
                   <strong>{group.total}</strong>
                   <small>{group.count} expenses</small>
                 </article>
@@ -268,7 +269,7 @@ export default function Reports({ timezone, onBack }: Props) {
                 className="profile-panel report-section"
                 key={`${group.currency}:${group.minorUnit}`}
               >
-                <h2>Category breakdown · {group.currency}</h2>
+                <h2>Category breakdown · {currencyLabel(group.currency)}</h2>
 
                 <div className="report-table-wrap">
                   <table className="report-table">
@@ -324,7 +325,7 @@ export default function Reports({ timezone, onBack }: Props) {
                           <td>{dateLabel(expense.date)}</td>
                           <td>{expense.purpose}</td>
                           <td>{expense.category}</td>
-                          <td>{expense.currency}</td>
+                          <td>{currencyLabel(expense.currency)}</td>
                           <td>{expense.amount}</td>
                         </tr>
                       ))}

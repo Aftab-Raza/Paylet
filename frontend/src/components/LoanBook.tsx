@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -288,7 +289,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
     if (!contact) return;
 
     const confirmed = window.confirm(
-      `Delete "${entry.purpose}" (${entry.currency} ${entry.amount})? ` +
+      `Delete "${entry.purpose}" (${currencyLabel(entry.currency)} ${entry.amount})? ` +
       "It will be removed from totals and retained in deletion history."
     );
 
@@ -436,14 +437,14 @@ export default function LoanBook({ contactId, onBack }: Props) {
                   key={`${total.currency}:${total.minorUnit}`}
                 >
                   <span className="loan-currency-label">
-                    {total.currency}
+                    {currencyLabel(total.currency)}
                   </span>
 
                   <div className="loan-summary-grid">
                     <section className="loan-summary-card lent-summary">
                       <p className="loan-summary-label">They owe you</p>
                       <strong className="loan-summary-value">
-                        {total.currency} {total.owedToYou}
+                        {currencyLabel(total.currency)} {total.owedToYou}
                       </strong>
                       <dl>
                         <div>
@@ -460,7 +461,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
                     <section className="loan-summary-card borrowed-summary">
                       <p className="loan-summary-label">You owe them</p>
                       <strong className="loan-summary-value">
-                        {total.currency} {total.youOwe}
+                        {currencyLabel(total.currency)} {total.youOwe}
                       </strong>
                       <dl>
                         <div>
@@ -558,7 +559,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
                         draft.kind
                       ).map((currency) => (
                         <option key={currency} value={currency}>
-                          {currency}
+                          {currencyLabel(currency)}
                         </option>
                       ))}
                     </select>
@@ -666,7 +667,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
 
                 <div className="expense-row-right">
                   <strong>
-                    {entry.currency} {entry.amount}
+                    {currencyLabel(entry.currency)} {entry.amount}
                   </strong>
 
                   <div className="expense-row-actions">
@@ -703,7 +704,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
 
             <p>
               {history.entry.purpose} ·{" "}
-              {history.entry.currency} {history.entry.amount}
+              {currencyLabel(history.entry.currency)} {history.entry.amount}
             </p>
 
             {history.history.length === 0 && (
@@ -723,7 +724,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
                   })}
                 </p>
                 <p>
-                  {item.snapshot.currency} {item.snapshot.amount}
+                  {currencyLabel(item.snapshot.currency)} {item.snapshot.amount}
                   {" · "}{item.snapshot.purpose}
                 </p>
                 {item.snapshot.date && (
@@ -747,7 +748,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
                       })}
                     </p>
                     <p>
-                      {item.snapshot.currency} {item.snapshot.amount}
+                      {currencyLabel(item.snapshot.currency)} {item.snapshot.amount}
                       {" · "}{item.snapshot.purpose}
                     </p>
                   </article>

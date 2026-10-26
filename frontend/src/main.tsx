@@ -5,6 +5,7 @@ import App from './App.tsx'
 import './theme.css'
 import './appearance.css'
 import './components/landing-redesign.css'
+import './components/dashboard-refresh.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

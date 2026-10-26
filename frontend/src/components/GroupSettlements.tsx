@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 
@@ -53,7 +54,7 @@ export default function GroupSettlements({ groupId, viewerId, timezone, refreshK
   }
   async function act(payment: Payment, action: string) {
     const prompts: Record<string, string> = {
-      CONFIRM: `Confirm that ${payment.fromUser.displayName} paid ${payment.currency} ${payment.amount} to ${payment.toUser.displayName}?`,
+      CONFIRM: `Confirm that ${payment.fromUser.displayName} paid ${currencyLabel(payment.currency)} ${payment.amount} to ${payment.toUser.displayName}?`,
       CONFIRM_REVERSAL: "Reverse this payment record? Its effect on the amount owed will be removed. This does not transfer money.",
       REQUEST_REVERSAL: "Ask the other person to reverse this repayment record?",
       CANCEL: "Delete this pending request? It will stay in history as cancelled.",
@@ -78,10 +79,10 @@ export default function GroupSettlements({ groupId, viewerId, timezone, refreshK
     <p className="pg-muted">Record payments already made outside Paylet. This app does not transfer money. Each currency and person-to-person amount stays separate.</p>
     {loadError && <p className="pg-error" role="alert">{loadError}</p>}{error && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {!data && !loadError && <p role="status">Loading repayments…</p>}
-    {data && <div className="pg-stack"><h3>Who owes whom</h3>{data.debts.length === 0 ? <p className="pg-success">No outstanding person-to-person amounts in this group.</p> : data.debts.map((d) => <div className="pg-row" key={key(d)}><div className="pg-grow"><strong>{d.fromUser.displayName} owes {d.toUser.displayName}</strong><p>{d.currency} {d.amount}{(!d.fromUser.id || !d.toUser.id) && " · Repayment confirmation available after they connect"}</p></div>{!!d.fromUser.id && !!d.toUser.id && (d.fromUser.id === viewerId || d.toUser.id === viewerId) && <button className="button button-green" disabled={busy || !!draft} onClick={() => begin(d)}>Record repayment</button>}</div>)}</div>}
+    {data && <div className="pg-stack"><h3>Who owes whom</h3>{data.debts.length === 0 ? <p className="pg-success">No outstanding person-to-person amounts in this group.</p> : data.debts.map((d) => <div className="pg-row" key={key(d)}><div className="pg-grow"><strong>{d.fromUser.displayName} owes {d.toUser.displayName}</strong><p>{currencyLabel(d.currency)} {d.amount}{(!d.fromUser.id || !d.toUser.id) && " · Repayment confirmation available after they connect"}</p></div>{!!d.fromUser.id && !!d.toUser.id && (d.fromUser.id === viewerId || d.toUser.id === viewerId) && <button className="button button-green" disabled={busy || !!draft} onClick={() => begin(d)}>Record repayment</button>}</div>)}</div>}
     {draft && <form className="pg-stack pg-bill-form" onSubmit={save}><h3>Record a repayment</h3><fieldset className="pg-stack" disabled={busy}>
-      <label className="pg-stack">Who paid whom?<select value={key(draft)} onChange={(event) => { const debt = ownDebts.find((d) => key(d) === event.target.value); if (debt) setDraft({ ...draft, fromMemberId: debt.fromMemberId, toMemberId: debt.toMemberId, currency: debt.currency, amount: debt.amount }); }}>{!ownDebts.some((d) => key(d) === key(draft)) && <option value={key(draft)}>Amount changed — cancel and refresh</option>}{ownDebts.map((d) => <option key={key(d)} value={key(d)}>{d.fromUser.displayName} → {d.toUser.displayName} · {d.currency} {d.amount} remaining</option>)}</select></label>
-      <div className="pg-columns"><label className="pg-stack">Amount ({draft.currency})<input inputMode="decimal" required value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })}/></label><label className="pg-stack">Payment date<input type="date" required min="1900-01-01" max="2199-12-31" value={draft.paidOn} onChange={(e) => setDraft({ ...draft, paidOn: e.target.value })}/></label></div>
+      <label className="pg-stack">Who paid whom?<select value={key(draft)} onChange={(event) => { const debt = ownDebts.find((d) => key(d) === event.target.value); if (debt) setDraft({ ...draft, fromMemberId: debt.fromMemberId, toMemberId: debt.toMemberId, currency: debt.currency, amount: debt.amount }); }}>{!ownDebts.some((d) => key(d) === key(draft)) && <option value={key(draft)}>Amount changed — cancel and refresh</option>}{ownDebts.map((d) => <option key={key(d)} value={key(d)}>{d.fromUser.displayName} → {d.toUser.displayName} · {currencyLabel(d.currency)} {d.amount} remaining</option>)}</select></label>
+      <div className="pg-columns"><label className="pg-stack">Amount ({currencyLabel(draft.currency)})<input inputMode="decimal" required value={draft.amount} onChange={(e) => setDraft({ ...draft, amount: e.target.value })}/></label><label className="pg-stack">Payment date<input type="date" required min="1900-01-01" max="2199-12-31" value={draft.paidOn} onChange={(e) => setDraft({ ...draft, paidOn: e.target.value })}/></label></div>
       <label className="pg-stack">Note (optional)<input maxLength={300} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} placeholder="Cash, bank transfer…"/></label>
       <p className="pg-muted">The other person must confirm. Saved payment details cannot be edited.</p><div className="pg-actions"><button className="button button-green" disabled={!ownDebts.some((d) => key(d) === key(draft))}>{busy ? "Saving…" : "Send for confirmation"}</button><button type="button" className="button button-outline" onClick={() => setDraft(null)}>Cancel</button></div>
     </fieldset></form>}
@@ -92,7 +93,7 @@ export default function GroupSettlements({ groupId, viewerId, timezone, refreshK
       const involved = myMemberId !== null;
       const creator = p.creatorId === viewerId;
       const requester = p.reversalRequesterId === myMemberId;
-      return <article className="pg-bill" key={p.id}><div className="pg-between"><strong>{p.fromUser.displayName} → {p.toUser.displayName}</strong><span className={`pg-tag pg-payment-${p.status.toLowerCase()}`}>{p.status.replaceAll("_", " ").toLowerCase()}</span></div><strong>{p.currency} {p.amount}</strong><p className="pg-muted">{dateLabel(p.paidOn)}{p.note ? ` · ${p.note}` : ""}</p>{p.status === "REVERSAL_PENDING" && <p className="pg-muted">Still included in totals until reversal is confirmed.</p>}<div className="pg-actions">
+      return <article className="pg-bill" key={p.id}><div className="pg-between"><strong>{p.fromUser.displayName} → {p.toUser.displayName}</strong><span className={`pg-tag pg-payment-${p.status.toLowerCase()}`}>{p.status.replaceAll("_", " ").toLowerCase()}</span></div><strong>{currencyLabel(p.currency)} {p.amount}</strong><p className="pg-muted">{dateLabel(p.paidOn)}{p.note ? ` · ${p.note}` : ""}</p>{p.status === "REVERSAL_PENDING" && <p className="pg-muted">Still included in totals until reversal is confirmed.</p>}<div className="pg-actions">
         {p.status === "PENDING" && involved && !creator && <>{actionButton(p, "CONFIRM", "Confirm payment", "button-green")}{actionButton(p, "REJECT", "Reject")}</>}
         {p.status === "PENDING" && creator && actionButton(p, "CANCEL", "Delete request", "pg-danger")}
         {p.status === "CONFIRMED" && involved && actionButton(p, "REQUEST_REVERSAL", "Request reversal", "pg-danger")}
@@ -101,6 +102,6 @@ export default function GroupSettlements({ groupId, viewerId, timezone, refreshK
         <button type="button" className="button button-outline" disabled={busy} onClick={() => void openHistory(p)}>History</button>
       </div></article>;
     })}
-    {history && <section className="pg-bill pg-stack"><div className="pg-between"><h3>Repayment history</h3><button type="button" className="button button-outline" onClick={() => setHistory(null)}>Close</button></div>{history.map((h) => <div key={h.id}><strong>{h.action.replaceAll("_", " ")} · {h.actor.displayName}</strong><p>{new Date(h.createdAt).toLocaleString()}</p><p>{h.snapshot.fromUser.displayName} → {h.snapshot.toUser.displayName}: {h.snapshot.currency} {h.snapshot.amount}</p><p>Payment date: {h.snapshot.paidOn} · Status: {h.snapshot.status}</p>{h.snapshot.note && <p>{h.snapshot.note}</p>}</div>)}</section>}
+    {history && <section className="pg-bill pg-stack"><div className="pg-between"><h3>Repayment history</h3><button type="button" className="button button-outline" onClick={() => setHistory(null)}>Close</button></div>{history.map((h) => <div key={h.id}><strong>{h.action.replaceAll("_", " ")} · {h.actor.displayName}</strong><p>{new Date(h.createdAt).toLocaleString()}</p><p>{h.snapshot.fromUser.displayName} → {h.snapshot.toUser.displayName}: {currencyLabel(h.snapshot.currency)} {h.snapshot.amount}</p><p>Payment date: {h.snapshot.paidOn} · Status: {h.snapshot.status}</p>{h.snapshot.note && <p>{h.snapshot.note}</p>}</div>)}</section>}
   </section>;
 }

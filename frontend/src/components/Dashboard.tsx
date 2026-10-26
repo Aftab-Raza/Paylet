@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
@@ -12,7 +13,7 @@ import Groups from "./Groups";
 import SettlementNotifications from "./SettlementNotifications";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
-import { ArrowDownLeft, ArrowUpRight, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import { openScreen, useScreen } from "../lib/navigation";
@@ -184,7 +185,7 @@ export default function Dashboard({
     const disabled = busy || logoutBusy;
     const visibleExpenses = (loaded?.summary.expenses ?? []).filter((expense) =>
         (showVoided || !expense.voidedAt) && (!category || expense.category === category) &&
-        `${expense.purpose} ${expense.category} ${expense.amount} ${expense.currency}`.toLowerCase().includes(query.trim().toLowerCase())
+        `${expense.purpose} ${expense.category} ${expense.amount} ${expense.currency} ${currencyLabel(expense.currency)}`.toLowerCase().includes(query.trim().toLowerCase())
     );
 
     function changeMonth(value: string) {
@@ -382,7 +383,7 @@ export default function Dashboard({
                 <div className="header-actions">
                     <ThemeToggle />
                     <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
-                    <button type="button" className="button button-purple" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
+                    <button type="button" className="button button-purple dashboard-ai-nav" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
                     <button
                         type="button"
                         className="button button-blue pg-nav"
@@ -446,7 +447,7 @@ export default function Dashboard({
                             YOUR MONEY, AT A GLANCE
                         </span>
 
-                        <h1>Hello, {user.displayName}.</h1>
+                        <h1>Hello, {user.displayName} <span role="img" aria-label="waving hand">👋</span></h1>
 
                         <p className="form-description">
                             A little clarity for your everyday spending.
@@ -455,7 +456,7 @@ export default function Dashboard({
 
                     <button
                         type="button"
-                        className="button button-primary"
+                        className="button button-primary dashboard-add-expense"
                         disabled={
                             disabled ||
                             !ready
@@ -468,7 +469,7 @@ export default function Dashboard({
 
                 <nav className="quick-actions" aria-label="Quick actions">
                     <button onClick={beginAdd} disabled={disabled || !ready}><span className="action-symbol orange"><Plus /></span><span>Add expense</span></button>
-                    <button onClick={() => setShowAi(true)} disabled={disabled}><span className="action-symbol purple"><Sparkles /></span><span>AI Quick Add</span></button>
+                    <button className="dashboard-ai-shortcut" onClick={() => setShowAi(true)} disabled={disabled}><span className="action-symbol purple"><Sparkles /></span><span>AI Quick Add</span></button>
                     <button onClick={() => setShowGroups(true)} disabled={disabled}><span className="action-symbol blue"><Users /></span><span>Split a bill</span></button>
                     <button onClick={() => setShowPeople(true)} disabled={disabled}><span className="action-symbol green"><ArrowDownLeft /></span><span>Lend & borrow</span></button>
                     <button onClick={() => setShowReports(true)} disabled={disabled}><span className="action-symbol blue"><BarChart3 /></span><span>Reports</span></button>
@@ -538,7 +539,7 @@ export default function Dashboard({
                                     key={total.currency}
                                 >
                                     <p>
-                                        <Wallet size={18} /> Monthly spending · {total.currency}
+                                        <Wallet size={18} /> Monthly spending · {currencyLabel(total.currency)}
                                     </p>
                                     <strong>{total.amount}</strong>
                                 </article>
@@ -641,7 +642,7 @@ export default function Dashboard({
                                                                 key={currency}
                                                                 value={currency}
                                                             >
-                                                                {currency}
+                                                                {currencyLabel(currency)}
                                                             </option>
                                                         ))}
                                                 </select>
@@ -774,7 +775,7 @@ export default function Dashboard({
                                 key={expense.id}
                             >
                                 <div className="transaction-detail">
-                                    <span className={`transaction-icon ${expense.source === "SHARED" ? "purple" : "orange"}`} aria-hidden="true">{expense.source === "SHARED" ? <Users size={20} /> : <ArrowUpRight size={20} />}</span>
+                                    <span className="transaction-icon expense-direction" aria-hidden="true"><ArrowUpLeft size={20} strokeWidth={2.5} /></span>
                                     <div>
                                     <h3>{expense.purpose}</h3>
                                     {expense.source === "SHARED" && <span className="pg-tag">Shared · your portion</span>}
@@ -793,7 +794,7 @@ export default function Dashboard({
 
                                 <div className="expense-row-right">
                                     <strong>
-                                        {expense.currency} {expense.amount}
+                                        {currencyLabel(expense.currency)} {expense.amount}
                                     </strong>
 
                                     <div className="expense-row-actions">
@@ -864,7 +865,7 @@ export default function Dashboard({
 
                                 <p>
                                     {revision.snapshot.purpose} ·{" "}
-                                    {revision.snapshot.currency}{" "}
+                                    {currencyLabel(revision.snapshot.currency)}{" "}
                                     {revision.snapshot.amount}
                                 </p>
 
@@ -888,12 +889,13 @@ export default function Dashboard({
                 <LoanSummary refreshKey={refresh} onOpenPeople={() => setShowPeople(true)} />
                 {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
                 {voidTarget && <Modal title="Void this expense?" busy={busy} onClose={() => { setVoidTarget(null); setError(""); }}>
-                    <p><strong>{voidTarget.purpose}</strong> · {voidTarget.currency} {voidTarget.amount}</p>
+                    <p><strong>{voidTarget.purpose}</strong> · {currencyLabel(voidTarget.currency)} {voidTarget.amount}</p>
                     <p className="form-description">This expense will be excluded from your totals. Its history will remain available.</p>
                     {error && <p className="error-message" role="alert">{error}</p>}
                     <div className="profile-actions"><button className="button button-danger" disabled={busy} onClick={() => void voidExpense(voidTarget)}><CircleSlash size={18} /> {busy ? "Voiding..." : "Void expense"}</button><button className="button button-outline" disabled={busy} onClick={() => { setVoidTarget(null); setError(""); }}>Keep expense</button></div>
                 </Modal>}
             </section>
+            <button type="button" className="dashboard-fab" title="Add expense" aria-label="Add expense" disabled={disabled || !ready} onClick={beginAdd}><Plus size={28} strokeWidth={2.5} aria-hidden="true" /><span aria-hidden="true">Add expense</span></button>
         </main>
     );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -315,7 +316,7 @@ export default function People({ onBack }: Props) {
         </section>}
 
         {sharedEntries.length > 0 && <section className="profile-panel"><h2>Shared with you</h2>
-          {sharedEntries.map((entry) => <div className="pg-row" key={entry.id}><div className="pg-grow"><strong>{entry.purpose || (entry.kind === "REPAYMENT" ? "Repayment" : "Money entry")}</strong><p>{entry.owner.displayName} shared this {entry.kind === "REPAYMENT" ? "repayment" : "money entry"} · {entry.direction === "LENT" ? "lent to you" : "borrowed from you"} · {entry.date}</p></div><strong>{entry.currency} {entry.amount}</strong></div>)}
+          {sharedEntries.map((entry) => <div className="pg-row" key={entry.id}><div className="pg-grow"><strong>{entry.purpose || (entry.kind === "REPAYMENT" ? "Repayment" : "Money entry")}</strong><p>{entry.owner.displayName} shared this {entry.kind === "REPAYMENT" ? "repayment" : "money entry"} · {entry.direction === "LENT" ? "lent to you" : "borrowed from you"} · {entry.date}</p></div><strong>{currencyLabel(entry.currency)} {entry.amount}</strong></div>)}
         </section>}
 
         {draft && (
@@ -473,7 +474,7 @@ export default function People({ onBack }: Props) {
                   </div>
                   <div className="person-money" aria-label={`Money with ${contact.name}`}>
                     {moneyError ? <p className="profile-member">Amounts unavailable. <button type="button" className="person-money-retry" onClick={reload}>Retry</button></p> : !money ? <p className="profile-member">Loading amounts...</p> : !(money[contact.id]?.length) ? <p className="profile-member">No money records</p> : money[contact.id].map((total) => <div className="person-currency" key={`${total.currency}:${total.minorUnit}`}>
-                      <span className="person-currency-label">{total.currency}</span>
+                      <span className="person-currency-label">{currencyLabel(total.currency)}</span>
                       <dl className="person-recorded"><div><dt>Lent</dt><dd>{total.totalLent}</dd></div><div><dt>Borrowed</dt><dd>{total.totalBorrowed}</dd></div></dl>
                       <span className="person-outstanding-label">Outstanding</span><dl className="person-outstanding"><div><dt>Owed to you</dt><dd>{total.owedToYou}</dd></div><div><dt>You owe</dt><dd>{total.youOwe}</dd></div></dl>
                     </div>)}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import { api } from "../lib/api";
 import { ArrowDownLeft, ArrowUpRight, RefreshCw } from "lucide-react";
 
@@ -123,16 +124,16 @@ export default function LoanSummary({
           key={`${total.currency}:${total.minorUnit}`}
         >
           <span className="loan-currency-label">
-            {total.currency}
+            {currencyLabel(total.currency)}
           </span>
 
           <div className="loan-summary-grid">
                         <section className="loan-summary-card lent-summary">
-              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Owed to you ${total.currency} ${total.owedToYou}. Open People`} />}
+              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Owed to you ${currencyLabel(total.currency)} ${total.owedToYou}. Open People`} />}
               <p className="loan-summary-label"><ArrowDownLeft size={18} /> Owed to you</p>
 
               <strong className="loan-summary-value">
-                {total.currency} {total.owedToYou}
+                {currencyLabel(total.currency)} {total.owedToYou}
               </strong>
 
               <p className="profile-member">
@@ -143,31 +144,31 @@ export default function LoanSummary({
                 <div>
                   <dt>Repayments received</dt>
                   <dd>
-                    {total.currency} {total.repaymentsReceived}
+                    {currencyLabel(total.currency)} {total.repaymentsReceived}
                   </dd>
                 </div>
               </dl>
             </section>
 
             <section className="loan-summary-card borrowed-summary">
-              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Total borrowed ${total.currency} ${total.totalBorrowed}. Open People`} />}
+              {onOpenPeople && <button type="button" className="loan-card-link" onClick={onOpenPeople} aria-label={`Total borrowed ${currencyLabel(total.currency)} ${total.totalBorrowed}. Open People`} />}
               <p className="loan-summary-label"><ArrowUpRight size={18} /> Total borrowed</p>
               <strong className="loan-summary-value">
-                {total.currency} {total.totalBorrowed}
+                {currencyLabel(total.currency)} {total.totalBorrowed}
               </strong>
 
               <dl>
                 <div>
                   <dt>You repaid</dt>
                   <dd>
-                    {total.currency} {total.repaymentsMade}
+                    {currencyLabel(total.currency)} {total.repaymentsMade}
                   </dd>
                 </div>
 
                 <div className="outstanding-line">
                   <dt>You still owe</dt>
                   <dd>
-                    {total.currency} {total.youOwe}
+                    {currencyLabel(total.currency)} {total.youOwe}
                   </dd>
                 </div>
               </dl>

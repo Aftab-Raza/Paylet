@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -385,7 +386,7 @@ export default function Profile({
                       >
                         {options.currencies.map((currency) => (
                           <option key={currency} value={currency}>
-                            {currency}
+                            {currencyLabel(currency)}
                           </option>
                         ))}
                       </select>
