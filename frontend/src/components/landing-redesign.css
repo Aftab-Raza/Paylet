@@ -159,6 +159,16 @@
   .landing-page .landing-band { scroll-margin-top: 148px; }
   .landing-page .landing-demo-heading { font-size: 11px; }
 }
+/* Keep the established sections; bring the dashboard's violet highlights into key surfaces. */
+.landing-page .landing-interactive-hero { background: radial-gradient(ellipse at 50% 0%, #6030b533, transparent 65%), #080808; }
+[data-theme="dark"] .landing-page .landing-interactive-hero { background: radial-gradient(ellipse at 50% 0%, #6030b533, transparent 65%), #000; }
+[data-theme="light"] .landing-page .landing-interactive-hero { background: radial-gradient(ellipse at 50% 0%, #d5b8ff70, transparent 65%), #f7f7fb; }
+.landing-page :is(.landing-money-total, .landing-money-group, .landing-features article, .testimonial-card) { border-radius: 18px; background: radial-gradient(ellipse at 90% 0%, #8050d030, transparent 70%), linear-gradient(135deg, #191123, #080808); border-color: #4c3668; }
+[data-theme="light"] .landing-page :is(.landing-money-total, .landing-money-group, .landing-features article, .testimonial-card) { background: radial-gradient(ellipse at 90% 0%, #d5b8ff60, transparent 70%), linear-gradient(135deg, #fff, #f2eaff); border-color: #d8c6f5; }
+.landing-page .landing-money-expense { border-radius: 18px; }
+.landing-page .hero-split { border-radius: 18px; background: radial-gradient(ellipse at 100% 0%, #8050d025, transparent 70%), #0d0d0d; }
+[data-theme="light"] .landing-page .hero-split { background: linear-gradient(130deg, #ffffff00, #f7f1ff), #fff; }
+.landing-page .landing-final-cta { background-image: radial-gradient(ellipse at 50% 100%, #7137ce33, transparent 70%); }
 @media (prefers-reduced-motion: reduce) {
   .landing-page *, .landing-page *::before, .landing-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .landing-page .button:hover, .landing-page article:hover { transform: none !important; }

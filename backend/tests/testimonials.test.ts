@@ -16,7 +16,7 @@ test("testimonials require login and consent, restrict writes to the session own
       calls.push({ method, args });
       if (method === "findMany") return rows;
       if (method === "deleteMany") return { count: 1 };
-      return { id: randomUUID(), body: args.create?.body ?? "My experience", rating: args.create?.rating ?? null, createdAt: new Date(), user: { displayName: "Alex", createdAt: new Date("2026-01-01T00:00:00Z") } };
+      return { id: randomUUID(), body: args.create?.body ?? "My experience", rating: args.create?.rating ?? null, photoConsent: args.create?.photoConsent ?? false, createdAt: new Date(), user: { displayName: "Alex", avatarUrl: "https://example.com/alex.webp", createdAt: new Date("2026-01-01T00:00:00Z") } };
     };
     t.after(() => { (prisma.testimonial as any)[method] = original; });
   }
@@ -32,7 +32,7 @@ test("testimonials require login and consent, restrict writes to the session own
   });
   assert.equal((await request("/")).status, 200);
   const select = calls[0].args.select;
-  assert.deepEqual(select.user.select, { displayName: true, createdAt: true });
+  assert.deepEqual(select.user.select, { displayName: true, createdAt: true, avatarUrl: true });
   assert.equal(select.userId, undefined); assert.equal(calls[0].args.take, 13);
   for (const method of ["GET", "PUT", "DELETE"]) assert.equal((await request("/mine", method)).status, 401);
   assert.equal((await request("/mine", "PUT", { body: "A helpful app indeed", consent: false }, "alex")).status, 400);
@@ -42,13 +42,24 @@ test("testimonials require login and consent, restrict writes to the session own
   assert.equal((await request("/mine", "PUT", { body: "  A helpful app indeed  ", consent: true }, "alex")).status, 200);
   const saved = calls.find((call) => call.method === "upsert").args;
   assert.deepEqual(saved.where, { userId: "alex" });
-  assert.deepEqual(saved.create, { userId: "alex", body: "A helpful app indeed", rating: null });
+  assert.deepEqual(saved.create, { userId: "alex", body: "A helpful app indeed", rating: null, photoConsent: false });
   for (const rating of [0, 6, 2.5, "5"]) assert.equal((await request("/mine", "PUT", { body: "A helpful app indeed", consent: true, rating }, "alex")).status, 400);
   const rated = await request("/mine", "PUT", { body: "A helpful app indeed", consent: true, rating: 4 }, "alex");
   assert.equal(rated.status, 200);
   const ratedBody = await rated.json();
   assert.equal(ratedBody.testimonial.rating, 4);
-  assert.deepEqual(ratedBody.testimonial.user, { displayName: "Alex", memberSince: "2026-01" });
+  assert.deepEqual(ratedBody.testimonial.user, { displayName: "Alex", memberSince: "2026-01", avatarUrl: null });
+  const optedIn = await (await request("/mine", "PUT", { body: "A helpful app indeed", consent: true, rating: 5, photoConsent: true }, "alex")).json();
+  assert.equal(optedIn.testimonial.user.avatarUrl, "https://example.com/alex.webp");
+  const optedOut = await (await request("/mine", "PUT", { body: "A helpful app indeed", consent: true, rating: 5, photoConsent: false }, "alex")).json();
+  assert.equal(optedOut.testimonial.user.avatarUrl, null);
+  rows = [{ user: { displayName: "Alex", avatarUrl: "https://example.com/alex.webp" } }, { user: { displayName: "Unsafe", avatarUrl: "javascript:alert(1)" } }];
+  const community = await (await request("/community")).json();
+  assert.deepEqual(community.users, [{ displayName: "Alex", avatarUrl: "https://example.com/alex.webp" }]);
+  const communityQuery = calls.at(-1).args;
+  assert.equal(communityQuery.where.photoConsent, true);
+  assert.equal(communityQuery.take, 5);
+  assert.deepEqual(communityQuery.select, { user: { select: { displayName: true, avatarUrl: true } } });
   rows = Array.from({ length: 7 }, () => ({ id: randomUUID(), body: "A public review", rating: null, createdAt: new Date("2026-10-26T00:00:00Z"), user: { displayName: "Alex", createdAt: new Date("2026-01-01T00:00:00Z") } }));
   const first = await (await request("/?limit=6")).json();
   assert.equal(first.testimonials.length, 6); assert.ok(first.nextCursor);

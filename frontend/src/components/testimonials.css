@@ -15,8 +15,14 @@
 .testimonial-consent input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
 .testimonial-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
 .testimonial-card-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--purple); }
-.review-stars { display: inline-flex; gap: 3px; color: #8a5700; flex-shrink: 0; }
-[data-theme="dark"] .review-stars { color: #f2c96d; }
+.review-stars { display: inline-flex; gap: 3px; flex-shrink: 0; }
+.review-stars .star-selected, .testimonial-rating .star-selected { color: #c28a08; }
+[data-theme="dark"] :is(.review-stars, .testimonial-rating) .star-selected { color: #ffd166; }
+:is(.review-stars, .testimonial-rating) .star-empty { color: #85808e; }
+.public-avatar { display: inline-grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; overflow: hidden; border-radius: 50%; background: var(--blue-soft); color: var(--blue-text); }
+.public-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.community-faces { display: inline-flex; padding-left: 8px; }
+.community-faces .public-avatar { margin-left: -8px; border: 2px solid var(--surface); width: 30px; height: 30px; }
 .testimonial-author small { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; }
 .testimonial-unrated { font-size: 11px; color: var(--muted); }
 .testimonial-read-more { align-self: flex-start; background: none; border: 0; padding: 8px 0; color: var(--purple); margin: -12px 0 20px; font-weight: 600; }

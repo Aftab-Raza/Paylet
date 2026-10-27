@@ -4,10 +4,15 @@ import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 
 export const testimonialsRouter = Router();
-const publicFields = { id: true, body: true, rating: true, createdAt: true, user: { select: { displayName: true, createdAt: true } } } as const;
-function serialize(item: { id: string; body: string; rating: number | null; createdAt: Date; user: { displayName: string; createdAt: Date } }) {
+const publicFields = { id: true, body: true, rating: true, photoConsent: true, createdAt: true, user: { select: { displayName: true, createdAt: true, avatarUrl: true } } } as const;
+function publicPhoto(url: string | null | undefined) {
+  if (!url) return null;
+  if (/^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(url)) return url;
+  try { const parsed = new URL(url); return parsed.protocol === "https:" && !parsed.username && !parsed.password ? url : null; } catch { return null; }
+}
+function serialize(item: { id: string; body: string; rating: number | null; photoConsent?: boolean; createdAt: Date; user: { displayName: string; createdAt: Date; avatarUrl?: string | null } }) {
   return { id: item.id, body: item.body, rating: item.rating, createdAt: item.createdAt,
-    user: { displayName: item.user.displayName, memberSince: item.user.createdAt.toISOString().slice(0, 7) } };
+    user: { displayName: item.user.displayName, memberSince: item.user.createdAt.toISOString().slice(0, 7), avatarUrl: item.photoConsent ? publicPhoto(item.user.avatarUrl) : null } };
 }
 const cursorSchema = z.object({ id: z.uuid(), createdAt: z.iso.datetime() }).strict();
 testimonialsRouter.use(rateLimit({ windowMs: 60_000, limit: 60, standardHeaders: true, legacyHeaders: false,
@@ -29,23 +34,29 @@ testimonialsRouter.get("/", async (req, res) => {
   res.json({ testimonials: page.map(serialize), nextCursor });
 });
 
+testimonialsRouter.get("/community", async (_req, res) => {
+  const rows = await prisma.testimonial.findMany({ where: { photoConsent: true, user: { avatarUrl: { not: null } } },
+    select: { user: { select: { displayName: true, avatarUrl: true } } }, orderBy: [{ user: { createdAt: "desc" } }, { id: "desc" }], take: 5 });
+  res.json({ users: rows.map(({ user }) => ({ displayName: user.displayName, avatarUrl: publicPhoto(user.avatarUrl) })).filter((user) => user.avatarUrl) });
+});
+
 testimonialsRouter.use((req, res, next) => {
   if (!req.session.userId) { res.status(401).json({ message: "Sign in to write a testimonial." }); return; }
   next();
 });
 testimonialsRouter.get("/mine", async (req, res) => {
   const item = await prisma.testimonial.findUnique({ where: { userId: req.session.userId! }, select: publicFields });
-  res.json({ testimonial: item ? serialize(item) : null });
+  res.json({ testimonial: item ? { ...serialize(item), photoConsent: item.photoConsent } : null });
 });
 const writeLimit = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: true, legacyHeaders: false,
   message: { message: "Too many testimonial changes. Try again in 15 minutes." } });
-const schema = z.object({ body: z.string().trim().min(10).max(600), rating: z.number().int().min(1).max(5).optional(), consent: z.literal(true) }).strict();
+const schema = z.object({ body: z.string().trim().min(10).max(600), rating: z.number().int().min(1).max(5).optional(), consent: z.literal(true), photoConsent: z.boolean().default(false) }).strict();
 testimonialsRouter.put("/mine", writeLimit, async (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ message: "Write 10-600 characters, choose a valid rating, and confirm public sharing." }); return; }
   const testimonial = await prisma.testimonial.upsert({ where: { userId: req.session.userId! },
-    create: { userId: req.session.userId!, body: parsed.data.body, rating: parsed.data.rating ?? null },
-    update: { body: parsed.data.body, ...(parsed.data.rating !== undefined ? { rating: parsed.data.rating } : {}) }, select: publicFields });
+    create: { userId: req.session.userId!, body: parsed.data.body, rating: parsed.data.rating ?? null, photoConsent: parsed.data.photoConsent },
+    update: { body: parsed.data.body, photoConsent: parsed.data.photoConsent, ...(parsed.data.rating !== undefined ? { rating: parsed.data.rating } : {}) }, select: publicFields });
   res.json({ testimonial: serialize(testimonial) });
 });
 testimonialsRouter.delete("/mine", writeLimit, async (req, res) => {

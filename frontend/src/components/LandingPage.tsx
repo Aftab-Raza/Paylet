@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowRight, BarChart3, Check, ChevronRight, LayoutDashboard, LogIn, LogOut, Plus, ReceiptText, ShieldCheck, Users, Wallet, TrendingUp, CheckCircle2 } from "lucide-react";
 import type { User } from "../lib/api";
 import "./landing.css";
@@ -19,6 +19,7 @@ type Props = {
 };
 
 export default function LandingPage({ user, checking, sessionError, onLogin, onRegister, onDashboard, onLogout }: Props) {
+  const [communityRefresh, setCommunityRefresh] = useState(0);
   const pageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!window.IntersectionObserver) return;
@@ -50,7 +51,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
           <p className="landing-hero-description">Track your spending. Split the bill.<br className="landing-desktop-break" /> Keep money between friends clear.</p>
           <div className="landing-hero-actions"><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Open dashboard" : "Get started"}<ArrowRight size={18} /></button><a href="#about">Explore Paylet <ChevronRight size={17} /></a></div>
           <div className="landing-hero-benefits"><span><Check size={15} /> No bank connection</span><span><Check size={15} /> Your records stay private</span></div>
-          <CommunityCount />
+          <CommunityCount refreshKey={communityRefresh} />
           <HeroSplitDemo />
         </div>
       </section>
@@ -72,7 +73,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
       <section id="privacy" className="landing-privacy">
         <div className="landing-width landing-privacy-inner"><ShieldCheck size={36} className="landing-privacy-icon" /><div><span className="landing-eyebrow">SHARE ON YOUR TERMS</span><h2>Your personal records stay personal.</h2><p>Joining a group or connecting with someone does not reveal your private lending history. You choose which loan or repayment entries to share, and you can stop sharing them.</p></div><button className="button button-purple" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Go to dashboard" : "Create your account"}<ArrowRight size={18} /></button></div>
       </section>
-      <div className="landing-band landing-community-band"><Testimonials user={user} checking={checking} onLogin={onLogin} /></div>
+      <div className="landing-band landing-community-band"><Testimonials user={user} checking={checking} onLogin={onLogin} onChange={() => setCommunityRefresh((value) => value + 1)} /></div>
       <div className="landing-band landing-faq-band"><section className="landing-faq landing-width" aria-labelledby="landing-faq-title"><div><span className="landing-eyebrow">GOOD TO KNOW</span><h2 id="landing-faq-title">A little more clarity.</h2><p>Start with your own expenses. Bring your people along when you are ready.</p></div><div className="landing-questions">
         <details><summary>Do I need to connect my bank account?<Plus size={22} /></summary><p>No. Paylet records the expenses and money entries you add. It does not need your bank balance or banking credentials.</p></details>
         <details><summary>Can I include someone who does not use Paylet?<Plus size={22} /></summary><p>Yes. Add them to People and include them in a group split. If they join later, send a connection request using their username. They must accept before their account is connected.</p></details>

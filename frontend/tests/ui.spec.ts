@@ -32,6 +32,7 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
     else if (path === "/community/stats") data = { users: 1250 };
+    else if (path === "/testimonials/community") data = { users: [] };
     else if (path === "/testimonials") data = { testimonials: [] };
     else if (path === "/testimonials/mine") data = { testimonial: null };
     else if (path.startsWith("/reports")) data = { month: "2026-10", name: "October 2026", count: 0, currencies: [], expenses: [] };
@@ -575,6 +576,36 @@ test("testimonials publish with consent, render as text, edit and delete on mobi
   await page.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Delete testimonial", exact: true }).click();
   await expect(page.getByText("No testimonials yet.", { exact: false })).toBeVisible();
+});
+
+test("public photos require opt-in, show in reviews and community, and fall back when unavailable", async ({ page }) => {
+  await mockApi(page);
+  let optedIn = false;
+  const photo = "https://example.com/public-avatar.webp";
+  await page.route(photo, (route) => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="purple"/></svg>' }));
+  await page.route("**/api/testimonials**", async (route) => {
+    const url = new URL(route.request().url());
+    if (route.request().method() === "PUT") { optedIn = route.request().postDataJSON().photoConsent; expect(optedIn).toBe(true); }
+    const review = { id: "photo-review", body: "A helpful app for shared expenses", rating: 4, photoConsent: optedIn, createdAt: "2026-10-27T00:00:00Z", user: { displayName: "Alex", memberSince: "2026-01", avatarUrl: optedIn ? photo : null } };
+    await route.fulfill({ json: url.pathname.endsWith("/community") ? { users: [{ displayName: "Alex", avatarUrl: photo }] } : url.pathname.endsWith("/mine") ? { testimonial: review } : { testimonials: [review] } });
+  });
+  await page.goto("/");
+  await expect(page.locator(".community-faces img")).toBeVisible();
+  await expect(page.locator(".testimonial-author img")).toHaveCount(0);
+  await page.getByRole("button", { name: "Edit your testimonial", exact: true }).click();
+  await expect(page.getByRole("checkbox", { name: /Also show my profile photo/ })).not.toBeChecked();
+  await page.getByRole("checkbox", { name: /Also show my profile photo/ }).check();
+  await page.getByRole("checkbox", { name: /Publish my words/ }).check();
+  await page.getByRole("button", { name: "Publish testimonial" }).click();
+  await expect(page.locator(".testimonial-author img")).toBeVisible();
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    expect(await page.locator(".review-stars .star-selected").first().evaluate((el) => getComputedStyle(el).color)).toBe(theme === "dark" ? "rgb(255, 209, 102)" : "rgb(194, 138, 8)");
+  }
+  await page.route(photo, (route) => route.abort());
+  await page.reload();
+  await expect(page.locator(".testimonial-author .public-avatar")).toHaveText("A");
+  await expect(page.locator(".testimonial-author img")).toHaveCount(0);
 });
 
 test("visitors can read testimonials but must log in to write", async ({ page }) => {
