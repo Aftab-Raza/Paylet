@@ -13,10 +13,15 @@ import Groups from "./Groups";
 import SettlementNotifications from "./SettlementNotifications";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
-import { ArrowDownLeft, ArrowUpLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import { openScreen, useScreen } from "../lib/navigation";
+
+function ExpenseCategoryIcon({ category }: { category: string }) {
+    const Icon = ({ food: Utensils, groceries: ShoppingBasket, travel: Bus, transport: Bus, shopping: ShoppingBag, rent: House, housing: House, health: HeartPulse, healthcare: HeartPulse, education: GraduationCap, entertainment: Film, utilities: Zap } as Record<string, typeof ReceiptText>)[category.toLowerCase()] ?? ReceiptText;
+    return <Icon size={20} strokeWidth={2} />;
+}
 
 type Expense = {
     source?: "PERSONAL" | "SHARED";
@@ -547,7 +552,7 @@ export default function Dashboard({
                         ) : (
                             <article className="summary-card">
                                 <p>
-                                    <Wallet size={18} /> Monthly spending · {user.defaultCurrency}
+                                        <Wallet size={18} /> Monthly spending · {currencyLabel(user.defaultCurrency)}
                                 </p>
                                 <strong>0</strong>
                             </article>
@@ -775,7 +780,7 @@ export default function Dashboard({
                                 key={expense.id}
                             >
                                 <div className="transaction-detail">
-                                    <span className="transaction-icon expense-direction" aria-hidden="true"><ArrowUpLeft size={20} strokeWidth={2.5} /></span>
+                                    <span className="transaction-icon expense-direction" aria-hidden="true"><ExpenseCategoryIcon category={expense.category} /><span className="expense-direction-badge"><ArrowUpLeft size={11} strokeWidth={2.5} /></span></span>
                                     <div>
                                     <h3>{expense.purpose}</h3>
                                     {expense.source === "SHARED" && <span className="pg-tag">Shared · your portion</span>}

@@ -52,3 +52,21 @@
 body:has(dialog[open]) .dashboard-fab { display: none; }
 @media (hover: hover) { .dashboard-fab:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 0 0 7px #7c3aed20, 0 0 34px #7c3aed88; } .home-page .dashboard-add-expense:hover:not(:disabled) { box-shadow: 0 0 0 4px #7c3aed20, 0 0 30px #7c3aed66; } }
 @media (prefers-reduced-motion: reduce) { .dashboard-fab, .home-page .dashboard-add-expense { transition: none; transform: none !important; } }
+
+/* Vector tiles: consistent silhouettes, restrained depth and clear labels. */
+.home-page .quick-actions { padding: 22px 14px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); gap: 12px; }
+.home-page .quick-actions > button { padding: 12px 4px; border-radius: 18px; gap: 12px; font-weight: 650; }
+.home-page .quick-actions .action-symbol { position: relative; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; border-width: 1.5px; }
+.home-page .quick-actions .action-symbol svg { width: 27px; height: 27px; stroke-linecap: round; stroke-linejoin: round; }
+.home-page .quick-actions > button:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
+.home-page .summary-grid .summary-card { border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: none; }
+.home-page .summary-grid .summary-card:first-child { background-image: none; background-color: #f1eaff; border-color: #d8c6f5; }
+[data-theme="dark"] .home-page .summary-grid .summary-card:first-child { background-image: none; background-color: #0a0a0a; border-color: #473260; }
+.home-page .summary-grid .summary-card:not(:first-child) { background-image: none; background-color: #6432ae; border-color: #8954ce; }
+.home-page .summary-card p { display: flex; align-items: center; gap: 10px; }
+.home-page .summary-card p > svg { box-sizing: content-box; padding: 10px; border: 1px solid currentColor; border-radius: 13px; flex-shrink: 0; }
+.home-page .expense-row .transaction-icon.expense-direction { position: relative; overflow: visible; border-radius: 14px; flex-shrink: 0; }
+.home-page .expense-direction-badge { display: grid; place-items: center; position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; background: #166534; color: white; border: 2px solid var(--surface); }
+.home-page .loan-summary-card { border-radius: 22px; box-shadow: none; }
+@media (max-width: 600px) { .home-page .quick-actions { padding: 14px 6px; gap: 10px 4px; } .home-page .quick-actions .action-symbol { width: 54px; height: 54px; border-radius: 18px; } .home-page .summary-grid .summary-card { padding: 16px; } }
+@media (hover: hover) { .home-page .quick-actions > button:hover:not(:disabled) .action-symbol { box-shadow: 0 0 0 4px #7c3aed18; } }
