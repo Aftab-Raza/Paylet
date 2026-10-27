@@ -1,3 +1,4 @@
+import BrandMark from "./components/BrandMark";
 import { useEffect, useState } from "react";
 
 import type { FormEvent } from "react";
@@ -341,9 +342,9 @@ function App() {
 
         <div className="status-box">
 
-          <div className="brand-mark">P</div>
+          <BrandMark />
 
-          <h1>Paylet</h1>
+          <h1>Paylet.</h1>
 
 
 
@@ -409,9 +410,9 @@ function App() {
 
         <header className="auth-brand-header"><a className="brand" href="/">
 
-          <span className="brand-mark">P</span>
+          <BrandMark />
 
-          <span>Paylet</span>
+          <span>Paylet.</span>
 
         </a><ThemeToggle /></header>
 

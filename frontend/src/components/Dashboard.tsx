@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
@@ -381,8 +382,8 @@ export default function Dashboard({
         <main className="signed-in-page home-page">
             <header className="app-header">
                 <a className="brand" href="/">
-                    <span className="brand-mark">P</span>
-                    <span>Paylet</span>
+                    <BrandMark />
+                    <span>Paylet.</span>
                 </a>
 
                 <div className="header-actions">

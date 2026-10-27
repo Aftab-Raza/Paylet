@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
@@ -255,8 +256,8 @@ export default function People({ onBack }: Props) {
       <header className="app-header">
         <ThemeToggle />
         <span className="brand">
-          <span className="brand-mark">P</span>
-          <span>Paylet</span>
+          <BrandMark />
+          <span>Paylet.</span>
         </span>
 
         <button

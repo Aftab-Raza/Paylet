@@ -1,3 +1,4 @@
+import BrandMark from "./BrandMark";
 import { useEffect, useRef, useState } from "react";
 import { ArrowDownLeft, ArrowRight, BarChart3, Check, ChevronRight, LayoutDashboard, LogIn, LogOut, Plus, ReceiptText, ShieldCheck, Users, Wallet, TrendingUp, CheckCircle2 } from "lucide-react";
 import type { User } from "../lib/api";
@@ -34,7 +35,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
   return <div className="landing-page" ref={pageRef}>
     <a className="landing-skip" href="#landing-main">Skip to content</a>
     <header className="landing-header"><div className="landing-header-inner landing-width">
-      <a className="brand" href="/" aria-label="Paylet home"><span className="brand-mark">P</span><span>Paylet</span></a>
+      <a className="brand" href="/" aria-label="Paylet home"><BrandMark /><span>Paylet.</span></a>
       <nav className="landing-nav" aria-label="Main navigation"><a href="#about">About</a><a href="#privacy">Privacy</a></nav>
       <div className="landing-account">
         <ThemeToggle />
@@ -81,6 +82,6 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
       </div></section></div>
       <section className="landing-final-cta"><div className="landing-width"><Wallet size={32} className="landing-cta-icon" /><span className="landing-eyebrow">YOUR NEXT CHAPTER STARTS HERE</span><h2>Make room for a little clarity.</h2><p>Start with one expense. Keep going from there.</p><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Your dashboard awaits" : "Get started with Paylet"}<ArrowRight size={19} /></button></div></section>
     </main>
-    <footer className="landing-footer"><div className="landing-width landing-footer-main"><div><a className="brand" href="/"><span className="brand-mark">P</span><span>Paylet</span></a><p>A little clarity for your everyday money.</p></div><nav aria-label="Footer navigation"><a href="#about"><Wallet size={16} /> About Paylet</a><a href="#privacy"><ShieldCheck size={16} /> Your privacy</a><button onClick={user ? onDashboard : onLogin}><BarChart3 size={16} /> {user ? "Dashboard" : "Log in"}</button></nav></div><div className="landing-width landing-footer-bottom"><span>&copy; {new Date().getFullYear()} Paylet A Raza Co.</span><span>Track thoughtfully. Share intentionally.</span></div></footer>
+    <footer className="landing-footer"><div className="landing-width landing-footer-main"><div><a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><p>A little clarity for your everyday money.</p></div><nav aria-label="Footer navigation"><a href="#about"><Wallet size={16} /> About Paylet</a><a href="#privacy"><ShieldCheck size={16} /> Your privacy</a><button onClick={user ? onDashboard : onLogin}><BarChart3 size={16} /> {user ? "Dashboard" : "Log in"}</button></nav></div><div className="landing-width landing-footer-bottom"><span>&copy; 2026 Paylet. All rights reserved.</span></div></footer>
   </div>;
 }

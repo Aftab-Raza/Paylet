@@ -28,7 +28,9 @@ body { color: var(--text); background: var(--page-bg); }
 .button-primary, .auth-card .submit-button { background: #7c3aed; border-color: #7c3aed; color: #fff; }
 .button-blue, .pqa-blue { background: var(--blue-soft); border-color: #729fe5; color: var(--blue-text); }
 .button-purple, .pqa-primary { background: #7c3aed; border: 1px solid #9e75f1; color: #fff; }
-.brand-mark { background: #7c3aed; }
+.brand-mark.brand-mark { background: transparent; overflow: hidden; --mark-purple: #7c3aed; --mark-blue: #386bfa; }
+[data-theme="dark"] .brand-mark { --mark-purple: #a879ff; --mark-blue: #6b98ff; }
+.brand-mark svg { display: block; width: 100%; height: 100%; }
 .orange { background: #eee4ff; color: #7130c5; }
 .button-outline, .pqa-outline { background: var(--surface); border-color: var(--border); color: var(--text); }
 .nav-avatar { background: #eee4ff; color: #7130c5; }

@@ -1,5 +1,5 @@
 :root {
-  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  font-family: "Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
   color: #f5f7fa;
   background: #0b0d10;
   font-synthesis: none;
@@ -545,7 +545,7 @@ dd {
   background: #ffffff;
   border: 1px solid #dadce0;
   color: #1f1f1f;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-weight: 600;
 }
 
