@@ -109,6 +109,7 @@ test("profile and contact actions use success toasts with manual dismissal", asy
   await page.route('**/api/contacts/*/archive',async route=>{ contact={...contact,isArchived:true}; await route.fulfill({json:{}}); });
   await page.goto('/?view=dashboard');
   await page.getByRole('button',{name:'My profile'}).click();
+  await page.getByRole('button',{name:'Edit profile',exact:true}).click();
   await page.getByRole('button',{name:'Save changes'}).click();
   await expect(page.locator('.success-toast')).toContainText('Profile saved.');
   await page.getByRole('button',{name:'Dismiss notification'}).click();
@@ -762,12 +763,108 @@ test("profile community-photo preference saves independently of testimonials", a
   });
   await page.goto("/?view=dashboard");
   await page.getByRole("button",{name:"My profile"}).click();
-  const consent=page.getByRole("checkbox",{name:/Show my profile photo publicly beside/});
+  await page.getByRole('button',{name:'Edit profile',exact:true}).click();
+  const consent=page.getByRole("checkbox",{name:'Show my photo in the public community.',exact:true});
   await expect(consent).not.toBeChecked();
   await consent.check();
   await page.getByRole("button",{name:"Save changes"}).click();
-  await expect(consent).toBeChecked();
+  await expect(page.getByRole('dialog',{name:'Edit profile'})).toHaveCount(0);
+  await expect(page.getByText('Visible when recently signed in',{exact:true})).toBeVisible();
   expect(profile.communityPhotoConsent).toBe(true);
+});
+
+test("profile editor preserves drafts on failure, saves in a modal and shows a top-right toast", async ({ page }) => {
+  await mockApi(page);
+  let profile={...user,createdAt:'2026-01-01T00:00:00Z',googleConnected:true,hasPassword:true,communityPhotoConsent:false};
+  let saves=0;
+  await page.route('**/api/profile/options',route=>route.fulfill({json:{currencies:['INR','USD'],timezones:['Asia/Kolkata','UTC']}}));
+  await page.route('**/api/profile',async route=>{
+    if(route.request().method()==='PATCH') {
+      saves++;
+      if(saves===1) {await route.fulfill({status:500,json:{message:'Save failed. Please retry.'}});return;}
+      profile={...profile,...route.request().postDataJSON()};
+    }
+    await route.fulfill({json:{user:profile}});
+  });
+  await page.goto('/?view=dashboard');
+  await page.getByRole('button',{name:'My profile'}).click();
+  await expect(page.getByRole('button',{name:'Edit profile',exact:true})).toBeVisible();
+  await expect(page.getByLabel('Display name',{exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'Edit profile',exact:true}).click();
+  const dialog=page.getByRole('dialog',{name:'Edit profile',exact:true});
+  await expect(dialog.getByLabel('Display name',{exact:true})).toBeFocused();
+  await dialog.getByLabel('Display name',{exact:true}).fill('Alex Updated');
+  await dialog.getByRole('button',{name:'Save changes'}).click();
+  await expect(dialog.getByRole('alert')).toContainText('Save failed');
+  await expect(dialog.getByLabel('Display name',{exact:true})).toHaveValue('Alex Updated');
+  await expect(page.locator('.success-toast')).toHaveCount(0);
+  await dialog.getByRole('button',{name:'Save changes'}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.profile-identity-card h2')).toHaveText('Alex Updated');
+  const toast=page.locator('.success-toast-top');
+  await expect(toast).toContainText('Profile saved.');
+  expect((await toast.boundingBox())!.y).toBeLessThan(30);
+  await page.getByRole('button',{name:'Dismiss notification'}).click();
+  for(const theme of ['light','dark']) {
+    if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
+    for(const width of [320,768,1440]) {
+      await page.setViewportSize({width,height:900});
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      await expect(page.locator('header').getByRole('button',{name:'Dashboard',exact:true})).toBeVisible();
+      await expect(page.locator('header').getByRole('button',{name:'Log out',exact:true})).toBeVisible();
+    }
+    await page.screenshot({path:`test-results/profile-overview-${theme}.png`});
+    await page.getByRole('button',{name:'Edit profile',exact:true}).click();
+    await page.setViewportSize({width:360,height:844});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.screenshot({path:`test-results/profile-editor-${theme}.png`});
+    await page.goBack();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.getByRole('heading',{name:'My profile',exact:true})).toBeVisible();
+  }
+});
+
+test("avatar camera opens the picker, previews before upload, retries failures and allows removal", async ({ page }) => {
+  await mockApi(page);
+  let profile: Omit<typeof user,'avatarUrl'> & {avatarUrl:string|null;createdAt:string;googleConnected:boolean;hasPassword:boolean}={...user,createdAt:'2026-01-01T00:00:00Z',googleConnected:true,hasPassword:true};
+  let uploads=0;
+  const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
+  await page.route('**/api/profile/options',route=>route.fulfill({json:{currencies:['INR'],timezones:['Asia/Kolkata']}}));
+  await page.route('**/api/profile',route=>route.fulfill({json:{user:profile}}));
+  await page.route('**/api/profile/avatar',async route=>{
+    if(route.request().method()==='POST') {
+      uploads++;
+      expect(route.request().headers()['content-type']).toContain('multipart/form-data');
+      expect(route.request().postDataBuffer()!.toString()).toContain('name="avatar"');
+      if(uploads===1) {await route.fulfill({status:500,json:{message:'Upload failed. Please retry.'}});return;}
+      profile={...profile,avatarUrl:`data:image/png;base64,${png.toString('base64')}`};
+    } else profile={...profile,avatarUrl:null};
+    await route.fulfill({json:{user:profile}});
+  });
+  await page.goto('/?view=dashboard');
+  await page.getByRole('button',{name:'My profile'}).click();
+  const picker=page.waitForEvent('filechooser');
+  await expect(page.getByLabel('Profile photo file',{exact:true})).toBeHidden();
+  await page.getByRole('button',{name:'Change profile photo',exact:true}).click();
+  await (await picker).setFiles({name:'avatar.png',mimeType:'image/png',buffer:png});
+  const dialog=page.getByRole('dialog',{name:'Save profile photo',exact:true});
+  await expect(dialog.getByRole('img')).toBeVisible();
+  expect(uploads).toBe(0);
+  await dialog.getByRole('button',{name:'Save photo',exact:true}).click();
+  await expect(dialog.getByRole('alert')).toContainText('Upload failed');
+  await dialog.getByRole('button',{name:'Save photo',exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('.success-toast-top')).toContainText('Profile photo saved.');
+  await expect(page.locator('.avatar-preview img')).toBeVisible();
+  await page.getByRole('button',{name:'Dismiss notification'}).click();
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Remove photo',exact:true}).click();
+  await expect(page.locator('.avatar-preview img')).toHaveCount(0);
+  await expect(page.locator('.success-toast-top')).toContainText('Profile photo removed.');
+  await page.getByRole('button',{name:'Dismiss notification'}).click();
+  await page.getByLabel('Profile photo file',{exact:true}).setInputFiles({name:'too-large.png',mimeType:'image/png',buffer:Buffer.alloc(5*1024*1024+1)});
+  await expect(page.getByRole('alert')).toContainText('smaller than 5 MB');
+  expect(uploads).toBe(2);
 });
 
 test("visitors can read testimonials but must log in to write", async ({ page }) => {

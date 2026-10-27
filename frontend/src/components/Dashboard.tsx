@@ -369,27 +369,13 @@ export default function Dashboard({
     }
     if (showProfile) {
         return (
-            <>
-                <div className="dashboard-back">
-                    <button
-                        type="button"
-                        className="button button-outline"
-                        onClick={() => {
-                            setShowProfile(false);
-                            setRefresh((value) => value + 1);
-                        }}
-                    >
-                        ← Dashboard
-                    </button>
-                </div>
-
                 <Profile
+                    onBack={() => { setShowProfile(false); setRefresh((value) => value + 1); }}
                     onUserChange={onUserChange}
                     onLogout={onLogout}
                     logoutBusy={logoutBusy}
                     logoutError={logoutError}
                 />
-            </>
         );
     }
 

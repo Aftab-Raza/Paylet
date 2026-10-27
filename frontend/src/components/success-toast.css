@@ -8,4 +8,5 @@
 .success-toast-track > span { display: block; height: 100%; background: var(--purple); transform-origin: left; animation: success-toast-countdown 3s linear forwards; }
 @keyframes success-toast-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 @media (max-width: 600px) { .success-toast { right: 16px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
+.success-toast.success-toast-top { top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto; }
 @media (prefers-reduced-motion: reduce) { .success-toast-track > span { animation: none; } }
