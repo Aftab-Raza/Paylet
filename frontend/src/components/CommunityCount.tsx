@@ -10,7 +10,7 @@ export default function CommunityCount({ refreshKey = 0 }: { refreshKey?: number
     api<{ users: number }>("/community/stats", { signal: controller.signal }).then(({ users }) => {
       if (!controller.signal.aborted && Number.isSafeInteger(users) && users > 0) setCount(users);
     }).catch(() => { /* Omit the claim when the count cannot be verified. */ });
-    api<{ users: { displayName: string; avatarUrl: string }[] }>("/testimonials/community", { signal: controller.signal }).then((result) => {
+    api<{ users: { displayName: string; avatarUrl: string }[] }>("/community/recent-users", { signal: controller.signal }).then((result) => {
       if (!controller.signal.aborted && Array.isArray(result.users)) setFaces(result.users.slice(0, 5));
     }).catch(() => { /* Keep the verified count if community photos are unavailable. */ });
     return () => controller.abort();

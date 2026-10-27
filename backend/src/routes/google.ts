@@ -9,6 +9,7 @@ import {
   CodeChallengeMethod,
 } from "google-auth-library";
 import { prisma } from "../lib/prisma.js";
+import { recordSignIn } from "../lib/recordSignIn.js";
 import { googleConfig } from "../lib/googleConfig.js";
 
 export const googleRouter = Router();
@@ -52,6 +53,7 @@ async function createLoginSession(req: Request, userId: string) {
   const current = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { authVersion: true } });
   req.session.authVersion = current.authVersion;
   await saveSession(req);
+  await recordSignIn(userId);
 }
 
 function resultUrl(code: string) {

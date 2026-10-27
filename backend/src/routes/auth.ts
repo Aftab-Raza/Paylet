@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { recordSignIn } from "../lib/recordSignIn.js";
 import type { Request } from "express";
 import argon2 from "argon2";
 import { rateLimit } from "express-rate-limit";
@@ -81,6 +82,7 @@ async function startSession(req: Request, userId: string, authVersion = 0) {
       else resolve();
     });
   });
+  await recordSignIn(userId);
 }
 
 authRouter.use((_req, res, next) => {

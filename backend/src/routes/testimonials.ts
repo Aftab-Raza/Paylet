@@ -2,14 +2,10 @@ import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
+import { publicPhoto } from "../lib/publicPhoto.js";
 
 export const testimonialsRouter = Router();
 const publicFields = { id: true, body: true, rating: true, photoConsent: true, createdAt: true, user: { select: { displayName: true, createdAt: true, avatarUrl: true } } } as const;
-function publicPhoto(url: string | null | undefined) {
-  if (!url) return null;
-  if (/^data:image\/webp;base64,[A-Za-z0-9+/=]+$/.test(url)) return url;
-  try { const parsed = new URL(url); return parsed.protocol === "https:" && !parsed.username && !parsed.password ? url : null; } catch { return null; }
-}
 function serialize(item: { id: string; body: string; rating: number | null; photoConsent?: boolean; createdAt: Date; user: { displayName: string; createdAt: Date; avatarUrl?: string | null } }) {
   return { id: item.id, body: item.body, rating: item.rating, createdAt: item.createdAt,
     user: { displayName: item.user.displayName, memberSince: item.user.createdAt.toISOString().slice(0, 7), avatarUrl: item.photoConsent ? publicPhoto(item.user.avatarUrl) : null } };

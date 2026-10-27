@@ -21,6 +21,8 @@ model User {
   testimonial        Testimonial?
   googleId           String?                  @unique
   avatarUrl          String?
+  communityPhotoConsent Boolean @default(false)
+  lastLoginAt        DateTime?
   bio                String?                  @db.VarChar(250)
   defaultCurrency    String                   @default("INR") @db.VarChar(3)
   timezone           String                   @default("Asia/Kolkata") @db.VarChar(100)
@@ -40,6 +42,7 @@ model User {
   settlementActions  GroupSettlementHistory[]
 
   @@map("users")
+  @@index([communityPhotoConsent, lastLoginAt])
 }
 
 model Testimonial {

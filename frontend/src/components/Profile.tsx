@@ -10,6 +10,7 @@ type ProfileUser = User & {
   createdAt: string;
   googleConnected: boolean;
   hasPassword: boolean;
+  communityPhotoConsent?: boolean;
 };
 
 type ProfileOptions = {
@@ -23,6 +24,7 @@ type Draft = {
   bio: string;
   defaultCurrency: string;
   timezone: string;
+  communityPhotoConsent: boolean;
 };
 
 type Props = {
@@ -39,6 +41,7 @@ function makeDraft(user: ProfileUser): Draft {
     bio: user.bio ?? "",
     defaultCurrency: user.defaultCurrency,
     timezone: user.timezone,
+    communityPhotoConsent: user.communityPhotoConsent ?? false,
   };
 }
 
@@ -90,7 +93,7 @@ export default function Profile({
     return () => controller.abort();
   }, []);
 
-  function updateField(field: keyof Draft, value: string) {
+  function updateField<K extends keyof Draft>(field: K, value: Draft[K]) {
     setDraft((current) =>
       current ? { ...current, [field]: value } : current
     );
@@ -368,6 +371,7 @@ export default function Profile({
                     placeholder="A little about you…"
                   />
                   <small>{draft.bio.length}/250 characters</small>
+                  <label className="testimonial-consent"><input type="checkbox" checked={draft.communityPhotoConsent} onChange={(event) => updateField("communityPhotoConsent", event.target.checked)} /><span>Show my profile photo publicly beside the landing page's user count when I am among the most recently signed-in members. No testimonial needed. Turn this off anytime.</span></label>
 
                   <div className="profile-fields-row">
                     <div>

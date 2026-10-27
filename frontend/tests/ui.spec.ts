@@ -32,7 +32,7 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
     else if (path === "/community/stats") data = { users: 1250 };
-    else if (path === "/testimonials/community") data = { users: [] };
+    else if (path === "/community/recent-users") data = { users: [] };
     else if (path === "/testimonials") data = { testimonials: [] };
     else if (path === "/testimonials/mine") data = { testimonial: null };
     else if (path.startsWith("/reports")) data = { month: "2026-10", name: "October 2026", count: 0, currencies: [], expenses: [] };
@@ -582,6 +582,7 @@ test("public photos require opt-in, show in reviews and community, and fall back
   await mockApi(page);
   let optedIn = false;
   const photo = "https://example.com/public-avatar.webp";
+  await page.route("**/api/community/recent-users", (route) => route.fulfill({ json: { users: [{ displayName: "Alex", avatarUrl: photo }] } }));
   await page.route(photo, (route) => route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="purple"/></svg>' }));
   await page.route("**/api/testimonials**", async (route) => {
     const url = new URL(route.request().url());
@@ -606,6 +607,28 @@ test("public photos require opt-in, show in reviews and community, and fall back
   await page.reload();
   await expect(page.locator(".testimonial-author .public-avatar")).toHaveText("A");
   await expect(page.locator(".testimonial-author img")).toHaveCount(0);
+});
+
+test("profile community-photo preference saves independently of testimonials", async ({ page }) => {
+  await mockApi(page);
+  let profile = { ...user, createdAt: "2026-01-01T00:00:00Z", googleConnected: false, hasPassword: true, communityPhotoConsent: false };
+  await page.route("**/api/profile/options", (route) => route.fulfill({ json: { currencies: ["INR", "USD"], timezones: ["Asia/Kolkata"] } }));
+  await page.route("**/api/profile", async (route) => {
+    if (route.request().method() === "PATCH") {
+      const payload=route.request().postDataJSON();
+      expect(payload.communityPhotoConsent).toBe(true);
+      profile={...profile,...payload};
+    }
+    await route.fulfill({json:{user:profile}});
+  });
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button",{name:"My profile"}).click();
+  const consent=page.getByRole("checkbox",{name:/Show my profile photo publicly beside/});
+  await expect(consent).not.toBeChecked();
+  await consent.check();
+  await page.getByRole("button",{name:"Save changes"}).click();
+  await expect(consent).toBeChecked();
+  expect(profile.communityPhotoConsent).toBe(true);
 });
 
 test("visitors can read testimonials but must log in to write", async ({ page }) => {

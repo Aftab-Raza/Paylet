@@ -24,6 +24,7 @@ const profileFields = {
   username: true,
   displayName: true,
   avatarUrl: true,
+  communityPhotoConsent: true,
   bio: true,
   defaultCurrency: true,
   timezone: true,
@@ -43,6 +44,7 @@ function publicProfile(user: ProfileRecord) {
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    communityPhotoConsent: user.communityPhotoConsent,
     bio: user.bio,
     defaultCurrency: user.defaultCurrency,
     timezone: user.timezone,
@@ -67,6 +69,7 @@ const profileSchema = z.object({
     ),
 
   bio: z.string().trim().max(250),
+  communityPhotoConsent: z.boolean().optional(),
 
   defaultCurrency: z
     .string()
