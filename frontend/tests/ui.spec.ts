@@ -140,7 +140,8 @@ test("daily and monthly amount cards separate currencies, exclude voids and use 
   const requests:string[]=[];
   await page.route('**/api/expenses?**',route=>{
     const month=new URL(route.request().url()).searchParams.get('month')!;requests.push(month);
-    return route.fulfill({json:{expenses:month==='2026-10'?expenses:[],totals:[{currency:'INR',amount:month==='2026-10'?'9.30':'12.00'}],count:5}});
+    const selected = month==='2026-10'?expenses:month==='2026-09'?[{...initialExpense,amount:'12.00',date:'2026-09-28'}]:[];
+    return route.fulfill({json:{expenses:selected,totals:month==='2026-10'?[{currency:'INR',amount:'9.30'}]:month==='2026-09'?[{currency:'INR',amount:'12.00'}]:[],count:selected.length}});
   });
   await page.goto('/?view=dashboard');
   const today=page.locator('.today-expense-card');
@@ -151,19 +152,45 @@ test("daily and monthly amount cards separate currencies, exclude voids and use 
   await expect(today).toContainText('JPY 150');
   await expect(today).not.toContainText('999');
   await expect(monthly).toContainText('₹ 9.30');
+  const initialReadCount = requests.length;
   await page.getByLabel('Month',{exact:true}).fill('2026-09');
   await expect(monthly).toContainText('₹ 12.00');
+  await expect(today).toContainText('₹ 12.00');
+  await expect(today).toContainText('28 Sept expenses');
+  await expect(today).not.toContainText('USD');
+  await page.getByLabel('Month',{exact:true}).fill('2026-11');
+  await expect(today).toContainText('₹ 0.00');
+  await expect(today).toHaveAttribute('aria-label','Expenses on 2026-11-28');
+  await page.getByLabel('Month',{exact:true}).fill('2026-10');
+  await expect(today).toContainText('Today’s expenses');
   await expect(today).toContainText('₹ 0.30');
-  expect(requests.filter(month=>month==='2026-10').length).toBe(2);
+  expect(requests.slice(initialReadCount)).toEqual(['2026-09','2026-11','2026-10']);
   for(const theme of ['light','dark']) {
     if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
     for(const card of [today,monthly]) {
-      await expect(card.locator('.expense-total').first()).toHaveCSS('color','rgb(255, 255, 255)');
+      await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today?'rgb(73, 53, 28)':'rgb(255, 255, 255)');
       expect(await card.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain('linear-gradient');
     }
     await page.setViewportSize({width:320,height:800});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-    await page.screenshot({path:`test-results/daily-monthly-${theme}.png`});
+    await page.locator('.summary-grid').screenshot({path:`test-results/daily-monthly-${theme}.png`});
+  }
+});
+
+test("daily expense date uses the last valid day for short months and leap years", async ({ page }) => {
+  await mockApi(page);
+  await page.clock.install({time:new Date('2026-03-31T00:00:00Z')});
+  await page.route('**/api/expenses?**',route=>{
+    const month=new URL(route.request().url()).searchParams.get('month');
+    const date=month==='2026-02'?'2026-02-28':month==='2028-02'?'2028-02-29':'2026-03-31';
+    return route.fulfill({json:{expenses:[{...initialExpense,date,amount:'8.00'}],totals:[{currency:'INR',amount:'8.00'}],count:1}});
+  });
+  await page.goto('/?view=dashboard');
+  await expect(page.locator('.today-expense-card')).toContainText('Today’s expenses');
+  for(const [month,date] of [['2026-02','2026-02-28'],['2028-02','2028-02-29']]) {
+    await page.getByLabel('Month',{exact:true}).fill(month);
+    await expect(page.locator('.today-expense-card')).toHaveAttribute('aria-label',`Expenses on ${date}`);
+    await expect(page.locator('.today-expense-card')).toContainText('₹ 8.00');
   }
 });
 

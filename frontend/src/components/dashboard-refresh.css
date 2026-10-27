@@ -56,8 +56,10 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 .home-page .quick-actions > button:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
 .home-page .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .home-page .summary-grid .summary-card { min-width: 0; border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: 0 6px 24px #00000010; }
-.home-page .summary-grid .today-expense-card { background: radial-gradient(ellipse at 85% 0%, #ffd3a310, transparent 65%), linear-gradient(125deg, #87300f, #b84113 60%, #9a3412); border-color: #d97542; }
-.home-page .summary-grid .month-expense-card { background: radial-gradient(ellipse at 85% 0%, #afffd510, transparent 65%), linear-gradient(125deg, #075e41, #137a51 60%, #086346); border-color: #45a97b; }
+.home-page .summary-grid .today-expense-card { background: linear-gradient(125deg, #fffaf0, #f5e8cd); border-color: #e5d1ac; }
+[data-theme="dark"] .home-page .summary-grid .today-expense-card { background: linear-gradient(125deg, #eadfc9, #ddc9a5); border-color: #bda47a; }
+.home-page .summary-grid .today-expense-card :is(p, strong), [data-theme="dark"] .home-page .summary-grid .today-expense-card :is(p, strong) { color: #49351c; }
+.home-page .summary-grid .month-expense-card { background: radial-gradient(ellipse at 75% 0%, #d5b8ff30, transparent 65%), linear-gradient(125deg, #3b176c, #7137ce 58%, #552595); border-color: #9966da; }
 .home-page .summary-grid .expense-total { display: block; font-size: clamp(20px, 3vw, 30px); overflow-wrap: anywhere; }
 .home-page .summary-grid .expense-total + .expense-total { margin-top: 8px; }
 .home-page .summary-card p { display: flex; align-items: center; gap: 10px; }

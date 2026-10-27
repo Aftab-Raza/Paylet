@@ -1,5 +1,13 @@
 type DailyExpense = { date: string; amount: string; currency: string; voidedAt: string | null };
 
+/** Use today's day number, clamped to the selected month's last valid day. */
+export function expenseDateInMonth(today: string, month: string) {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return today;
+  const [year, monthNumber] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return `${month}-${String(Math.min(Number(today.slice(8, 10)), lastDay)).padStart(2, "0")}`;
+}
+
 /** Sum exact decimal amounts per currency, excluding voided entries. */
 export function dailyExpenseTotals(expenses: readonly DailyExpense[], date: string) {
   const totals = new Map<string, { units: bigint; digits: number }>();

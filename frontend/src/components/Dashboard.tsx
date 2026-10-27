@@ -1,6 +1,6 @@
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
-import { dailyExpenseTotals, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
+import { dailyExpenseTotals, expenseDateInMonth, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
@@ -121,6 +121,8 @@ export default function Dashboard({
     const [month, setMonth] = useState(
         () => todayIn(user.timezone).slice(0, 7)
     );
+    const expenseDate = expenseDateInMonth(today, month);
+    const dayLabel = expenseDate === today ? "Today’s expenses" : `${new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${expenseDate}T00:00:00Z`))} expenses`;
 
     const [refresh, setRefresh] = useState(0);
     useEffect(() => {
@@ -141,7 +143,6 @@ export default function Dashboard({
         summary: Summary;
         choices: Choices;
         today: string;
-        todayTotals: { currency: string; amount: string }[];
     } | null>(null);
 
     const [error, setError] = useState("");
@@ -165,9 +166,8 @@ export default function Dashboard({
             api<Choices>("/expenses/options", {
                 signal: controller.signal,
             }),
-            month === currentMonth ? Promise.resolve(null) : api<Summary>(`/expenses?month=${currentMonth}`, { signal: controller.signal }),
         ])
-            .then(([summary, choices, currentSummary]) => {
+            .then(([summary, choices]) => {
                 if (controller.signal.aborted) return;
 
                 setLoaded({
@@ -176,7 +176,6 @@ export default function Dashboard({
                     summary,
                     choices,
                     today,
-                    todayTotals: dailyExpenseTotals((currentSummary ?? summary).expenses, today),
                 });
 
                 setError("");
@@ -192,7 +191,7 @@ export default function Dashboard({
             });
 
         return () => controller.abort();
-    }, [month, refresh, currentMonth, today]);
+    }, [month, refresh, today]);
 
     useEffect(() => {
         const checkDay = () => { if (todayIn(user.timezone) !== today) setRefresh((value) => value + 1); };
@@ -204,6 +203,7 @@ export default function Dashboard({
     const ready =
         loaded?.month === month &&
         loaded.refresh === refresh && loaded.today === today;
+    const dayTotals = dailyExpenseTotals(loaded?.summary.expenses ?? [], expenseDate);
 
     const disabled = busy || logoutBusy;
     const visibleExpenses = (loaded?.summary.expenses ?? []).filter((expense) =>
@@ -548,9 +548,9 @@ export default function Dashboard({
 
                 {ready && loaded && (
                     <div className="summary-grid">
-                        <article className="summary-card today-expense-card" aria-label="Today's expenses">
-                            <p><CalendarDays size={18} aria-hidden="true" /><span>Today’s expenses</span></p>
-                            {(loaded.todayTotals.length ? loaded.todayTotals : [zeroExpenseTotal(user.defaultCurrency)]).map(total => <strong className="expense-total" key={total.currency}>{currencyLabel(total.currency)} {total.amount}</strong>)}
+                        <article className="summary-card today-expense-card" aria-label={`Expenses on ${expenseDate}`}>
+                            <p><CalendarDays size={18} aria-hidden="true" /><span>{dayLabel}</span></p>
+                            {(dayTotals.length ? dayTotals : [zeroExpenseTotal(user.defaultCurrency)]).map(total => <strong className="expense-total" key={total.currency}>{currencyLabel(total.currency)} {total.amount}</strong>)}
                         </article>
                         <article className="summary-card month-expense-card" aria-label={`Expenses in ${month}`}>
                             <p><Wallet size={18} aria-hidden="true" /><span>{month === currentMonth ? "This month’s expenses" : "Month’s expenses"}</span></p>
