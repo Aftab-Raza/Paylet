@@ -1,4 +1,5 @@
 import BrandMark from "./BrandMark";
+import AlphabetAvatar from "./AlphabetAvatar";
 import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
@@ -254,7 +255,7 @@ export default function People({ onBack }: Props) {
     );
   }
   return (
-    <main className="signed-in-page">
+    <main className="signed-in-page people-page">
       <header className="app-header">
         <ThemeToggle />
         <span className="brand">
@@ -452,9 +453,7 @@ export default function People({ onBack }: Props) {
               {visibleContacts.map((contact) => (
                 <article className="profile-panel person-card" key={contact.id}>
                   <div className="person-identity">
-                  <div className="contact-avatar" aria-hidden="true">
-                    {contact.name.charAt(0).toUpperCase()}
-                  </div>
+                  <AlphabetAvatar name={contact.name} />
 
                   <h2>{contact.name}</h2>
 

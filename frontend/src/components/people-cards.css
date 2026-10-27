@@ -1,33 +1,42 @@
-.people-grid.people-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
-.people-grid .profile-panel.person-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, .95fr); gap: 28px; align-items: center; padding: 24px; background: linear-gradient(120deg, #fff, #f1ebff); border-color: #d9c9ee; transition: border-color 180ms ease, box-shadow 180ms ease; }
-[data-theme="dark"] .people-grid .profile-panel.person-card { background: linear-gradient(120deg, #090909, #191020); border-color: #44334f; }
+.people-grid.people-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.people-grid .profile-panel.person-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, .9fr); gap: 28px; align-items: start; padding: 28px; border-radius: 24px; background: linear-gradient(115deg, #fff 35%, #faf7ff); border-color: #e4dcef; box-shadow: 0 3px 14px #3c195508; transition: border-color 180ms ease, box-shadow 180ms ease; }
+[data-theme="dark"] .people-grid .profile-panel.person-card { background: linear-gradient(115deg, #0d0b11 35%, #171020); border-color: #372b43; box-shadow: none; }
 .person-identity, .person-money, .person-actions { min-width: 0; overflow-wrap: anywhere; }
-.person-identity { display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 12px; align-items: start; }
+.person-identity { display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: start; }
 .person-identity > :not(.contact-avatar) { grid-column: 2; }
-.person-identity .contact-avatar { grid-row: 1 / span 3; width: 44px; height: 44px; }
-.person-identity h2 { margin: 0 0 4px; font-size: 20px; }
-.person-identity .contact-badge { width: fit-content; }
+.person-identity .contact-avatar { grid-row: 1 / span 3; width: 52px; height: 52px; margin: 0; }
+.people-grid .person-identity .alphabet-avatar { display: grid; place-items: center; border-radius: 50%; background: var(--avatar-color); color: #fff; font-size: 21px; font-weight: 700; letter-spacing: 0; }
+.person-identity h2 { margin: 0 0 5px; font-size: 18px; font-weight: 700; line-height: 1.45; }
+.person-identity .profile-handle { margin: 0 0 10px; font-size: 12px; color: var(--muted); }
+.person-identity .contact-badge { width: fit-content; border-radius: 20px; padding: 5px 9px; background: var(--surface-alt); color: var(--muted); font-size: 10px; }
 .person-identity .profile-member, .person-identity .contact-note { font-size: 12px; line-height: 1.6; margin: 10px 0 0; }
 .person-money { border-inline: 1px solid var(--border); padding-inline: 24px; }
 .person-currency + .person-currency { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 14px; }
-.person-currency-label { display: block; font-size: 12px; font-weight: 750; color: var(--purple); margin-bottom: 10px; }
+.person-currency-label { display: inline-block; font-size: 12px; font-weight: 700; color: var(--purple); margin-bottom: 12px; padding: 4px 9px; border-radius: 8px; background: var(--surface-alt); }
 .person-recorded, .person-outstanding { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin: 0; }
 .person-money dt { color: var(--muted); font-size: 11px; margin-bottom: 5px; }
-.person-money dd { color: var(--text); font-size: 15px; font-weight: 700; margin: 0; font-variant-numeric: tabular-nums; }
-.person-outstanding-label { display: block; font-size: 10px; color: var(--muted); margin: 16px 0 10px; text-transform: uppercase; }
+.person-money dd { color: var(--text); font-size: 14px; font-weight: 600; margin: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.person-outstanding-label { display: block; font-size: 10px; font-weight: 600; letter-spacing: .06em; color: var(--muted); margin: 18px 0 9px; text-transform: uppercase; }
+.person-outstanding { padding: 14px; border-radius: 14px; background: #eee8fa; }
+[data-theme="dark"] .person-outstanding { background: #241a32; }
+.person-outstanding dd { font-size: 17px; font-weight: 700; }
 .person-outstanding > div:first-child dd { color: #166534; }
 .person-outstanding > div:last-child dd { color: #1e4fba; }
 [data-theme="dark"] .person-outstanding > div:first-child dd { color: #95e4bd; }
 [data-theme="dark"] .person-outstanding > div:last-child dd { color: #a7cbff; }
-.person-actions .profile-actions { gap: 8px; margin: 0; }
-.person-actions .button { font-size: 12px; min-height: 40px; padding: 8px 12px; }
+.person-actions .profile-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.person-actions > .profile-actions > .button:first-child { grid-column: 1 / -1; }
+.person-actions .button { font-size: 12px; min-height: 44px; padding: 10px 12px; border-radius: 12px; justify-content: center; white-space: normal; overflow-wrap: anywhere; }
+.person-actions .connection-card > .button { width: 100%; }
 .person-actions .connection-card { margin: 0 0 12px; padding: 0; border: 0; }
 .person-money-retry { background: none; border: 0; padding: 6px; color: var(--purple); text-decoration: underline; }
 .loan-summary-card { position: relative; }
 .loan-card-link { position: absolute; inset: 0; z-index: 1; width: 100%; height: 100%; background: transparent; border: 0; border-radius: inherit; cursor: pointer; }
 .loan-card-link:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
 .loan-summary-card:has(.loan-card-link:hover) { border-color: var(--purple); box-shadow: 0 0 20px #8b5cf629; }
-@media (hover: hover) { .people-grid .person-card:hover { border-color: #a478e8; box-shadow: 0 6px 22px #8b5cf621; } }
+@media (hover: hover) { .people-grid .person-card:hover { border-color: #bca0e1; box-shadow: 0 6px 24px #7139c512; } [data-theme="dark"] .people-grid .person-card:hover { border-color: #73558e; box-shadow: 0 6px 24px #8b5cf612; } }
 @media (max-width: 1000px) { .people-grid .profile-panel.person-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; } .person-actions { grid-column: 1 / -1; } .person-money { padding-right: 0; border-right: 0; } }
 @media (max-width: 600px) { .people-grid .profile-panel.person-card { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 20px; } .person-money { border-inline: 0; border-block: 1px solid var(--border); padding: 18px 0; } }
 @media (prefers-reduced-motion: reduce) { .people-grid .person-card { transition: none; } }
+.people-page .app-header { flex-wrap: wrap; }
+@media (max-width: 600px) { .people-page .app-header > .button:not(.theme-toggle) { flex-basis: 100%; } }
