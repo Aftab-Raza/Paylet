@@ -1,4 +1,5 @@
 import BrandMark from "./BrandMark";
+import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
@@ -41,6 +42,7 @@ type Props = {
 };
 
 export default function People({ onBack }: Props) {
+  const notifySuccess = useSuccessToast();
   const [showInvite, setShowInvite] = useState(false);
   const [selectedContactId, setSelectedContactId] = useHistoryParam("person");
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -185,7 +187,7 @@ export default function People({ onBack }: Props) {
       );
 
       setDraft(null);
-      setNotice(editing ? "Contact updated." : "Contact added.");
+      notifySuccess(editing ? "Contact updated." : "Contact added.");
       reload();
     } catch (err) {
       setError(
@@ -216,7 +218,7 @@ export default function People({ onBack }: Props) {
         }),
       });
 
-      setNotice(
+      notifySuccess(
         contact.isArchived ? "Contact restored." : "Contact archived."
       );
       reload();

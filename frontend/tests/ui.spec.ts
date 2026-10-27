@@ -55,6 +55,7 @@ test("expense modal saves the existing API contract and edit keeps the version",
   await page.getByRole("button", { name: "Save expense" }).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Bus ticket" })).toBeVisible();
+  await expect(page.locator(".success-toast")).toContainText("Expense saved.");
   expect(writes[0]).toMatchObject({ method: "POST", path: "/expenses", body: { amount: "125.50", purpose: "Bus ticket", category: "Travel", currency: "INR" } });
   expect(writes[0].body.id).toEqual(expect.any(String));
   await page.getByRole("article").filter({ hasText: "Lunch with friends" }).getByRole("button", { name: "Edit", exact: true }).click();
@@ -62,6 +63,67 @@ test("expense modal saves the existing API contract and edit keeps the version",
   await page.getByRole("button", { name: "Save expense" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   expect(writes[1]).toMatchObject({ method: "PATCH", path: "/expenses/expense-1", body: { version: 1, amount: "300" } });
+});
+
+test("expense success toast counts down, pauses on hover, and resets for repeated saves", async ({ page }) => {
+  await mockApi(page);
+  await page.clock.install();
+  await page.setViewportSize({width:360,height:800});
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button",{name:"Edit",exact:true}).click();
+  await page.getByRole("button",{name:"Save expense"}).click();
+  const toast=page.locator('.success-toast');
+  await expect(toast).toContainText('Expense updated.');
+  await expect(toast.getByRole('status')).toBeVisible();
+  expect(await toast.locator('.success-toast-track > span').evaluate(el=>getComputedStyle(el).animationDuration)).toBe('3s');
+  await page.mouse.move(0,0);
+  await toast.hover();
+  await expect(toast.locator('.success-toast-track > span')).toHaveCSS('animation-play-state','paused');
+  await page.clock.fastForward(5000);
+  await expect(toast).toBeVisible();
+  await page.mouse.move(0,0);
+  await page.getByRole("button",{name:"Edit",exact:true}).click();
+  await page.getByRole("button",{name:"Save expense"}).click();
+  await expect(toast).toHaveCount(1);
+  await page.clock.fastForward(1500);
+  await expect(toast).toBeVisible();
+  expect(await toast.evaluate(el=>el.getBoundingClientRect().right<=innerWidth)).toBe(true);
+  await page.screenshot({path:'test-results/success-toast-mobile.png'});
+  await page.clock.fastForward(2000);
+  await expect(toast).toHaveCount(0);
+});
+
+test("profile and contact actions use success toasts with manual dismissal", async ({ page }) => {
+  await mockApi(page);
+  let profile={...user,createdAt:'2026-01-01T00:00:00Z',googleConnected:false,hasPassword:true,communityPhotoConsent:false};
+  await page.route('**/api/profile/options',route=>route.fulfill({json:{currencies:['INR'],timezones:['Asia/Kolkata']}}));
+  await page.route('**/api/profile',async route=>{
+    if(route.request().method()==='PATCH') profile={...profile,...route.request().postDataJSON()};
+    await route.fulfill({json:{user:profile}});
+  });
+  let contact: Record<string,unknown> | null=null;
+  await page.route('**/api/contacts',async route=>{
+    if(route.request().method()==='POST') contact={...route.request().postDataJSON(),version:1,isArchived:false,linkedUser:null,linkRequest:null,createdAt:'2026-10-27T00:00:00Z',updatedAt:'2026-10-27T00:00:00Z'};
+    await route.fulfill({json:route.request().method()==='GET'?{contacts:contact?[contact]:[]}:{}});
+  });
+  await page.route('**/api/contacts/*/archive',async route=>{ contact={...contact,isArchived:true}; await route.fulfill({json:{}}); });
+  await page.goto('/?view=dashboard');
+  await page.getByRole('button',{name:'My profile'}).click();
+  await page.getByRole('button',{name:'Save changes'}).click();
+  await expect(page.locator('.success-toast')).toContainText('Profile saved.');
+  await page.getByRole('button',{name:'Dismiss notification'}).click();
+  await expect(page.locator('.success-toast')).toHaveCount(0);
+  await page.getByRole('button',{name:/Dashboard$/}).click();
+  await page.getByRole('button',{name:'People',exact:true}).click();
+  await page.getByRole('button',{name:'Add person',exact:true}).click();
+  await page.getByRole('dialog').getByLabel('Name',{exact:true}).fill('Alex');
+  await page.getByRole('button',{name:'Save contact'}).click();
+  await expect(page.locator('.success-toast')).toContainText('Contact added.');
+  page.once('dialog',dialog=>dialog.accept());
+  await page.getByRole('button',{name:'Archive',exact:true}).click();
+  await expect(page.locator('.success-toast')).toContainText('Contact archived.');
+  await page.getByRole('button',{name:'Dismiss notification'}).click();
+  await expect(page.locator('.success-toast')).toHaveCount(0);
 });
 
 test("dialog traps focus, Escape closes, filters and history work", async ({ page }) => {

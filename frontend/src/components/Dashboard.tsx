@@ -1,4 +1,5 @@
 import BrandMark from "./BrandMark";
+import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
@@ -101,6 +102,7 @@ export default function Dashboard({
     logoutBusy,
     logoutError,
 }: Props) {
+    const notifySuccess = useSuccessToast();
     const [showAi, setShowAi] = useScreen("ai");
     const [showProfile, setShowProfile] = useScreen("profile");
     const [showPeople, setShowPeople] = useScreen("people");
@@ -260,9 +262,7 @@ export default function Dashboard({
             setHistory(null);
             setRefresh((value) => value + 1);
 
-            setNotice(
-                editing ? "Expense updated." : "Expense added."
-            );
+            notifySuccess(editing ? "Expense updated." : "Expense saved.");
         } catch (err) {
             setError(
                 err instanceof Error

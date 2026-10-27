@@ -1,4 +1,5 @@
 import BrandMark from "./BrandMark";
+import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
@@ -52,6 +53,7 @@ export default function Profile({
   logoutBusy,
   logoutError,
 }: Props) {
+  const notifySuccess = useSuccessToast();
   const [profile, setProfile] = useState<ProfileUser | null>(null);
   const [options, setOptions] = useState<ProfileOptions | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
@@ -122,7 +124,7 @@ export default function Profile({
 
       acceptUser(result.user);
       setDraft(makeDraft(result.user));
-      setSuccess("Profile changes saved.");
+      notifySuccess("Profile saved.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save.");
     } finally {
