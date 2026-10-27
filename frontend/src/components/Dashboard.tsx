@@ -1,5 +1,6 @@
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
+import { dailyExpenseTotals, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
@@ -15,7 +16,7 @@ import Groups from "./Groups";
 import SettlementNotifications from "./SettlementNotifications";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
-import { ArrowDownLeft, ArrowUpLeft, BarChart3, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
+import { ArrowDownLeft, ArrowUpLeft, BarChart3, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import { openScreen, useScreen } from "../lib/navigation";
@@ -103,6 +104,8 @@ export default function Dashboard({
     logoutError,
 }: Props) {
     const notifySuccess = useSuccessToast();
+    const today = todayIn(user.timezone);
+    const currentMonth = today.slice(0, 7);
     const [showAi, setShowAi] = useScreen("ai");
     const [showProfile, setShowProfile] = useScreen("profile");
     const [showPeople, setShowPeople] = useScreen("people");
@@ -137,6 +140,8 @@ export default function Dashboard({
         refresh: number;
         summary: Summary;
         choices: Choices;
+        today: string;
+        todayTotals: { currency: string; amount: string }[];
     } | null>(null);
 
     const [error, setError] = useState("");
@@ -160,8 +165,9 @@ export default function Dashboard({
             api<Choices>("/expenses/options", {
                 signal: controller.signal,
             }),
+            month === currentMonth ? Promise.resolve(null) : api<Summary>(`/expenses?month=${currentMonth}`, { signal: controller.signal }),
         ])
-            .then(([summary, choices]) => {
+            .then(([summary, choices, currentSummary]) => {
                 if (controller.signal.aborted) return;
 
                 setLoaded({
@@ -169,6 +175,8 @@ export default function Dashboard({
                     refresh,
                     summary,
                     choices,
+                    today,
+                    todayTotals: dailyExpenseTotals((currentSummary ?? summary).expenses, today),
                 });
 
                 setError("");
@@ -184,11 +192,18 @@ export default function Dashboard({
             });
 
         return () => controller.abort();
-    }, [month, refresh]);
+    }, [month, refresh, currentMonth, today]);
+
+    useEffect(() => {
+        const checkDay = () => { if (todayIn(user.timezone) !== today) setRefresh((value) => value + 1); };
+        const timer = window.setInterval(checkDay, 60_000);
+        window.addEventListener("focus", checkDay);
+        return () => { window.clearInterval(timer); window.removeEventListener("focus", checkDay); };
+    }, [today, user.timezone]);
 
     const ready =
         loaded?.month === month &&
-        loaded.refresh === refresh;
+        loaded.refresh === refresh && loaded.today === today;
 
     const disabled = busy || logoutBusy;
     const visibleExpenses = (loaded?.summary.expenses ?? []).filter((expense) =>
@@ -533,31 +548,14 @@ export default function Dashboard({
 
                 {ready && loaded && (
                     <div className="summary-grid">
-                        <article className="summary-card">
-                            <p><ReceiptText size={18} /> Active expenses</p>
-                            <strong>{loaded.summary.count}</strong>
+                        <article className="summary-card today-expense-card" aria-label="Today's expenses">
+                            <p><CalendarDays size={18} aria-hidden="true" /><span>Today’s expenses</span></p>
+                            {(loaded.todayTotals.length ? loaded.todayTotals : [zeroExpenseTotal(user.defaultCurrency)]).map(total => <strong className="expense-total" key={total.currency}>{currencyLabel(total.currency)} {total.amount}</strong>)}
                         </article>
-
-                        {loaded.summary.totals.length > 0 ? (
-                            loaded.summary.totals.map((total) => (
-                                <article
-                                    className="summary-card"
-                                    key={total.currency}
-                                >
-                                    <p>
-                                        <Wallet size={18} /> Monthly spending · {currencyLabel(total.currency)}
-                                    </p>
-                                    <strong>{total.amount}</strong>
-                                </article>
-                            ))
-                        ) : (
-                            <article className="summary-card">
-                                <p>
-                                        <Wallet size={18} /> Monthly spending · {currencyLabel(user.defaultCurrency)}
-                                </p>
-                                <strong>0</strong>
-                            </article>
-                        )}
+                        <article className="summary-card month-expense-card" aria-label={`Expenses in ${month}`}>
+                            <p><Wallet size={18} aria-hidden="true" /><span>{month === currentMonth ? "This month’s expenses" : "Month’s expenses"}</span></p>
+                            {(loaded.summary.totals.length ? loaded.summary.totals : [zeroExpenseTotal(user.defaultCurrency)]).map((total, index) => <strong className="expense-total" key={`${total.currency}:${index}`}>{currencyLabel(total.currency)} {total.amount}</strong>)}
+                        </article>
                     </div>
                 )}
 

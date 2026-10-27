@@ -126,6 +126,56 @@ test("profile and contact actions use success toasts with manual dismissal", asy
   await expect(page.locator('.success-toast')).toHaveCount(0);
 });
 
+test("daily and monthly amount cards separate currencies, exclude voids and use the account timezone", async ({ page }) => {
+  await mockApi(page);
+  await page.clock.install({time:new Date('2026-10-27T20:00:00Z')});
+  const expenses=[
+    {...initialExpense,id:'today-1',amount:'0.10',date:'2026-10-28'},
+    {...initialExpense,id:'today-2',amount:'0.20',date:'2026-10-28',source:'SHARED'},
+    {...initialExpense,id:'usd',amount:'1.99',currency:'USD',date:'2026-10-28'},
+    {...initialExpense,id:'jpy',amount:'150',currency:'JPY',date:'2026-10-28'},
+    {...initialExpense,id:'void',amount:'999.00',date:'2026-10-28',voidedAt:'2026-10-28T01:00:00Z'},
+    {...initialExpense,id:'yesterday',amount:'9.00',date:'2026-10-27'},
+  ];
+  const requests:string[]=[];
+  await page.route('**/api/expenses?**',route=>{
+    const month=new URL(route.request().url()).searchParams.get('month')!;requests.push(month);
+    return route.fulfill({json:{expenses:month==='2026-10'?expenses:[],totals:[{currency:'INR',amount:month==='2026-10'?'9.30':'12.00'}],count:5}});
+  });
+  await page.goto('/?view=dashboard');
+  const today=page.locator('.today-expense-card');
+  const monthly=page.locator('.month-expense-card');
+  await expect(page.locator('.summary-grid .summary-card')).toHaveCount(2);
+  await expect(today).toContainText('₹ 0.30');
+  await expect(today).toContainText('USD 1.99');
+  await expect(today).toContainText('JPY 150');
+  await expect(today).not.toContainText('999');
+  await expect(monthly).toContainText('₹ 9.30');
+  await page.getByLabel('Month',{exact:true}).fill('2026-09');
+  await expect(monthly).toContainText('₹ 12.00');
+  await expect(today).toContainText('₹ 0.30');
+  expect(requests.filter(month=>month==='2026-10').length).toBe(2);
+  for(const theme of ['light','dark']) {
+    if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
+    for(const card of [today,monthly]) {
+      await expect(card.locator('.expense-total').first()).toHaveCSS('color','rgb(255, 255, 255)');
+      expect(await card.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain('linear-gradient');
+    }
+    await page.setViewportSize({width:320,height:800});
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    await page.screenshot({path:`test-results/daily-monthly-${theme}.png`});
+  }
+});
+
+test("empty expense amount cards use the user's currency precision", async ({ page }) => {
+  await mockApi(page);
+  await page.route('**/api/auth/me',route=>route.fulfill({json:{user:{...user,defaultCurrency:'JPY'}}}));
+  await page.route('**/api/expenses?**',route=>route.fulfill({json:{expenses:[],totals:[],count:0}}));
+  await page.goto('/?view=dashboard');
+  await expect(page.locator('.today-expense-card .expense-total')).toHaveText('JPY 0');
+  await expect(page.locator('.month-expense-card .expense-total')).toHaveText('JPY 0');
+});
+
 test("dialog traps focus, Escape closes, filters and history work", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
@@ -747,7 +797,7 @@ test("deep black theme applies across the app without changing light mode", asyn
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
   expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
-  expect(await page.locator(".summary-card").first().evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 10, 10)");
+  expect(await page.locator(".today-expense-card").evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
   await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
   expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
   await page.goto("/");

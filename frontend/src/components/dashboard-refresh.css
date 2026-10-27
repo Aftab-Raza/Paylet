@@ -5,12 +5,7 @@
 .home-page .quick-actions .dashboard-ai-shortcut > span:last-child { color: #1756b2; }
 [data-theme="dark"] .home-page .quick-actions .dashboard-ai-shortcut > span:last-child { color: #99c3ff; }
 .home-page .header-actions .dashboard-ai-nav { color: #fff; background: linear-gradient(120deg, #17388d, #1766db); border: 1px solid #5481dc; box-shadow: 0 3px 12px #2167db20; }
-.home-page .summary-grid .summary-card { background-color: var(--surface); }
-.home-page .summary-grid .summary-card:first-child { background-image: linear-gradient(120deg, #fff, #fff0e6); border-color: #e3cfc0; border-left-color: #c77b43; }
-[data-theme="dark"] .home-page .summary-grid .summary-card:first-child { background-image: linear-gradient(120deg, #0a0a0a, #22150e); border-color: #503b2d; border-left-color: #c77b43; }
-.home-page .summary-grid .summary-card:not(:first-child) { background-image: linear-gradient(120deg, #522490, #7336bf); border-color: #9a6ccf; border-left-color: #b38be8; }
-.home-page .summary-grid .summary-card:not(:first-child) :is(p, strong), [data-theme="dark"] .home-page .summary-grid .summary-card:not(:first-child) strong { color: #fff; }
-.home-page .summary-grid .summary-card:not(:first-child) p { color: #eee5fc; }
+.home-page .summary-grid .summary-card :is(p, strong), [data-theme="dark"] .home-page .summary-grid .summary-card :is(p, strong) { color: #fff; }
 .home-page .expense-list { width: min(100%, 1040px); margin-inline: auto; }
 .home-page .expense-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-radius: 0; margin: 0; border: 0; border-bottom: 1px solid var(--border); padding: 14px 8px; background: transparent; color: var(--text); }
 .home-page .expense-row:hover { filter: none; background: var(--surface-alt); }
@@ -59,12 +54,12 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 .home-page .quick-actions .action-symbol { position: relative; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; border-width: 1.5px; }
 .home-page .quick-actions .action-symbol svg { width: 27px; height: 27px; stroke-linecap: round; stroke-linejoin: round; }
 .home-page .quick-actions > button:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
-.home-page .summary-grid .summary-card { border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: 0 6px 24px #7139c510; }
-.home-page .summary-grid .summary-card:first-child { background: radial-gradient(ellipse at 85% 10%, #d5b8ff70, transparent 65%), linear-gradient(120deg, #faf7ff, #eee4ff); border-color: #d8c6f5; }
-[data-theme="dark"] .home-page .summary-grid .summary-card:first-child { background-color: #0a0a0a; background-image: radial-gradient(ellipse at 90% 0%, #8050d040, transparent 70%), linear-gradient(120deg, #151021, #211238); border-color: #64448b; }
-.home-page .summary-grid .summary-card:not(:first-child) { background: radial-gradient(ellipse at 75% 0%, #d5b8ff30, transparent 65%), linear-gradient(125deg, #3b176c, #7137ce 58%, #552595); border-color: #9966da; }
-[data-theme="dark"] .home-page .summary-grid .summary-card { box-shadow: 0 5px 28px #7c3aed18; }
-.home-page .summary-grid .summary-card:not(:first-child) p { color: #fff; }
+.home-page .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-page .summary-grid .summary-card { min-width: 0; border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: 0 6px 24px #00000010; }
+.home-page .summary-grid .today-expense-card { background: radial-gradient(ellipse at 85% 0%, #ffd3a310, transparent 65%), linear-gradient(125deg, #87300f, #b84113 60%, #9a3412); border-color: #d97542; }
+.home-page .summary-grid .month-expense-card { background: radial-gradient(ellipse at 85% 0%, #afffd510, transparent 65%), linear-gradient(125deg, #075e41, #137a51 60%, #086346); border-color: #45a97b; }
+.home-page .summary-grid .expense-total { display: block; font-size: clamp(20px, 3vw, 30px); overflow-wrap: anywhere; }
+.home-page .summary-grid .expense-total + .expense-total { margin-top: 8px; }
 .home-page .summary-card p { display: flex; align-items: center; gap: 10px; }
 .home-page .summary-card p > svg { box-sizing: content-box; padding: 10px; border: 1px solid currentColor; border-radius: 13px; flex-shrink: 0; }
 .home-page .expense-row .transaction-icon.expense-direction { position: relative; overflow: visible; border-radius: 14px; flex-shrink: 0; }
