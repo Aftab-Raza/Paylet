@@ -1052,7 +1052,7 @@ test("People letter avatars have 26 stable readable colors and cards fit both th
   await expect(avatars.nth(29)).toHaveText('#');
 });
 
-test("dashboard shortcuts are monochrome except the blue AI highlight in both themes", async ({ page }) => {
+test("AI Quick Add uses purple in light mode and cream in dark mode in both dashboard controls", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   for (const theme of ["light", "dark"]) {
@@ -1064,6 +1064,10 @@ test("dashboard shortcuts are monochrome except the blue AI highlight in both th
       expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("2.5px");
     }
     expect(await page.locator(".dashboard-ai-shortcut .action-symbol").evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
+    for (const control of [page.locator('.dashboard-ai-shortcut .action-symbol'), page.locator('.dashboard-ai-nav')]) {
+      await expect(control).toHaveCSS('color',theme==='dark'?'rgb(73, 53, 28)':'rgb(255, 255, 255)');
+      expect(await control.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain(theme==='dark'?'rgb(255, 250, 240)':'rgb(91, 33, 182)');
+    }
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
     await page.setViewportSize({ width: 320, height: 700 });
