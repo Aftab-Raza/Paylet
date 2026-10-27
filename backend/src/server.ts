@@ -27,6 +27,13 @@ const app = express();
 const { port, host, appOrigin, trustProxy, proxySecret } = runtimeConfig(process.env);
 app.disable("x-powered-by");
 app.set("trust proxy", trustProxy);
+
+// Public process liveness check: no authentication, sessions, or database work.
+app.get("/health", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.status(200).json({ status: "ok" });
+});
+
 app.use("/api", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
