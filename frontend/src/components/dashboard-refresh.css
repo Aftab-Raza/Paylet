@@ -27,11 +27,11 @@
 .home-page .expense-row-actions .button:hover:not(:disabled) { background: var(--surface); border-color: var(--border); }
 .home-page .expense-row.is-void { background: var(--surface-alt); }
 .home-page .expense-row.is-void .transaction-icon.expense-direction { color: var(--muted); background: var(--surface); }
-.home-page .loan-summary-card.lent-summary { background: #1955ac; border-color: #3773c8; }
-.home-page .loan-summary-card.borrowed-summary { background: #a52e68; border-color: #c54c85; }
+.home-page .loan-summary-card.lent-summary { background: #185de7; border-color: #4b83ff; }
+.home-page .loan-summary-card.borrowed-summary { background: #ce1767; border-color: #f05296; }
 .home-page .loan-summary-card:is(.lent-summary, .borrowed-summary) :is(.loan-summary-label, .loan-summary-value, dt, dd, .profile-member), .home-page .loan-summary-card .outstanding-line :is(dt, dd) { color: #fff; }
-[data-theme="dark"] .home-page .loan-summary-card.lent-summary { background: #124486; border-color: #3773c8; }
-[data-theme="dark"] .home-page .loan-summary-card.borrowed-summary { background: #862452; border-color: #b2487b; }
+[data-theme="dark"] .home-page .loan-summary-card.lent-summary { background: #185de7; border-color: #4b83ff; }
+[data-theme="dark"] .home-page .loan-summary-card.borrowed-summary { background: #ce1767; border-color: #f05296; }
 [data-theme="dark"] .home-page .loan-summary-card:is(.lent-summary, .borrowed-summary) :is(.loan-summary-label, .loan-summary-value, dt, dd, .profile-member), [data-theme="dark"] .home-page .loan-summary-card .outstanding-line :is(dt, dd) { color: #fff; }
 @media (hover: hover) { .home-page .quick-actions > .dashboard-ai-shortcut:hover:not(:disabled) .action-symbol { box-shadow: 0 0 22px #287af55c; } }
 @media (max-width: 600px) {
@@ -59,10 +59,12 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 .home-page .quick-actions .action-symbol { position: relative; display: grid; place-items: center; width: 60px; height: 60px; border-radius: 20px; border-width: 1.5px; }
 .home-page .quick-actions .action-symbol svg { width: 27px; height: 27px; stroke-linecap: round; stroke-linejoin: round; }
 .home-page .quick-actions > button:focus-visible { outline: 2px solid var(--purple); outline-offset: 3px; }
-.home-page .summary-grid .summary-card { border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: none; }
-.home-page .summary-grid .summary-card:first-child { background-image: none; background-color: #f1eaff; border-color: #d8c6f5; }
-[data-theme="dark"] .home-page .summary-grid .summary-card:first-child { background-image: none; background-color: #0a0a0a; border-color: #473260; }
-.home-page .summary-grid .summary-card:not(:first-child) { background-image: none; background-color: #6432ae; border-color: #8954ce; }
+.home-page .summary-grid .summary-card { border-radius: 22px; border-left-width: 1px; padding: 22px; box-shadow: 0 6px 24px #7139c510; }
+.home-page .summary-grid .summary-card:first-child { background: radial-gradient(ellipse at 85% 10%, #d5b8ff70, transparent 65%), linear-gradient(120deg, #faf7ff, #eee4ff); border-color: #d8c6f5; }
+[data-theme="dark"] .home-page .summary-grid .summary-card:first-child { background-color: #0a0a0a; background-image: radial-gradient(ellipse at 90% 0%, #8050d040, transparent 70%), linear-gradient(120deg, #151021, #211238); border-color: #64448b; }
+.home-page .summary-grid .summary-card:not(:first-child) { background: radial-gradient(ellipse at 75% 0%, #d5b8ff30, transparent 65%), linear-gradient(125deg, #3b176c, #7137ce 58%, #552595); border-color: #9966da; }
+[data-theme="dark"] .home-page .summary-grid .summary-card { box-shadow: 0 5px 28px #7c3aed18; }
+.home-page .summary-grid .summary-card:not(:first-child) p { color: #fff; }
 .home-page .summary-card p { display: flex; align-items: center; gap: 10px; }
 .home-page .summary-card p > svg { box-sizing: content-box; padding: 10px; border: 1px solid currentColor; border-radius: 13px; flex-shrink: 0; }
 .home-page .expense-row .transaction-icon.expense-direction { position: relative; overflow: visible; border-radius: 14px; flex-shrink: 0; }
