@@ -13,23 +13,30 @@ import { ArrowLeft, ArrowUpRight, ChevronDown, Users, UserPlus, Mail, Plus, Refr
 import Modal from "./Modal";
 import { useHistoryParam } from "../lib/navigation";
 
-type Person = { id: string; username: string; displayName: string };
+type Person = { id: string; username: string; displayName: string; avatarUrl?: string | null };
 type Group = { id: string; name: string; ownerId: string; members: { id: string; userId: string | null; contactId: string | null; offline: boolean; user: Person }[] };
 type Listing = { viewerId: string; groups: Group[] };
 type Sent = { id: string; status: string; recipient: Person };
 const message = (error: unknown) => error instanceof Error ? error.message : "Request failed. Please try again.";
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
+function MemberAvatar({ person }: { person: Person }) {
+  const [failed, setFailed] = useState(false);
+  return <span className="pg-avatar" aria-hidden="true">{person.avatarUrl && !failed ? <img src={person.avatarUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)}/> : initials(person.displayName)}</span>;
+}
+
 function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   group: Group; owner: boolean; viewerId: string; onChange: () => void; onBack: () => void;
 }) {
   const notify = useSuccessToast();
+  const [memberMode, setMemberMode] = useState<"username" | "people">("username");
+  const [peopleSearch, setPeopleSearch] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [name, setName] = useState(group.name);
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [sent, setSent] = useState<Sent[]>([]);
   const [sentError, setSentError] = useState("");
@@ -57,17 +64,17 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   async function addOffline(event: FormEvent) {
     event.preventDefault();
     if (!offlineContactId || busy) return;
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true); setError("");
     try {
       await api(`/groups/${group.id}/offline-members`, { method: "POST", body: JSON.stringify({ contactId: offlineContactId }) });
-      setOfflineContactId(""); setNotice("Offline person added. You can include them in shared bills."); onChange();
-    } catch (err) { setError(message(err)); } finally { setBusy(false); }
+      setOfflineContactId(""); notify("Member added.", { position: "top-left" }); onChange();
+    } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
 
   async function save(event: FormEvent, kind: "rename" | "invite") {
     event.preventDefault();
     if (busy) return;
-    setBusy(true); setError(""); setNotice("");
+    setBusy(true); setError("");
     try {
       await api(`/groups/${group.id}${kind === "invite" ? "/invitations" : ""}`, {
         method: kind === "invite" ? "POST" : "PATCH",
@@ -75,16 +82,25 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       });
       if (kind === "invite") {
         setUsername(""); setRevision((n) => n + 1); notify("Invitation sent.", { position: "top-left" });
-      } else { setNotice("Group renamed."); onChange(); }
-    } catch (err) { setError(message(err)); } finally { setBusy(false); }
+      } else { notify("Group name saved.", { position: "top-left" }); onChange(); }
+    } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
+  }
+  async function resend(recipientUsername: string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api(`/groups/${group.id}/invitations`, { method: "POST", body: JSON.stringify({ username: recipientUsername }) });
+      setRevision((n) => n + 1); notify("Invitation resent.", { position: "top-left" });
+    } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); }
+    finally { setBusy(false); }
   }
   async function remove() {
     if (busy) return;
     setBusy(true); setError("");
     try {
       await api(`/groups/${group.id}`, { method: "DELETE" });
-      onBack(); onChange();
-    } catch (err) { setError(message(err)); } finally { setBusy(false); }
+      notify("Group deleted.", { position: "top-left" }); onBack(); onChange();
+    } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   return <>
     <button className="button button-outline" disabled={busy} onClick={onBack}>← All groups</button>
@@ -93,15 +109,14 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       <div><span className="pg-kicker">SHARED GROUP</span><h1>{group.name}</h1><p>{group.members.length} members · {owner ? "Created by you" : "You are a member"}</p></div>
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
-    {notice && <p className="pg-success" role="status">{notice}</p>}
     <section className="pg-panel pg-member-panel">
       <button className="pg-member-toggle" aria-expanded={membersOpen} aria-controls="pg-member-list" onClick={() => setMembersOpen(!membersOpen)}>
-        <span className="pg-avatar-list" aria-hidden="true">{group.members.slice(0, 4).map((member) => <span className="pg-avatar" key={member.id}>{initials(member.user.displayName)}</span>)}{group.members.length > 4 && <span className="pg-avatar">+{group.members.length - 4}</span>}</span>
+        <span className="pg-avatar-list" aria-hidden="true">{group.members.slice(0, 4).map((member) => <MemberAvatar key={member.id} person={member.user}/>)}{group.members.length > 4 && <span className="pg-avatar">+{group.members.length - 4}</span>}</span>
         <span>People in this group <small>{group.members.length} members · {membersOpen ? "Hide" : "View"} members</small></span><ChevronDown size={20} className={membersOpen ? "pg-chevron-open" : ""}/>
       </button>
       <div id="pg-member-list" hidden={!membersOpen}>
         {group.members.map((member) => <div className="pg-row" key={member.id}>
-          <span className="pg-avatar" aria-hidden="true">{initials(member.user.displayName)}</span>
+          <MemberAvatar person={member.user}/>
           <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>{member.offline ? "Not on Paylet yet" : `@${member.user.username}`}</p></div>
           <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : member.offline ? "Offline" : "Member"}</span>
         </div>)}
@@ -109,44 +124,41 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       </div>
     </section>
     <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
-    <div className="pg-columns pg-manage-columns">
-      {owner && <section className="pg-panel pg-stack pg-offline-card">
-        <span className="pg-feature-icon"><UserPlus size={23}/></span><h2>Add an offline person</h2><p className="pg-muted">Choose a private contact from People. They can be included in bills before joining Paylet.</p>
+    {owner && <section className="pg-panel pg-stack pg-add-member">
+      <div className="pg-between"><h2><UserPlus size={21}/> Add member</h2><div className="pg-member-tabs" role="group" aria-label="Add member method"><button className="button button-outline" aria-pressed={memberMode === "username"} onClick={() => setMemberMode("username")}>Via username</button><button className="button button-outline" aria-pressed={memberMode === "people"} onClick={() => setMemberMode("people")}>From private People</button></div></div>
+      {memberMode === "people" && <>
+        <label className="pg-stack">Search private People<input type="search" placeholder="Search by name" value={peopleSearch} onChange={(event) => { setPeopleSearch(event.target.value); setOfflineContactId(""); }}/></label>
         <form className="pg-stack" onSubmit={(event) => void addOffline(event)}>
           <label htmlFor="pg-offline-contact">Person</label>
           <select id="pg-offline-contact" value={offlineContactId} onChange={(event) => setOfflineContactId(event.target.value)} disabled={busy} required>
             <option value="">Choose a person</option>
-            {contacts.filter((contact) => !contact.isArchived && !contact.linkedUser && !group.members.some((member) => member.contactId === contact.id)).map((contact) => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
+            {contacts.filter((contact) => contact.name.toLocaleLowerCase().includes(peopleSearch.trim().toLocaleLowerCase()) && !contact.isArchived && !contact.linkedUser && !group.members.some((member) => member.contactId === contact.id)).map((contact) => <option key={contact.id} value={contact.id}>{contact.name}</option>)}
           </select>
-          <button className="button button-primary" disabled={busy || !offlineContactId}><Plus size={18} /> Add to group</button>
+          <button className="button button-green" disabled={busy || !offlineContactId}><Plus size={18} /> Add to group</button>
         </form>
-        <p className="pg-muted">Need someone new? Add them in People first.</p>
-      </section>}
-      {owner && <section className="pg-panel pg-stack pg-username-card">
-        <span className="pg-feature-icon"><Send size={23}/></span><h2>Invite a friend</h2><p className="pg-muted">They join only after accepting your invitation.</p>
+      </>}
+      {memberMode === "username" && <>
         <form className="pg-stack" onSubmit={(event) => void save(event, "invite")}>
           <label htmlFor="pg-username">Exact Paylet username</label>
           <input id="pg-username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Your friend’s username" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={30} required disabled={busy}/>
-          <button className="button button-purple" disabled={busy || !username.trim()}><Send size={18} /> Send invitation</button>
+          <button className="button button-green" disabled={busy || !username.trim()}><Send size={18} /> Send invitation</button>
         </form>
-        <div className="pg-between"><h3>Invitation status</h3><button className="button button-outline" disabled={busy} onClick={() => setRevision((n) => n + 1)}>Refresh</button></div>
+      </>}
+        <div className="pg-between"><h3>Invitation status</h3><button className="button button-outline" disabled={busy || sentLoading} onClick={() => { setSentLoading(true); setRevision((n) => n + 1); }}>{sentLoading ? "Refreshing…" : "Refresh invitations"}</button></div>
         <div className="pg-invitation-scroll" role="region" aria-label="Sent invitations" tabIndex={0}>
-        {sentError ? <p className="pg-error" role="alert">{sentError}</p> : sentLoading ? <p role="status">Loading invitations…</p> : sent.length === 0 ? <p className="pg-muted">No invitations sent yet.</p> : sent.map((item) => <div className="pg-row" key={item.id}><div className="pg-grow"><strong>{item.recipient.displayName}</strong><p>@{item.recipient.username}</p></div><span className={`pg-tag pg-${item.status.toLowerCase()}`}>{item.status.toLowerCase()}</span></div>)}
+        {sentError ? <p className="pg-error" role="alert">{sentError}</p> : sentLoading ? <p role="status">Loading invitations…</p> : sent.length === 0 ? <p className="pg-muted">No invitations sent yet.</p> : sent.map((item) => <div className="pg-row" key={item.id}><div className="pg-grow"><strong>{item.recipient.displayName}</strong><p>@{item.recipient.username}</p></div><span className={`pg-tag pg-${item.status.toLowerCase()}`}>{item.status.toLowerCase()}</span>{item.status !== "ACCEPTED" && !group.members.some((member) => member.userId === item.recipient.id) && <button className="button button-outline" disabled={busy} onClick={() => void resend(item.recipient.username)}>Resend</button>}</div>)}
         </div>
       </section>}
-    </div>
-    {owner && <section className="pg-panel pg-stack"><h2>Group settings</h2>
+    {owner && <section className="pg-panel pg-stack pg-settings-card"><button className="pg-member-toggle" aria-expanded={settingsOpen} aria-controls="pg-settings-content" onClick={() => setSettingsOpen(!settingsOpen)}><span>Group settings</span><ChevronDown size={20} className={settingsOpen ? "pg-chevron-open" : ""}/></button>
+      <div id="pg-settings-content" className="pg-stack" hidden={!settingsOpen}>
       <form className="pg-inline" onSubmit={(event) => void save(event, "rename")}>
         <div className="pg-grow"><label htmlFor="pg-name">Group name</label><input id="pg-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={busy}/></div>
         <button className="button button-green" disabled={busy || !name.trim()}>Save name</button>
       </form>
-      <div className="pg-danger-zone"><div><h3>Delete group</h3><p>Hide this group and cancel pending invitations. Active bills must first be deleted by their creators, and pending or confirmed repayments must be resolved; history is retained.</p></div>
-        {!confirming ? <button className="button pg-danger" disabled={busy} onClick={() => setConfirming(true)}>Delete group</button> : <div className="pg-stack">
-          <p><strong>Delete “{group.name}”?</strong> This cannot be undone from the app.</p>
-          <div className="pg-actions"><button className="button pg-danger" disabled={busy} onClick={() => void remove()}>{busy ? "Deleting…" : "Yes, delete group"}</button><button className="button button-outline" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button></div>
-        </div>}
+      <div className="pg-danger-zone"><button className="button pg-danger" disabled={busy} onClick={() => setConfirming(true)}>Delete group</button></div>
       </div>
     </section>}
+    {confirming && <Modal title="Delete group?" busy={busy} onClose={() => setConfirming(false)}><p>Are you sure you want to delete “{group.name}”? History is retained. Resolve active bills and repayments first.</p><div className="pg-actions"><button className="button button-outline" disabled={busy} onClick={() => setConfirming(false)}>Cancel</button><button className="button pg-danger" disabled={busy} onClick={() => void remove()}>{busy ? "Deleting…" : "Yes, delete group"}</button></div></Modal>}
   </>;
 }
 

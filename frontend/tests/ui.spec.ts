@@ -415,11 +415,14 @@ for (const owner of [true, false]) {
     await page.route("**/api/groups", (route) => route.fulfill({ json: { viewerId: user.id, groups: [{ id: "group-1", name: "Weekend", ownerId: owner ? user.id : other.id, members }] } }));
     await page.route("**/api/groups/group-1/invitations", (route) => {
       if (route.request().method() === "POST") {
+        if (route.request().postDataJSON().username === "unknown") return route.fulfill({ status: 404, json: { message: "No account has that exact username." } });
         expect(route.request().postDataJSON()).toEqual({ username: "priya" });
         return route.fulfill({ json: {} });
       }
-      return route.fulfill({ json: { invitations: Array.from({ length: 10 }, (_, i) => ({ id: `invite-${i}`, status: "PENDING", recipient: { ...other, displayName: `Friend ${i}` } })) } });
+      return route.fulfill({ json: { invitations: Array.from({ length: 10 }, (_, i) => ({ id: `invite-${i}`, status: "PENDING", recipient: { ...other, id: `guest-${i}`, displayName: `Friend ${i}` } })) } });
     });
+    await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: [{ id: "contact-a", name: "Anita", isArchived: false, linkedUser: null }, { id: "contact-b", name: "Rahul", isArchived: false, linkedUser: null }] } }));
+    await page.route("**/api/groups/group-1", (route) => { expect(route.request().method()).toBe("PATCH"); return route.fulfill({ json: {} }); });
     let deleted = false;
     await page.route("**/api/groups/group-1/bills", (route) => {
       if (route.request().method() === "POST") {
@@ -441,8 +444,8 @@ for (const owner of [true, false]) {
     await expect(page.locator("#pg-member-list")).toBeHidden();
     await memberToggle.click();
     await expect(page.locator("#pg-member-list")).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Add an offline person" })).toHaveCount(owner ? 1 : 0);
-    await expect(page.getByRole("heading", { name: "Group settings" })).toHaveCount(owner ? 1 : 0);
+    await expect(page.getByRole("heading", { name: "Add member" })).toHaveCount(owner ? 1 : 0);
+    await expect(page.getByRole("button", { name: "Group settings", exact: true })).toHaveCount(owner ? 1 : 0);
     await page.setViewportSize({ width: 320, height: 900 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/group-detail-${owner ? "owner" : "member"}.png`, fullPage: true });
@@ -451,9 +454,34 @@ for (const owner of [true, false]) {
     await expect(bill).toBeVisible();
     await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(owner ? 1 : 0);
     if (owner) {
+      await page.getByRole("button", { name: "From private People" }).click();
+      await expect(page.getByLabel("Search private People")).toBeVisible();
+      await page.getByLabel("Search private People").fill("ani");
+      await expect(page.getByRole("option", { name: "Anita", exact: true })).toHaveCount(1);
+      await expect(page.getByRole("option", { name: "Rahul", exact: true })).toHaveCount(0);
+
+      await page.getByRole("button", { name: "Via username" }).click();
+      await expect(page.getByLabel("Group name", { exact: true })).toBeHidden();
+      await page.getByRole("button", { name: "Group settings", exact: true }).click();
+      await expect(page.getByLabel("Group name", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Save name", exact: true }).click();
+      await expect(page.locator(".success-toast-left")).toContainText("Group name saved.");
+      await page.getByRole("button", { name: "Dismiss notification" }).click();
+
+      await page.getByRole("button", { name: "Delete group", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Delete group?" })).toBeVisible();
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
       const invitations = page.getByRole("region", { name: "Sent invitations" });
       await expect(invitations.getByText("Friend 9")).toHaveCount(1);
       expect(await invitations.evaluate((el) => el.scrollHeight > el.clientHeight && el.clientHeight <= 260)).toBe(true);
+      await page.getByLabel("Exact Paylet username").fill("unknown");
+      await page.getByRole("button", { name: "Send invitation" }).click();
+      await expect(page.locator(".success-toast-error")).toContainText("No account has that exact username.");
+      await expect(page.getByLabel("Exact Paylet username")).toHaveValue("unknown");
+      await page.getByRole("button", { name: "Dismiss notification" }).click();
+      await invitations.getByRole("button", { name: "Resend", exact: true }).first().click();
+      await expect(page.locator(".success-toast-left")).toContainText("Invitation resent.");
+      await page.getByRole("button", { name: "Dismiss notification" }).click();
       await page.getByLabel("Exact Paylet username").fill("priya");
       await page.getByRole("button", { name: "Send invitation" }).click();
       await expect(page.locator(".success-toast-left")).toContainText("Invitation sent.");

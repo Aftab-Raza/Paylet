@@ -73,18 +73,18 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
     try {
       await api(`/groups/${groupId}/bills`, { method: "POST", body: JSON.stringify({ ...draft, payerId: viewerMember.id, participants: draft.participants.map((p) => draft.splitMode === "EQUAL" ? { memberId: p.memberId } : p) }) });
       setDraft(null); notify("Bill saved.", { position: "top-left" }); setRevision((n) => n + 1);
-    } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
+    } catch (err) { setError(errorText(err)); notify(errorText(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   async function remove(bill: Bill) {
     if (!window.confirm(`Delete “${bill.purpose}”? This removes its shares from everyone’s totals and preserves history.`)) return;
     setBusy(true); setError("");
-    try { await api(`/groups/${groupId}/bills/${bill.id}`, { method: "DELETE" }); setHistory(null); setNotice("Bill deleted."); setRevision((n) => n + 1); }
-    catch (err) { setError(errorText(err)); } finally { setBusy(false); }
+    try { await api(`/groups/${groupId}/bills/${bill.id}`, { method: "DELETE" }); setHistory(null); notify("Bill deleted.", { position: "top-left" }); setRevision((n) => n + 1); }
+    catch (err) { setError(errorText(err)); notify(errorText(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   async function openHistory(bill: Bill) {
     setBusy(true); setError("");
     try { const result = await api<{ history: Revision[] }>(`/groups/${groupId}/bills/${bill.id}/history`); setHistory(result.history); }
-    catch (err) { setError(errorText(err)); } finally { setBusy(false); }
+    catch (err) { setError(errorText(err)); notify(errorText(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   const split = draft ? preview(draft) : null;
   return <section className="pg-panel pg-stack pg-group-bills">

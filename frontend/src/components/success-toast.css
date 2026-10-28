@@ -12,3 +12,5 @@
 @media (prefers-reduced-motion: reduce) { .success-toast-track > span { animation: none; } }
 
 .success-toast.success-toast-left { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; }
+.success-toast-error .success-toast-icon{color:var(--danger-text)}
+.success-toast-error .success-toast-track>span{background:var(--danger-text)}

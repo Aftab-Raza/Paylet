@@ -54,7 +54,7 @@ const groupFields = {
       contactId: true,
       offlineName: true,
       joinedAt: true,
-      user: { select: publicMemberFields },
+      user: { select: { ...publicMemberFields, avatarUrl: true } },
     },
   },
 } as const;
@@ -351,8 +351,10 @@ groupsRouter.post("/:id/invitations", inviteLimiter, async (req, res) => {
       select: { id: true },
     });
     if (member) return "MEMBER";
-    await tx.splitInvitation.create({
-      data: { groupId, recipientId: recipient.id },
+    await tx.splitInvitation.upsert({
+      where: { groupId_recipientId: { groupId, recipientId: recipient.id } },
+      create: { groupId, recipientId: recipient.id },
+      update: { status: "PENDING", respondedAt: null, createdAt: new Date() },
     });
     return "OK";
   });

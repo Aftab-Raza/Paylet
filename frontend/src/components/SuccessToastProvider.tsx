@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { CheckCircle2, X } from "lucide-react";
+import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { SuccessToastContext } from "../lib/successToast";
 import type { SuccessToastOptions } from "../lib/successToast";
 import "./success-toast.css";
 
-function SuccessToast({ message, onDismiss, position }: { message: string; onDismiss: () => void; position: SuccessToastOptions["position"] }) {
+function SuccessToast({ message, onDismiss, position, tone }: { message: string; onDismiss: () => void; position: SuccessToastOptions["position"]; tone: SuccessToastOptions["tone"] }) {
   const remaining = useRef(3000);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -19,18 +19,18 @@ function SuccessToast({ message, onDismiss, position }: { message: string; onDis
       remaining.current = Math.max(0, remaining.current - (performance.now() - started));
     };
   }, [paused, onDismiss]);
-  return <div className={`success-toast${position === "top-left" ? " success-toast-top success-toast-left" : position === "top-right" ? " success-toast-top" : ""}`} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
-    <CheckCircle2 className="success-toast-icon" size={23} aria-hidden="true" />
-    <p role="status" aria-live="polite" aria-atomic="true">{message}</p>
+  return <div className={`success-toast${tone === "error" ? " success-toast-error" : ""}${position === "top-left" ? " success-toast-top success-toast-left" : position === "top-right" ? " success-toast-top" : ""}`} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+    {tone === "error" ? <CircleAlert className="success-toast-icon" size={23} aria-hidden="true" /> : <CheckCircle2 className="success-toast-icon" size={23} aria-hidden="true" />}
+    <p role={tone === "error" ? "alert" : "status"} aria-live={tone === "error" ? "assertive" : "polite"} aria-atomic="true">{message}</p>
     <button type="button" className="success-toast-close" aria-label="Dismiss notification" onClick={onDismiss}><X size={18} aria-hidden="true" /></button>
     <span className="success-toast-track" aria-hidden="true"><span style={{ animationPlayState: paused ? "paused" : "running" }} /></span>
   </div>;
 }
 
 export default function SuccessToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ id: number; message: string; position: SuccessToastOptions["position"] } | null>(null);
+  const [toast, setToast] = useState<{ id: number; message: string; position: SuccessToastOptions["position"]; tone: SuccessToastOptions["tone"] } | null>(null);
   const sequence = useRef(0);
-  const notify = useCallback((message: string, options?: SuccessToastOptions) => setToast({ id: ++sequence.current, message, position: options?.position }), []);
+  const notify = useCallback((message: string, options?: SuccessToastOptions) => setToast({ id: ++sequence.current, message, position: options?.position, tone: options?.tone }), []);
   const dismiss = useCallback(() => setToast(null), []);
-  return <SuccessToastContext.Provider value={notify}>{children}{toast && <SuccessToast key={toast.id} message={toast.message} position={toast.position} onDismiss={dismiss} />}</SuccessToastContext.Provider>;
+  return <SuccessToastContext.Provider value={notify}>{children}{toast && <SuccessToast key={toast.id} message={toast.message} position={toast.position} tone={toast.tone} onDismiss={dismiss} />}</SuccessToastContext.Provider>;
 }
