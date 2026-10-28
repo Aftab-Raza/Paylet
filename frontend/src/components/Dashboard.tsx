@@ -1,7 +1,7 @@
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
 import { dailyExpenseTotals, expenseDateInMonth, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -108,6 +108,7 @@ export default function Dashboard({
     const currentMonth = today.slice(0, 7);
     const [showAi, setShowAi] = useScreen("ai");
     const [showProfile, setShowProfile] = useScreen("profile");
+    const [showLogs, setShowLogs] = useScreen("logs");
     const [showPeople, setShowPeople] = useScreen("people");
     const [showReports, setShowReports] = useScreen("reports");
     const [showGroups, setShowGroups] = useScreen("groups");
@@ -119,8 +120,18 @@ export default function Dashboard({
     const groupInvites = useGroupInvitations();
 
     const [month, setMonth] = useState(
-        () => todayIn(user.timezone).slice(0, 7)
+        () => {
+            const params = new URLSearchParams(location.search);
+            const requested = params.get("logMonth") ?? "";
+            return params.get("screen") === "logs" && /^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/.test(requested) ? requested : todayIn(user.timezone).slice(0, 7);
+        }
     );
+    useEffect(() => {
+        if (!showLogs) return;
+        const url = new URL(location.href);
+        url.searchParams.set("logMonth", month);
+        window.history.replaceState(window.history.state, "", url);
+    }, [showLogs, month]);
     const expenseDate = expenseDateInMonth(today, month);
     const dayLabel = expenseDate === today ? "Today’s expenses" : `${new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${expenseDate}T00:00:00Z`))} expenses`;
 
@@ -209,7 +220,9 @@ export default function Dashboard({
     const visibleExpenses = (loaded?.summary.expenses ?? []).filter((expense) =>
         (showVoided || !expense.voidedAt) && (!category || expense.category === category) &&
         `${expense.purpose} ${expense.category} ${expense.amount} ${expense.currency} ${currencyLabel(expense.currency)}`.toLowerCase().includes(query.trim().toLowerCase())
-    );
+    ).sort((a, b) => b.date.localeCompare(a.date));
+    const displayedExpenses = showLogs ? visibleExpenses : visibleExpenses.slice(0, 6);
+    const monthLabel = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T00:00:00Z`));
 
     function changeMonth(value: string) {
         setMonth(value);
@@ -380,7 +393,7 @@ export default function Dashboard({
     }
 
     return (
-        <main className="signed-in-page home-page">
+        <main className={`signed-in-page home-page${showLogs ? " monthly-logs-page" : ""}`}>
             <header className="app-header">
                 <a className="brand" href="/">
                     <BrandMark />
@@ -389,6 +402,7 @@ export default function Dashboard({
 
                 <div className="header-actions">
                     <ThemeToggle />
+                    {showLogs ? <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => setShowLogs(false)}><ChevronLeft size={18} /> Back to dashboard</button> : <>
                     <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
                     <button type="button" className="button button-purple dashboard-ai-nav" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
                     <button
@@ -429,10 +443,11 @@ export default function Dashboard({
                     >
                         <span className="nav-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span> My profile
                     </button>
+                    </>}
                 </div>
             </header>
 
-            <div aria-live="polite">
+            {!showLogs && <><div aria-live="polite">
                 {groupInvites.invitations.length > 0 && (
                     <div className="pg-notification">
                         <span>You have {groupInvites.invitations.length} pending group invitation(s).</span>
@@ -445,19 +460,19 @@ export default function Dashboard({
                 {groupInvites.error && <p className="pg-muted">Group notifications unavailable. Open Groups to retry.</p>}
             </div>
 
-            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => openScreen("groups", { group: groupId })}/>
+            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => openScreen("groups", { group: groupId })}/></>}
 
             <section className="dashboard-page">
                 <div className="dashboard-heading">
                     <div>
                         <span className="eyebrow">
-                            YOUR MONEY, AT A GLANCE
+                            {showLogs ? "YOUR MONTHLY RECORD" : "YOUR MONEY, AT A GLANCE"}
                         </span>
 
-                        <h1>Hello, {user.displayName} <span role="img" aria-label="waving hand">👋</span></h1>
+                        {showLogs ? <h1>Monthly expense logs</h1> : <h1>Hello, {user.displayName} <span role="img" aria-label="waving hand">👋</span></h1>}
 
                         <p className="form-description">
-                            A little clarity for your everyday spending.
+                            {showLogs ? `${monthLabel} · All your expenses, organized by date.` : "A little clarity for your everyday spending."}
                         </p>
                     </div>
 
@@ -474,14 +489,14 @@ export default function Dashboard({
                     </button>
                 </div>
 
-                <nav className="quick-actions" aria-label="Quick actions">
+                {!showLogs && <nav className="quick-actions" aria-label="Quick actions">
                     <button onClick={beginAdd} disabled={disabled || !ready}><span className="action-symbol orange"><Plus /></span><span>Add expense</span></button>
                     <button className="dashboard-ai-shortcut" onClick={() => setShowAi(true)} disabled={disabled}><span className="action-symbol purple"><Sparkles /></span><span>AI Quick Add</span></button>
                     <button onClick={() => setShowGroups(true)} disabled={disabled}><span className="action-symbol blue"><Users /></span><span>Split a bill</span></button>
                     <button onClick={() => setShowPeople(true)} disabled={disabled}><span className="action-symbol green"><ArrowDownLeft /></span><span>Lend & borrow</span></button>
                     <button onClick={() => setShowReports(true)} disabled={disabled}><span className="action-symbol blue"><BarChart3 /></span><span>Reports</span></button>
                     <button onClick={() => setShowInvite(true)} disabled={disabled}><span className="action-symbol purple"><UserPlus /></span><span>Invite a friend</span></button>
-                </nav>
+                </nav>}
 
                 <div className="month-toolbar">
                     <button type="button" className="button button-outline icon-button" title="Previous month" aria-label="Previous month" disabled={disabled || month === "1900-01"} onClick={() => shiftMonth(-1)}><ChevronLeft size={20} /></button>
@@ -532,7 +547,7 @@ export default function Dashboard({
                     <p role="status">Loading expenses…</p>
                 )}
 
-                {ready && loaded && (
+                {!showLogs && ready && loaded && (
                     <div className="summary-grid">
                         <article className="summary-card today-expense-card" aria-label={`Expenses on ${expenseDate}`}>
                             <p><CalendarDays size={18} aria-hidden="true" /><span>{dayLabel}</span></p>
@@ -738,7 +753,7 @@ export default function Dashboard({
 
                 {ready && loaded && (
                     <section className="expense-list">
-                        <div className="activity-heading"><h2><ReceiptText size={20} /> This month's activity</h2><span className="activity-count">{visibleExpenses.length} {visibleExpenses.length === 1 ? "transaction" : "transactions"}</span></div>
+                        <div className="activity-heading"><h2><ReceiptText size={20} /> {showLogs ? "All expenses" : "Recent expenses"}</h2><span className="activity-count">{!showLogs && visibleExpenses.length > 6 ? `6 of ${visibleExpenses.length}` : visibleExpenses.length} {visibleExpenses.length === 1 ? "transaction" : "transactions"}</span></div>
                         <div className="activity-filters">
                             <div className="search-field"><Search size={18} /><input aria-label="Search expenses" placeholder="Search expenses..." value={query} onChange={(event) => setQuery(event.target.value)} /></div>
                             <select aria-label="Filter by category" value={category} onChange={(event) => setCategory(event.target.value)}><option value="">All categories</option>{Array.from(new Set(loaded.summary.expenses.map((expense) => expense.category))).sort().map((item) => <option key={item}>{item}</option>)}</select>
@@ -758,7 +773,9 @@ export default function Dashboard({
 
                         {loaded.summary.expenses.length > 0 && visibleExpenses.length === 0 && <div className="empty-activity"><Search size={28} /><h3>No matching expenses</h3><button className="button button-outline" onClick={() => { setQuery(""); setCategory(""); setShowVoided(true); }}>Clear filters</button></div>}
 
-                        {visibleExpenses.map((expense) => (
+                        {displayedExpenses.map((expense, index) => (
+                            <Fragment key={expense.id}>
+                            {showLogs && (index === 0 || displayedExpenses[index - 1].date !== expense.date) && <h3 className="expense-date-heading"><CalendarDays size={17} aria-hidden="true" /><time dateTime={expense.date}>{new Intl.DateTimeFormat("en-IN", { weekday: "short", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${expense.date}T00:00:00Z`))}</time></h3>}
                             <article
                                 className={`expense-row expense-tone-${expense.category === "Food" || expense.category === "Groceries" ? "food" : expense.category === "Travel" ? "travel" : "other"} ${expense.voidedAt ? "is-void" : ""
                                     }`}
@@ -833,7 +850,9 @@ export default function Dashboard({
                                     </div>
                                 </div>
                             </article>
+                            </Fragment>
                         ))}
+                        {!showLogs && loaded.summary.expenses.length > 0 && <div className="expense-log-footer"><p className="profile-member">{visibleExpenses.length > 6 ? "Showing your 6 most recent matching expenses." : "Explore the full month’s expense history."}</p><button type="button" className="button button-purple" disabled={disabled || Boolean(draft)} onClick={() => openScreen("logs", { logMonth: month })}>View all expenses <ChevronRight size={18} aria-hidden="true" /></button></div>}
                     </section>
                 )}
 
@@ -876,7 +895,7 @@ export default function Dashboard({
                     </div>
                     </Modal>
                 )}
-                <LoanSummary refreshKey={refresh} onOpenPeople={() => setShowPeople(true)} />
+                {!showLogs && <LoanSummary refreshKey={refresh} onOpenPeople={() => setShowPeople(true)} />}
                 {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
                 {voidTarget && <Modal title="Void this expense?" busy={busy} onClose={() => { setVoidTarget(null); setError(""); }}>
                     <p><strong>{voidTarget.purpose}</strong> · {currencyLabel(voidTarget.currency)} {voidTarget.amount}</p>
@@ -885,7 +904,7 @@ export default function Dashboard({
                     <div className="profile-actions"><button className="button button-danger" disabled={busy} onClick={() => void voidExpense(voidTarget)}><CircleSlash size={18} /> {busy ? "Voiding..." : "Void expense"}</button><button className="button button-outline" disabled={busy} onClick={() => { setVoidTarget(null); setError(""); }}>Keep expense</button></div>
                 </Modal>}
             </section>
-            <button type="button" className="dashboard-fab" title="Add expense" aria-label="Add expense" disabled={disabled || !ready} onClick={beginAdd}><Plus size={28} strokeWidth={2.5} aria-hidden="true" /><span aria-hidden="true">Add expense</span></button>
+            {!showLogs && <button type="button" className="dashboard-fab" title="Add expense" aria-label="Add expense" disabled={disabled || !ready} onClick={beginAdd}><Plus size={28} strokeWidth={2.5} aria-hidden="true" /><span aria-hidden="true">Add expense</span></button>}
         </main>
     );
 }

@@ -36,7 +36,7 @@ function changeUrl(url: URL) {
 export function openScreen(screen: string, details: Record<string, string> = {}) {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "dashboard");
-  for (const key of ["screen", "person", "group"]) url.searchParams.delete(key);
+  for (const key of ["screen", "person", "group", "logMonth"]) url.searchParams.delete(key);
   if (screen !== "dashboard") url.searchParams.set("screen", screen);
   for (const [key, value] of Object.entries(details)) url.searchParams.set(key, value);
   changeUrl(url);

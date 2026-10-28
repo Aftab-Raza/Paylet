@@ -42,6 +42,78 @@ async function mockApi(page: Page, signedIn = true) {
   return writes;
 }
 
+test("dashboard shows six recent expenses and monthly logs group all records with existing actions", async ({ page }) => {
+  await mockApi(page);
+  await page.clock.install({time:new Date('2026-10-28T06:00:00Z')});
+  const expenses=Array.from({length:12},(_,index)=>({...initialExpense,id:`log-${index}`,purpose:`Expense ${index+1}`,date:`2026-09-${String(1+Math.floor(index/2)).padStart(2,'0')}`,category:index%2?'Travel':'Food',voidedAt:index===0?'2026-09-10T00:00:00Z':null,...(index===11?{source:'SHARED',groupId:'group-1'}:{})}));
+  await page.route('**/api/expenses?**',route=>route.fulfill({json:{expenses,totals:[{currency:'INR',amount:'2750.00'}],count:11}}));
+  let edited:Record<string,unknown>|null=null;
+  await page.route('**/api/expenses/log-2',async route=>{edited=route.request().postDataJSON(); await route.fulfill({json:{}});});
+  await page.goto('/?view=dashboard');
+  await page.getByLabel('Month',{exact:true}).fill('2026-09');
+  await expect(page.locator('.expense-list .expense-row')).toHaveCount(6);
+  await expect(page.locator('.activity-count')).toHaveText('6 of 11 transactions');
+  await expect(page.getByRole('heading',{name:'Expense 3',exact:true})).toHaveCount(0);
+  await page.getByRole('button',{name:'View all expenses',exact:true}).click();
+  await expect(page).toHaveURL(/screen=logs.*logMonth=2026-09/);
+  await expect(page.getByRole('heading',{name:'Monthly expense logs',exact:true})).toBeVisible();
+  await expect(page.locator('.expense-row')).toHaveCount(11);
+  await expect(page.locator('.expense-date-heading')).toHaveCount(6);
+  await expect(page.locator('.expense-date-heading time').first()).toHaveAttribute('datetime','2026-09-06');
+  await expect(page.locator('.expense-date-heading time').last()).toHaveAttribute('datetime','2026-09-01');
+  await expect(page.getByLabel('Month',{exact:true})).toHaveAttribute('type','month');
+  await expect(page.locator('.summary-grid')).toHaveCount(0);
+  await expect(page.locator('.quick-actions')).toHaveCount(0);
+  const shared=page.locator('.expense-row').filter({hasText:'Expense 12'});
+  await expect(shared.getByRole('button',{name:'Edit',exact:true})).toHaveCount(0);
+  await expect(shared.getByRole('button',{name:'View in Groups',exact:true})).toBeVisible();
+  await page.getByLabel('Show voided',{exact:true}).check();
+  await expect(page.locator('.expense-row')).toHaveCount(12);
+  await page.getByLabel('Show voided',{exact:true}).uncheck();
+  await page.getByLabel('Search expenses',{exact:true}).fill('Expense 3');
+  await expect(page.locator('.expense-row')).toHaveCount(1);
+  await page.getByLabel('Search expenses',{exact:true}).fill('');
+  await page.getByLabel('Filter by category',{exact:true}).selectOption('Travel');
+  await expect(page.locator('.expense-row')).toHaveCount(6);
+  await page.getByLabel('Filter by category',{exact:true}).selectOption('');
+  const older=page.locator('.expense-row').filter({hasText:'Expense 3'});
+  await older.getByRole('button',{name:'Edit',exact:true}).click();
+  await page.getByLabel('Amount',{exact:true}).fill('300.00');
+  await page.getByRole('button',{name:'Save expense',exact:true}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  expect(edited).toMatchObject({version:1,amount:'300.00',date:'2026-09-02'});
+  await older.getByRole('button',{name:'History',exact:true}).click();
+  await expect(page.getByRole('dialog',{name:'Expense history'})).toContainText('CREATED');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>history.state?.payletModal??null)).toBeNull();
+  for(const theme of ['light','dark']) {
+    if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
+    for(const width of [320,768,1440]) {
+      await page.setViewportSize({width,height:960});
+      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+    }
+    await page.screenshot({path:`test-results/monthly-logs-${theme}.png`,fullPage:true});
+  }
+  await page.getByRole('button',{name:'Back to dashboard',exact:true}).click();
+  await expect(page.getByRole('heading',{name:/Hello, Aftab/})).toBeVisible();
+  await expect(page.locator('.expense-row')).toHaveCount(6);
+});
+
+test("monthly logs retain the selected month on reload and support phone Back", async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/?view=dashboard');
+  await page.getByLabel('Month',{exact:true}).fill('2026-09');
+  await page.getByRole('button',{name:'View all expenses',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Monthly expense logs',exact:true})).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel('Month',{exact:true})).toHaveValue('2026-09');
+  await expect(page.getByRole('heading',{name:'Monthly expense logs',exact:true})).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading',{name:/Hello, Aftab/})).toBeVisible();
+  await expect(page.locator('.expense-date-heading')).toHaveCount(0);
+});
+
 test("expense modal saves the existing API contract and edit keeps the version", async ({ page }) => {
   const writes = await mockApi(page);
   await page.goto("/?view=dashboard");
