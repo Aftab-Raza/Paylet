@@ -426,7 +426,21 @@ for (const owner of [true, false]) {
     await page.route("**/api/groups/group-1/bills/bill-1", (route) => { expect(route.request().method()).toBe("DELETE"); deleted = true; return route.fulfill({ json: {} }); });
     await page.goto("/?view=dashboard");
     await page.getByRole("button", { name: "Groups", exact: true }).click();
+    await page.getByLabel("Find a group").fill("missing group");
+    await expect(page.getByRole("heading", { name: "No matching groups" })).toBeVisible();
+    await page.getByLabel("Find a group").fill("week");
     await page.getByRole("button", { name: /Open group/ }).click();
+    const memberToggle = page.getByRole("button", { name: /People in this group/ });
+    await expect(memberToggle).toHaveAttribute("aria-expanded", "false");
+    await expect(page.locator("#pg-member-list")).toBeHidden();
+    await memberToggle.click();
+    await expect(page.locator("#pg-member-list")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add an offline person" })).toHaveCount(owner ? 1 : 0);
+    await expect(page.getByRole("heading", { name: "Group settings" })).toHaveCount(owner ? 1 : 0);
+    await page.setViewportSize({ width: 320, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/group-detail-${owner ? "owner" : "member"}.png`, fullPage: true });
+
     const bill = page.getByRole("article").filter({ hasText: "Lunch with friends" });
     await expect(bill).toBeVisible();
     await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(owner ? 1 : 0);

@@ -5,9 +5,10 @@ import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
+import "./groups-refresh.css";
 import GroupBills from "./GroupBills";
 import SettlementNotifications from "./SettlementNotifications";
-import { ArrowLeft, Plus, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
 import { useHistoryParam } from "../lib/navigation";
 
@@ -21,6 +22,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((par
 function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   group: Group; owner: boolean; viewerId: string; onChange: () => void; onBack: () => void;
 }) {
+  const [membersOpen, setMembersOpen] = useState(false);
   const [name, setName] = useState(group.name);
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
@@ -90,18 +92,23 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
     {notice && <p className="pg-success" role="status">{notice}</p>}
-    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
-    <div className="pg-columns">
-      <section className="pg-panel"><h2>People in this group</h2>
+    <section className="pg-panel pg-member-panel">
+      <button className="pg-member-toggle" aria-expanded={membersOpen} aria-controls="pg-member-list" onClick={() => setMembersOpen(!membersOpen)}>
+        <span className="pg-avatar-list" aria-hidden="true">{group.members.slice(0, 4).map((member) => <span className="pg-avatar" key={member.id}>{initials(member.user.displayName)}</span>)}{group.members.length > 4 && <span className="pg-avatar">+{group.members.length - 4}</span>}</span>
+        <span>People in this group <small>{group.members.length} members · {membersOpen ? "Hide" : "View"} members</small></span><ChevronDown size={20} className={membersOpen ? "pg-chevron-open" : ""}/>
+      </button>
+      <div id="pg-member-list" hidden={!membersOpen}>
         {group.members.map((member) => <div className="pg-row" key={member.id}>
           <span className="pg-avatar" aria-hidden="true">{initials(member.user.displayName)}</span>
           <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>{member.offline ? "Not on Paylet yet" : `@${member.user.username}`}</p></div>
           <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : member.offline ? "Offline" : "Member"}</span>
         </div>)}
         <p className="pg-muted">Your personal expenses and private lending records stay private.</p>
-      </section>
-      {owner && <section className="pg-panel pg-stack">
-        <h2>Add an offline person</h2><p className="pg-muted">Choose a private contact from People. They can be included in bills before joining Paylet.</p>
+      </div>
+    </section>
+    <div className="pg-columns pg-manage-columns">
+      {owner && <section className="pg-panel pg-stack pg-offline-card">
+        <span className="pg-feature-icon"><UserPlus size={23}/></span><h2>Add an offline person</h2><p className="pg-muted">Choose a private contact from People. They can be included in bills before joining Paylet.</p>
         <form className="pg-stack" onSubmit={(event) => void addOffline(event)}>
           <label htmlFor="pg-offline-contact">Person</label>
           <select id="pg-offline-contact" value={offlineContactId} onChange={(event) => setOfflineContactId(event.target.value)} disabled={busy} required>
@@ -111,7 +118,9 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
           <button className="button button-primary" disabled={busy || !offlineContactId}><Plus size={18} /> Add to group</button>
         </form>
         <p className="pg-muted">Need someone new? Add them in People first.</p>
-        <h2>Invite a friend</h2><p className="pg-muted">They join only after accepting your invitation.</p>
+      </section>}
+      {owner && <section className="pg-panel pg-stack pg-username-card">
+        <span className="pg-feature-icon"><Send size={23}/></span><h2>Invite a friend</h2><p className="pg-muted">They join only after accepting your invitation.</p>
         <form className="pg-stack" onSubmit={(event) => void save(event, "invite")}>
           <label htmlFor="pg-username">Exact Paylet username</label>
           <input id="pg-username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Your friend’s username" autoCapitalize="none" autoCorrect="off" spellCheck={false} maxLength={30} required disabled={busy}/>
@@ -133,6 +142,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         </div>}
       </div>
     </section>}
+    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
   </>;
 }
 
@@ -179,26 +189,37 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   }
   const selected = data?.groups.find((group) => group.id === selectedId);
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
-  return <main className="signed-in-page pg-page">
+  return <main className="signed-in-page pg-page groups-refresh">
     <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><div className="pg-actions"><ThemeToggle /><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy} onClick={reload}><RefreshCw size={18} /> Refresh</button></div></header>
     <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}
     {loading ? <p role="status">Loading groups…</p> : selected && data ? <GroupDetails key={selected.id} group={selected} viewerId={data.viewerId} owner={selected.ownerId === data.viewerId} onChange={reload} onBack={() => setSelectedId(null)}/> : <>
-      <section className="pg-hero pg-between"><div><span className="pg-kicker">BETTER TOGETHER</span><h1>Your groups</h1><p className="pg-muted">One place for your people and shared plans.</p></div><button className="button button-primary" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><Plus size={18} /> Create group</button></section>
+      <section className="pg-hero"><div><span className="pg-kicker">BETTER TOGETHER</span><h1>Your groups</h1><p className="pg-muted">One place for your people and shared plans.</p></div></section>
+      <div className="pg-workspace">
+        <section className="pg-panel pg-directory" aria-label="Your group list">
+          <label className="pg-stack" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label>
+          <div className="pg-group-list">{visible.map((group) => <article className="pg-list-item" key={group.id}>
+            <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
+            <div className="pg-list-copy"><h2>{group.name}</h2><p>{group.members.length} {group.members.length === 1 ? "member" : "members"} <span className={`pg-tag ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span></p></div>
+            <button className="button button-outline pg-open-group" aria-label={`Open group ${group.name}`} disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}><ArrowUpRight size={21}/></button>
+          </article>)}</div>
+          {!loadError && data && visible.length === 0 && <div className="pg-empty"><Users size={32}/><h2>{search ? "No matching groups" : "Start with your people"}</h2><p className="pg-muted">{search ? "Try a different group name." : "Create a group for two friends or your whole circle."}</p></div>}
+        </section>
+        <aside className="pg-stack pg-overview-side" aria-label="Group overview and invitations">
+          <button className="button button-primary" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><Plus size={18} /> Create group</button>
       <div className="pg-stats"><div><strong>{data?.groups.length ?? "—"}</strong><span>Your groups</span></div><div><strong>{invites.loading ? "—" : invites.invitations.length}</strong><span>Pending invitations</span></div><div><strong>{data?.groups.filter((group) => group.ownerId === data.viewerId).length ?? "—"}</strong><span>Created by you</span></div></div>
-      <section className="pg-panel pg-inbox" aria-label="Group invitations"><div className="pg-between"><h2>Invitations <span className="pg-badge">{invites.invitations.length}</span></h2><span className="pg-muted">Updates every 20 seconds</span></div>
+      <section className="pg-panel pg-inbox" aria-label="Group invitations"><div className="pg-between"><h2><Mail size={20}/> Invitations <span className="pg-badge">{invites.invitations.length}</span></h2><span className="pg-muted">Updates every 20 seconds</span></div>
         {invites.error && <p className="pg-error" role="alert">{invites.error} <button className="button button-outline" onClick={invites.refresh}>Retry</button></p>}
         {invites.loading ? <p>Checking invitations…</p> : !invites.error && invites.invitations.length === 0 ? <p className="pg-muted">You’re all caught up. New invitations will appear here.</p> : null}
         {invites.invitations.map((item) => <div className="pg-row pg-invite" key={item.id}><span className="pg-avatar" aria-hidden="true">{initials(item.group.name)}</span><div className="pg-grow"><strong>{item.group.name}</strong><p>{item.group.owner.displayName} (@{item.group.owner.username}) invited you</p></div><div className="pg-actions"><button className="button button-green" disabled={busy} onClick={() => void respond(item.id, "ACCEPT")}>Accept</button><button className="button button-outline" disabled={busy} onClick={() => void respond(item.id, "DECLINE")}>Decline</button></div></div>)}
       </section>
+        </aside>
+      </div>
       {draft && <Modal title="Create a group" busy={busy} onClose={() => { setDraft(null); setError(""); }}>
         {error && <p className="pg-error" role="alert">{error}</p>}
         <form onSubmit={create}><label htmlFor="pg-create">Group name</label><input id="pg-create" data-autofocus placeholder="Weekend plans, Roommates, Dinner…" maxLength={80} required disabled={busy} value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })}/><div className="profile-actions"><button className="button button-green" disabled={busy || !draft.name.trim()}><Plus size={18} />{busy ? "Creating…" : "Create group"}</button><button type="button" className="button button-outline" disabled={busy} onClick={() => { setDraft(null); setError(""); }}>Cancel</button></div></form>
       </Modal>}
-      <label className="pg-stack" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label>
-      <section className="pg-grid">{visible.map((group) => <article className="pg-panel pg-card" key={group.id}><div className="pg-between"><span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span><span className="pg-tag">{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span></div><h2>{group.name}</h2><p className="pg-muted">{group.members.length} {group.members.length === 1 ? "member" : "members"}</p><div className="pg-avatar-list" aria-hidden="true">{group.members.slice(0, 4).map((member) => <span className="pg-avatar" key={member.id}>{initials(member.user.displayName)}</span>)}{group.members.length > 4 && <span className="pg-avatar">+{group.members.length - 4}</span>}</div><button className="button button-blue" disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}>Open group →</button></article>)}</section>
-      {!loadError && data && visible.length === 0 && <div className="pg-panel pg-empty"><h2>{search ? "No matching groups" : "Start with your people"}</h2><p className="pg-muted">{search ? "Try a different group name." : "Create a group for two friends or your whole circle."}</p></div>}
     </>}
   </main>;
 }
