@@ -1284,3 +1284,38 @@ test("rupee labels preserve currency codes and floating expense control works wh
   expect(await page.locator(".dashboard-add-expense").evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
   await page.screenshot({ path: "test-results/dashboard-rupee-fab.png" });
 });
+
+for (const paidByViewer of [true, false]) {
+  test(`compact purple group bills explain ${paidByViewer ? "receiving" : "paying"} and open history in a modal`, async ({ page }) => {
+    await mockApi(page);
+    const priya = { id: "priya", displayName: "Priya", username: "priya" };
+    const people = [user, priya, { id: "rahul", displayName: "Rahul", username: "rahul" }, { id: "neha", displayName: "Neha", username: "neha" }];
+    const members = people.map((person, i) => ({ id: `member-${i}`, userId: person.id, contactId: null, offline: false, user: person }));
+    const payer = paidByViewer ? user : priya;
+    const bill = { ...initialExpense, id: "shared-1", amount: "1000.00", creatorId: payer.id, creator: payer, payer, payerId: paidByViewer ? "member-0" : "member-1", splitMode: "EQUAL", deletedAt: null, shares: members.map((member) => ({ memberId: member.id, user: member.user, amount: "250.00" })) };
+    await page.route("**/api/groups", (route) => route.fulfill({ json: { viewerId: user.id, groups: [{ id: "group-compact", name: "College friends", ownerId: priya.id, members }] } }));
+    await page.route("**/api/groups/group-compact/bills", (route) => route.fulfill({ json: { bills: [bill], balances: [] } }));
+    await page.route("**/api/groups/group-compact/bills/shared-1/history", (route) => route.fulfill({ json: { history: [{ id: "revision-1", action: "CREATED", createdAt: "2026-10-28T12:00:00Z", actor: payer, snapshot: bill }] } }));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/?view=dashboard&screen=groups&group=group-compact");
+    const card = page.locator(".pg-transaction");
+    await expect(card).toContainText(paidByViewer ? "Receive ₹ 250.00 from Priya · ₹ 250.00 from Rahul · ₹ 250.00 from Neha" : "Pay ₹ 250.00 to Priya");
+    await expect(card).toContainText("ORIGINAL SPLIT");
+    await expect(card.getByText("Recorded by", { exact: false })).toBeHidden();
+    await card.getByText("View split", { exact: true }).click();
+    await expect(card.getByText(`Recorded by ${payer.displayName}`)).toBeVisible();
+    await card.getByText("View split", { exact: true }).click();
+    await page.screenshot({ path: `test-results/compact-bills-${paidByViewer ? "receive" : "pay"}.png`, fullPage: true });
+    await card.getByRole("button", { name: "History", exact: true }).click();
+    const history = page.getByRole("dialog", { name: "Bill history" });
+    await expect(history).toBeVisible();
+    await expect(history).toContainText(`CREATED · ${payer.displayName}`);
+    await page.keyboard.press("Escape");
+    await expect(history).toHaveCount(0);
+    await expect(card.getByRole("button", { name: "History", exact: true })).toBeFocused();
+    await page.evaluate(() => document.documentElement.dataset.theme = "dark");
+    await page.setViewportSize({ width: 320, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/compact-bills-${paidByViewer ? "receive" : "pay"}-dark.png`, fullPage: true });
+  });
+}
