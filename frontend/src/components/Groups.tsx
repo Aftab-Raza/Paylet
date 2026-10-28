@@ -9,7 +9,7 @@ import "./groups.css";
 import "./groups-refresh.css";
 import GroupBills from "./GroupBills";
 import SettlementNotifications from "./SettlementNotifications";
-import { ArrowLeft, ArrowUpRight, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, LayoutGrid, List, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
 import { useHistoryParam } from "../lib/navigation";
 
@@ -168,6 +168,7 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const [selectedId, setSelectedId] = useHistoryParam("group");
   const [draft, setDraft] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
+  const [layout, setLayout] = useState<"grid" | "list">("grid");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
@@ -212,23 +213,32 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}
     {loading ? <p role="status">Loading groups…</p> : selected && data ? <GroupDetails key={selected.id} group={selected} viewerId={data.viewerId} owner={selected.ownerId === data.viewerId} onChange={reload} onBack={() => setSelectedId(null)}/> : <>
       <section className="pg-hero"><div><span className="pg-kicker">BETTER TOGETHER</span><h1>Your groups</h1><p className="pg-muted">One place for your people and shared plans.</p></div></section>
-      <div className="pg-workspace">
+      <div className="pg-stats"><div><strong>{data?.groups.length ?? "—"}</strong><span>Your groups</span></div><div><strong>{invites.loading ? "—" : invites.invitations.length}</strong><span>Pending invitations</span></div><div><strong>{data?.groups.filter((group) => group.ownerId === data.viewerId).length ?? "—"}</strong><span>Created by you</span></div></div>
+      <div className="pg-workspace pg-gallery-workspace">
         <section className="pg-panel pg-directory" aria-label="Your group list">
-          <label className="pg-stack" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label>
-          <div className="pg-group-list">{visible.map((group) => <article className="pg-list-item" key={group.id}>
-            <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
-            <div className="pg-list-copy"><h2>{group.name}</h2><p>{group.members.length} {group.members.length === 1 ? "member" : "members"} <span className={`pg-tag ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span></p></div>
-            <button className="button button-outline pg-open-group" aria-label={`Open group ${group.name}`} disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}><ArrowUpRight size={21}/></button>
-          </article>)}</div>
+          <div className="pg-gallery-toolbar"><label className="pg-stack pg-grow" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label><div className="pg-layout-toggle" role="group" aria-label="Group layout"><button className="button button-outline" aria-label="Grid view" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}><LayoutGrid size={19}/></button><button className="button button-outline" aria-label="List view" aria-pressed={layout === "list"} onClick={() => setLayout("list")}><List size={19}/></button></div></div>
+          <div className={`pg-group-gallery pg-gallery-${layout}`}>
+            <button className="pg-create-tile" aria-label="Create group" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><span className="pg-create-icon"><Plus size={26}/></span><strong>Create group</strong><small>Bring your people together</small></button>
+            {visible.map((group) => <article className="pg-gallery-item" key={group.id}>
+              <button className="pg-group-tile" aria-label={`Open group ${group.name}`} disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}>
+                <span className={`pg-tag pg-gallery-role ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span>
+                <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
+                <span className="pg-tile-copy"><strong>{group.name}</strong><small>{group.members.length} {group.members.length === 1 ? "member" : "members"}</small></span>
+                <span className="pg-tile-open" aria-hidden="true"><ArrowUpRight size={18}/></span>
+              </button>
+            </article>)}
+          </div>
           {!loadError && data && visible.length === 0 && <div className="pg-empty"><Users size={32}/><h2>{search ? "No matching groups" : "Start with your people"}</h2><p className="pg-muted">{search ? "Try a different group name." : "Create a group for two friends or your whole circle."}</p></div>}
         </section>
         <aside className="pg-stack pg-overview-side" aria-label="Group overview and invitations">
-          <button className="button button-primary" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><Plus size={18} /> Create group</button>
-      <div className="pg-stats"><div><strong>{data?.groups.length ?? "—"}</strong><span>Your groups</span></div><div><strong>{invites.loading ? "—" : invites.invitations.length}</strong><span>Pending invitations</span></div><div><strong>{data?.groups.filter((group) => group.ownerId === data.viewerId).length ?? "—"}</strong><span>Created by you</span></div></div>
+
+
       <section className="pg-panel pg-inbox" aria-label="Group invitations"><div className="pg-between"><h2><Mail size={20}/> Invitations <span className="pg-badge">{invites.invitations.length}</span></h2><span className="pg-muted">Updates every 20 seconds</span></div>
         {invites.error && <p className="pg-error" role="alert">{invites.error} <button className="button button-outline" onClick={invites.refresh}>Retry</button></p>}
         {invites.loading ? <p>Checking invitations…</p> : !invites.error && invites.invitations.length === 0 ? <p className="pg-muted">You’re all caught up. New invitations will appear here.</p> : null}
+        <div className="pg-incoming-scroll">
         {invites.invitations.map((item) => <div className="pg-row pg-invite" key={item.id}><span className="pg-avatar" aria-hidden="true">{initials(item.group.name)}</span><div className="pg-grow"><strong>{item.group.name}</strong><p>{item.group.owner.displayName} (@{item.group.owner.username}) invited you</p></div><div className="pg-actions"><button className="button button-green" disabled={busy} onClick={() => void respond(item.id, "ACCEPT")}>Accept</button><button className="button button-outline" disabled={busy} onClick={() => void respond(item.id, "DECLINE")}>Decline</button></div></div>)}
+        </div>
       </section>
         </aside>
       </div>

@@ -1319,3 +1319,42 @@ for (const paidByViewer of [true, false]) {
     await page.screenshot({ path: `test-results/compact-bills-${paidByViewer ? "receive" : "pay"}-dark.png`, fullPage: true });
   });
 }
+
+test("Groups gallery keeps counts, instant search, layout choices and invitations on phones", async ({ page }) => {
+  await mockApi(page);
+  const friend = { id: "friend", displayName: "Priya", username: "priya" };
+  const groups = ["College friends", "Roommates", "Weekend plans", "A very long shared group name for our college trip"].map((name, i) => ({ id: `gallery-${i}`, name, ownerId: i === 0 ? user.id : friend.id, members: [{ id: "member-1", userId: user.id, user }] }));
+  await page.route("**/api/groups", (route) => route.fulfill({ json: { viewerId: user.id, groups } }));
+  await page.route("**/api/groups/invitations", (route) => route.fulfill({ json: { invitations: [{ id: "invite-1", group: { id: "incoming", name: "Dinner", owner: friend } }] } }));
+  await page.route("**/api/groups/invitations/invite-1/respond", (route) => route.fulfill({ json: {} }));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/?view=dashboard&screen=groups");
+  await expect(page.getByRole("button", { name: "Grid view" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".pg-gallery-item")).toHaveCount(4);
+  await expect(page.locator(".pg-gallery-role.pg-owner")).toHaveCount(1);
+  await expect(page.locator(".pg-stats")).toContainText("4Your groups");
+  await expect(page.getByRole("button", { name: "Accept", exact: true })).toBeVisible();
+  await page.screenshot({ path: "test-results/groups-gallery-desktop.png", fullPage: true });
+  await page.getByLabel("Find a group").fill("room");
+  await expect(page.getByRole("button", { name: "Open group Roommates", exact: true })).toBeVisible();
+  await expect(page.locator(".pg-gallery-item")).toHaveCount(1);
+  await page.getByRole("button", { name: "List view" }).click();
+  await expect(page.locator(".pg-gallery-list")).toBeVisible();
+  await page.getByLabel("Find a group").fill("");
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate((value) => document.documentElement.dataset.theme = value, theme);
+      for (const layout of ["Grid view", "List view"]) {
+        await page.getByRole("button", { name: layout }).click();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+        await page.screenshot({ path: `test-results/groups-gallery-${width}-${theme}-${layout.split(" ")[0]}.png`, fullPage: true });
+      }
+    }
+  }
+  await page.getByRole("button", { name: "Create group", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Create a group" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Decline", exact: true }).click();
+  await expect(page.getByText("Invitation declined.", { exact: true })).toBeVisible();
+});
