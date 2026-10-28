@@ -413,7 +413,13 @@ for (const owner of [true, false]) {
     const other = { id: "other-user", displayName: "Priya", username: "priya" };
     const members = [{ id: "self-member", userId: user.id, user }, { id: "other-member", userId: other.id, user: other }, { id: "offline-member", userId: null, user: { id: "", displayName: "Offline friend", username: "" } }];
     await page.route("**/api/groups", (route) => route.fulfill({ json: { viewerId: user.id, groups: [{ id: "group-1", name: "Weekend", ownerId: owner ? user.id : other.id, members }] } }));
-    await page.route("**/api/groups/group-1/invitations", (route) => route.fulfill({ json: { invitations: [] } }));
+    await page.route("**/api/groups/group-1/invitations", (route) => {
+      if (route.request().method() === "POST") {
+        expect(route.request().postDataJSON()).toEqual({ username: "priya" });
+        return route.fulfill({ json: {} });
+      }
+      return route.fulfill({ json: { invitations: Array.from({ length: 10 }, (_, i) => ({ id: `invite-${i}`, status: "PENDING", recipient: { ...other, displayName: `Friend ${i}` } })) } });
+    });
     let deleted = false;
     await page.route("**/api/groups/group-1/bills", (route) => {
       if (route.request().method() === "POST") {
@@ -444,13 +450,39 @@ for (const owner of [true, false]) {
     const bill = page.getByRole("article").filter({ hasText: "Lunch with friends" });
     await expect(bill).toBeVisible();
     await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(owner ? 1 : 0);
+    if (owner) {
+      const invitations = page.getByRole("region", { name: "Sent invitations" });
+      await expect(invitations.getByText("Friend 9")).toHaveCount(1);
+      expect(await invitations.evaluate((el) => el.scrollHeight > el.clientHeight && el.clientHeight <= 260)).toBe(true);
+      await page.getByLabel("Exact Paylet username").fill("priya");
+      await page.getByRole("button", { name: "Send invitation" }).click();
+      await expect(page.locator(".success-toast-left")).toContainText("Invitation sent.");
+      await page.getByRole("button", { name: "Dismiss notification" }).click();
+    }
     await page.getByRole("button", { name: "+ Add expense", exact: true }).click();
+    await expect(page.getByRole("dialog", { name: "New shared expense" })).toBeVisible();
+    const expenseDialog = page.getByRole("dialog", { name: "New shared expense" });
+    const dialogBox = await expenseDialog.boundingBox();
+    expect(dialogBox!.x).toBeGreaterThanOrEqual(0);
+    expect(dialogBox!.x + dialogBox!.width).toBeLessThanOrEqual(320);
+    await page.screenshot({ path: `test-results/group-expense-${owner ? "owner" : "member"}-light.png` });
+    await page.evaluate(() => document.documentElement.dataset.theme = "dark");
+    await page.screenshot({ path: `test-results/group-expense-${owner ? "owner" : "member"}-dark.png` });
+    await page.evaluate(() => document.documentElement.dataset.theme = "light");
+
+    await page.getByLabel("Total amount").fill("50");
+    await page.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await page.getByRole("button", { name: "+ Add expense", exact: true }).click();
+
     await expect(page.getByLabel("Who paid?")).toHaveAttribute("readonly", "");
     await expect(page.getByLabel("Who paid?")).toHaveValue("Aftab (You)");
     await page.getByLabel("Total amount").fill("100");
     await page.getByLabel("Purpose", { exact: true }).fill("Dinner");
     await page.getByRole("button", { name: "Save shared expense" }).click();
-    await expect(page.getByText(/Bill saved/)).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.locator(".success-toast-left")).toContainText("Bill saved.");
+    await expect(page.locator(".success-toast-left")).toHaveCount(0, { timeout: 5000 });
     if (owner) {
       page.once("dialog", (dialog) => dialog.accept());
       await bill.getByRole("button", { name: "Delete", exact: true }).click();

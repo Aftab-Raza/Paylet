@@ -19,7 +19,7 @@ function SuccessToast({ message, onDismiss, position }: { message: string; onDis
       remaining.current = Math.max(0, remaining.current - (performance.now() - started));
     };
   }, [paused, onDismiss]);
-  return <div className={`success-toast${position === "top-right" ? " success-toast-top" : ""}`} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
+  return <div className={`success-toast${position === "top-left" ? " success-toast-top success-toast-left" : position === "top-right" ? " success-toast-top" : ""}`} onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)} onFocusCapture={() => setFocused(true)} onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}>
     <CheckCircle2 className="success-toast-icon" size={23} aria-hidden="true" />
     <p role="status" aria-live="polite" aria-atomic="true">{message}</p>
     <button type="button" className="success-toast-close" aria-label="Dismiss notification" onClick={onDismiss}><X size={18} aria-hidden="true" /></button>

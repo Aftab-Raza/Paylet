@@ -1,3 +1,4 @@
+import { useSuccessToast } from "../lib/successToast";
 import BrandMark from "./BrandMark";
 import { useEffect, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
@@ -22,6 +23,7 @@ const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((par
 function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   group: Group; owner: boolean; viewerId: string; onChange: () => void; onBack: () => void;
 }) {
+  const notify = useSuccessToast();
   const [membersOpen, setMembersOpen] = useState(false);
   const [name, setName] = useState(group.name);
   const [username, setUsername] = useState("");
@@ -72,7 +74,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         body: JSON.stringify(kind === "invite" ? { username: username.trim() } : { name: name.trim() }),
       });
       if (kind === "invite") {
-        setUsername(""); setRevision((n) => n + 1); setNotice("Invitation sent. Your friend can accept it in Groups.");
+        setUsername(""); setRevision((n) => n + 1); notify("Invitation sent.", { position: "top-left" });
       } else { setNotice("Group renamed."); onChange(); }
     } catch (err) { setError(message(err)); } finally { setBusy(false); }
   }
@@ -106,6 +108,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         <p className="pg-muted">Your personal expenses and private lending records stay private.</p>
       </div>
     </section>
+    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
     <div className="pg-columns pg-manage-columns">
       {owner && <section className="pg-panel pg-stack pg-offline-card">
         <span className="pg-feature-icon"><UserPlus size={23}/></span><h2>Add an offline person</h2><p className="pg-muted">Choose a private contact from People. They can be included in bills before joining Paylet.</p>
@@ -127,13 +130,15 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
           <button className="button button-purple" disabled={busy || !username.trim()}><Send size={18} /> Send invitation</button>
         </form>
         <div className="pg-between"><h3>Invitation status</h3><button className="button button-outline" disabled={busy} onClick={() => setRevision((n) => n + 1)}>Refresh</button></div>
+        <div className="pg-invitation-scroll" role="region" aria-label="Sent invitations" tabIndex={0}>
         {sentError ? <p className="pg-error" role="alert">{sentError}</p> : sentLoading ? <p role="status">Loading invitations…</p> : sent.length === 0 ? <p className="pg-muted">No invitations sent yet.</p> : sent.map((item) => <div className="pg-row" key={item.id}><div className="pg-grow"><strong>{item.recipient.displayName}</strong><p>@{item.recipient.username}</p></div><span className={`pg-tag pg-${item.status.toLowerCase()}`}>{item.status.toLowerCase()}</span></div>)}
+        </div>
       </section>}
     </div>
     {owner && <section className="pg-panel pg-stack"><h2>Group settings</h2>
       <form className="pg-inline" onSubmit={(event) => void save(event, "rename")}>
         <div className="pg-grow"><label htmlFor="pg-name">Group name</label><input id="pg-name" value={name} onChange={(event) => setName(event.target.value)} maxLength={80} required disabled={busy}/></div>
-        <button className="button button-blue" disabled={busy || !name.trim()}>Save name</button>
+        <button className="button button-green" disabled={busy || !name.trim()}>Save name</button>
       </form>
       <div className="pg-danger-zone"><div><h3>Delete group</h3><p>Hide this group and cancel pending invitations. Active bills must first be deleted by their creators, and pending or confirmed repayments must be resolved; history is retained.</p></div>
         {!confirming ? <button className="button pg-danger" disabled={busy} onClick={() => setConfirming(true)}>Delete group</button> : <div className="pg-stack">
@@ -142,7 +147,6 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         </div>}
       </div>
     </section>}
-    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
   </>;
 }
 

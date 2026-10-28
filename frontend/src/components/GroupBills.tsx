@@ -1,3 +1,5 @@
+import Modal from "./Modal";
+import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
@@ -36,6 +38,7 @@ function preview(draft: Draft) {
   } catch (error) { return { valid: false, error: errorText(error), shares: [] }; }
 }
 export default function GroupBills({ groupId, members, viewerId, ownerId }: { groupId: string; members: Member[]; viewerId: string; ownerId: string }) {
+  const notify = useSuccessToast();
   const viewerMember = members.find((member) => member.userId === viewerId);
   const [revision, setRevision] = useState(0);
   const [data, setData] = useState<{ bills: Bill[]; balances: Balance[] } | null>(null);
@@ -69,7 +72,7 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
     setBusy(true); setError(""); setNotice("");
     try {
       await api(`/groups/${groupId}/bills`, { method: "POST", body: JSON.stringify({ ...draft, payerId: viewerMember.id, participants: draft.participants.map((p) => draft.splitMode === "EQUAL" ? { memberId: p.memberId } : p) }) });
-      setDraft(null); setNotice("Bill saved. Each person’s monthly spending includes their share."); setRevision((n) => n + 1);
+      setDraft(null); notify("Bill saved.", { position: "top-left" }); setRevision((n) => n + 1);
     } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
   }
   async function remove(bill: Bill) {
@@ -84,23 +87,24 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
     catch (err) { setError(errorText(err)); } finally { setBusy(false); }
   }
   const split = draft ? preview(draft) : null;
-  return <section className="pg-panel pg-stack">
-    <div className="pg-between"><div><span className="pg-kicker">SHARED SPENDING</span><h2>Group bills</h2></div><div className="pg-actions"><button className="button button-outline" disabled={busy || !!draft} onClick={() => setRevision((n) => n + 1)}>Refresh bills</button><button className="button button-green" disabled={busy || !!draft || !options || !viewerMember} onClick={begin}>+ Add expense</button></div></div>
-    {error && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
+  return <section className="pg-panel pg-stack pg-group-bills">
+    <div className="pg-between"><div><span className="pg-kicker">SHARED SPENDING</span><h2>Group bills</h2></div><div className="pg-actions"><button className="button button-outline" disabled={busy || !!draft} onClick={() => setRevision((n) => n + 1)}>Refresh bills</button><button className="button pg-add-expense" disabled={busy || !!draft || !options || !viewerMember} onClick={begin}>+ Add expense</button></div></div>
+    {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {!data && !error && <p role="status">Loading shared bills…</p>}
     {data && data.balances.length > 0 && <div className="pg-grid">{data.balances.map((b) => <article className="pg-balance" key={`${b.memberId}:${b.currency}`}><strong>{b.user.displayName}{b.user.id === viewerId ? " (You)" : ""}</strong><p>{currencyLabel(b.currency)} · Paid {b.paid} · Share {b.share}</p><strong>{/^0(?:\.0+)?$/.test(b.net) ? "Settled for these bills" : b.net.startsWith("-") ? `To pay: ${currencyLabel(b.currency)} ${b.net.slice(1)}` : `To receive: ${currencyLabel(b.currency)} ${b.net}`}</strong></article>)}</div>}
-    <p className="pg-muted">Amounts above are net totals across active bills in this group. Repayment recording is the next step.</p>
-    {draft && options && <form className="pg-stack pg-bill-form" onSubmit={save}><h3>New shared expense</h3><fieldset disabled={busy} className="pg-stack">
-      <div className="pg-columns"><label className="pg-stack">Total amount<input inputMode="decimal" required value={draft.amount} onChange={(e) => update("amount", e.target.value)} placeholder="1000.00"/></label><label className="pg-stack">Currency<select value={draft.currency} onChange={(e) => update("currency", e.target.value)}>{options.currencies.map((c) => <option key={c} value={c}>{currencyLabel(c)}</option>)}</select></label></div>
+    {draft && options && <Modal title="New shared expense" busy={busy} className="pg-expense-modal" onClose={() => { setDraft(null); setError(""); }}>
+      {error && <p className="pg-error" role="alert">{error}</p>}
+      <form className="pg-stack pg-bill-form" onSubmit={save}><fieldset disabled={busy} className="pg-stack">
+      <div className="pg-columns"><label className="pg-stack">Total amount<input data-autofocus inputMode="decimal" required value={draft.amount} onChange={(e) => update("amount", e.target.value)} placeholder="1000.00"/></label><label className="pg-stack">Currency<select value={draft.currency} onChange={(e) => update("currency", e.target.value)}>{options.currencies.map((c) => <option key={c} value={c}>{currencyLabel(c)}</option>)}</select></label></div>
       <label className="pg-stack">Purpose<input required maxLength={200} value={draft.purpose} onChange={(e) => update("purpose", e.target.value)} placeholder="Dinner, groceries, taxi…"/></label>
       <div className="pg-columns"><label className="pg-stack">Date<input type="date" min="1900-01-01" max="2199-12-31" required value={draft.date} onChange={(e) => update("date", e.target.value)}/></label><label className="pg-stack">Category<select value={draft.category} onChange={(e) => update("category", e.target.value)}>{options.categories.map((c) => <option key={c}>{c}</option>)}</select></label></div>
       <div className="pg-columns"><label className="pg-stack">Who paid?<input readOnly value={`${viewerMember?.user.displayName ?? ""} (You)`}/></label><label className="pg-stack">Split method<select value={draft.splitMode} onChange={(e) => update("splitMode", e.target.value as Draft["splitMode"])}><option value="EQUAL">Equal split</option><option value="CUSTOM">Custom amounts</option></select></label></div>
       <h3>Who shares this expense?</h3>
       {members.map((m) => { const chosen = draft.participants.find((p) => p.memberId === m.id); return <div className="pg-row" key={m.id}><label className="pg-check pg-grow"><input type="checkbox" checked={!!chosen} onChange={(e) => update("participants", e.target.checked ? [...draft.participants, { memberId: m.id, amount: "" }] : draft.participants.filter((p) => p.memberId !== m.id))}/>{m.user.displayName}{m.userId ? ` (@${m.user.username})` : " (offline)"}</label>{chosen && draft.splitMode === "CUSTOM" && <input className="pg-share-input" aria-label={`Share for ${m.user.displayName}`} inputMode="decimal" required value={chosen.amount} onChange={(e) => update("participants", draft.participants.map((p) => p.memberId === m.id ? { ...p, amount: e.target.value } : p))}/>}</div>; })}
       {split?.valid ? <div className="pg-success"><strong>Split preview</strong>{split.shares.map((s) => <p key={s.memberId}>{members.find((m) => m.id === s.memberId)?.user.displayName}: {currencyLabel(draft.currency)} {s.amount}</p>)}</div> : <p className="pg-muted">{split?.error}</p>}
-      <p className="pg-muted">Equal splits distribute any smallest-unit remainder by member ID. Saved bills cannot be edited.</p>
-      <div className="pg-actions"><button className="button button-green" disabled={!split?.valid}>{busy ? "Saving…" : "Save shared expense"}</button><button type="button" className="button button-outline" onClick={() => setDraft(null)}>Cancel</button></div>
-    </fieldset></form>}
+      <p className="pg-muted">Review the split before saving. Saved bills cannot be edited.</p>
+      <div className="pg-actions"><button className="button button-green" disabled={!split?.valid}>{busy ? "Saving…" : "Save shared expense"}</button><button type="button" className="button pg-danger" onClick={() => { setDraft(null); setError(""); }}>Cancel</button></div>
+    </fieldset></form></Modal>}
     <label className="pg-check"><input type="checkbox" checked={showDeleted} onChange={(e) => setShowDeleted(e.target.checked)}/>Show deleted bills</label>
     {data?.bills.filter((b) => showDeleted || !b.deletedAt).map((bill) => <article key={bill.id} className={`pg-bill ${bill.deletedAt ? "pg-bill-deleted" : ""}`}><div className="pg-between"><h3>{bill.purpose}</h3><strong>{currencyLabel(bill.currency)} {bill.amount}</strong></div><p className="pg-muted">{displayDate(bill.date)} · {bill.category} · Paid by {bill.payer.displayName}</p><p className="pg-muted">Recorded by {bill.creator.displayName}{bill.deletedAt ? " · Deleted, excluded from totals" : ""}</p><details><summary>View each person’s share</summary>{bill.shares.map((s) => <p key={s.memberId}>{s.user.displayName}: {currencyLabel(bill.currency)} {s.amount}</p>)}</details><div className="pg-actions"><button className="button button-outline" disabled={busy} onClick={() => void openHistory(bill)}>History</button>{!bill.deletedAt && (bill.creatorId === viewerId || ownerId === viewerId) && <button className="button pg-danger" disabled={busy || !!draft} onClick={() => void remove(bill)}>Delete</button>}</div></article>)}
     {data && !data.bills.some((b) => showDeleted || !b.deletedAt) && <p className="pg-muted">No bills to show. Add an expense to start splitting.</p>}

@@ -10,3 +10,5 @@
 @media (max-width: 600px) { .success-toast { right: 16px; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
 .success-toast.success-toast-top { top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto; }
 @media (prefers-reduced-motion: reduce) { .success-toast-track > span { animation: none; } }
+
+.success-toast.success-toast-left { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; }

@@ -38,3 +38,27 @@
 .pg-page.groups-refresh .pg-username-card{border-top:3px solid #5a85ef}
 .pg-page.groups-refresh .pg-hero.pg-panel{padding:24px}
 @media(max-width:700px){.pg-page.groups-refresh .pg-panel{padding:18px}.groups-refresh>header .pg-actions{gap:8px}.groups-refresh .pg-member-toggle .pg-avatar-list .pg-avatar{width:30px;height:30px;font-size:.7rem}}
+.groups-refresh:has(.pg-group-bills){gap:16px}
+.pg-page.groups-refresh .pg-group-bills{background:linear-gradient(135deg,var(--surface),var(--surface-alt));border-top:3px solid #9362ef;gap:12px}
+.groups-refresh .pg-group-bills h2{margin:3px 0 0}
+.groups-refresh .pg-group-bills .pg-bill{padding:14px 0;gap:8px}
+.groups-refresh .pg-group-bills .pg-bill>p{font-size:.82rem}
+.groups-refresh .pg-add-expense{background:linear-gradient(120deg,#7c3aed,#4d60df);color:#fff;border:1px solid #a385ef;box-shadow:0 4px 18px #7c3aed35;font-weight:700;min-height:44px}
+.groups-refresh .pg-add-expense:hover{box-shadow:0 5px 24px #7c3aed55}
+[data-theme="dark"] .groups-refresh .pg-add-expense{background:linear-gradient(120deg,#fff9e8,#eaddbd);color:#382746;border-color:#fff5da;box-shadow:0 4px 18px #eee2b524}
+.groups-refresh .pg-invitation-scroll{max-height:260px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:6px}
+.groups-refresh .pg-invitation-scroll:focus-visible{outline:2px solid var(--purple);outline-offset:3px;border-radius:8px}
+.groups-refresh .pg-manage-columns{gap:16px}
+.groups-refresh .pg-manage-columns .pg-stack{gap:10px}
+.groups-refresh .pg-member-panel .pg-row{padding:10px 0}
+.groups-refresh .pg-hero p{margin:4px 0}
+.pg-expense-modal .pg-bill-form{border:0;padding:0;gap:12px}
+.pg-expense-modal .pg-bill-form fieldset{gap:12px}
+.pg-expense-modal .pg-row{padding:8px 0}
+.pg-expense-modal .pg-actions{padding-top:8px}
+.pg-expense-modal .pg-actions>button{flex:1;min-height:44px}
+.pg-expense-modal .button-green,.groups-refresh .button-green{background:linear-gradient(120deg,#16824f,#11613f);border:1px solid #159458;color:#fff}
+.pg-expense-modal .pg-danger{background:#b92f46;border:1px solid #d4485d;color:#fff}
+.pg-expense-modal .pg-columns{gap:12px}
+.pg-expense-modal .pg-success{padding:12px}
+.pg-expense-modal .pg-success p{margin:4px 0}
