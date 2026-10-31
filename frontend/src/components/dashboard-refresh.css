@@ -78,3 +78,21 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 .expense-date-heading { display: flex; align-items: center; gap: 9px; margin: 28px 0 4px; padding: 10px 12px; border-radius: 10px; background: var(--surface-alt); color: var(--text); font-size: 13px; font-weight: 600; }
 .expense-date-heading svg { color: var(--purple); flex-shrink: 0; }
 @media (max-width: 600px) { .monthly-logs-page .expense-list { padding: 16px 12px; } .expense-log-footer .button { width: 100%; justify-content: center; } .expense-date-heading { font-size: 12px; line-height: 1.6; } .monthly-logs-page .header-actions { flex-wrap: wrap; } }
+/* CSS-only shine; the floating button's tooltip stays outside the effect. */
+.home-page .dashboard-add-expense { position: relative; }
+.home-page .dashboard-add-expense::after, .dashboard-fab::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(110deg, transparent 42%, #ffffff55 50%, transparent 58%);
+  background-size: 300% 100%; background-position: 100% 0;
+  animation: expense-shine-sweep 5s ease-in-out infinite;
+}
+@keyframes expense-shine-sweep {
+  0%, 72% { background-position: 100% 0; opacity: 0; }
+  74% { opacity: 1; }
+  94% { background-position: 0% 0; opacity: 1; }
+  100% { background-position: 0% 0; opacity: 0; }
+}
+.home-page .dashboard-add-expense:disabled::after, .dashboard-fab:disabled::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .home-page .dashboard-add-expense::after, .dashboard-fab::after { display: none; animation: none; }
+}
