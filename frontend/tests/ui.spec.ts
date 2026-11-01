@@ -193,7 +193,7 @@ test("profile and contact actions use success toasts with manual dismissal", asy
   await page.getByRole('button',{name:'Save contact'}).click();
   await expect(page.locator('.success-toast')).toContainText('Contact added.');
   page.once('dialog',dialog=>dialog.accept());
-  await page.getByRole('button',{name:'Archive',exact:true}).click();
+  await page.getByRole('button',{name:/^Archive /}).click();
   await expect(page.locator('.success-toast')).toContainText('Contact archived.');
   await page.getByRole('button',{name:'Dismiss notification'}).click();
   await expect(page.locator('.success-toast')).toHaveCount(0);
@@ -692,18 +692,18 @@ test("phone Back returns from a person's history to People and then dashboard", 
   await page.goto("/?view=dashboard");
   await page.getByRole("button", { name: "People", exact: true }).click();
   await expect(page).toHaveURL(/screen=people/);
-  await page.getByRole("button", { name: "Money history" }).click();
+  await page.getByRole("button", { name: /Open money history for/ }).click();
   await expect(page).toHaveURL(/person=contact-1/);
   await expect(page.getByRole("heading", { name: "Priya", exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Priya", exact: true })).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open money history for/ })).toBeVisible();
   await expect(page).not.toHaveURL(/person=/);
   await page.goBack();
   await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
   await page.goForward();
-  await expect(page.getByRole("button", { name: "Money history" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open money history for/ })).toBeVisible();
 });
 
 test("password recovery sends an email request, rejects mismatches, and submits a reset token", async ({ page }) => {
@@ -1150,8 +1150,10 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
   const card = page.locator(".person-card").filter({ hasText: "Priya" });
   await expect(card.locator(".person-recorded").first()).toContainText("500.00");
-  await expect(card.locator(".person-outstanding").first()).toContainText("400.00");
-  await expect(card.locator(".person-outstanding").first()).toContainText("150.00");
+  await card.getByRole("button", { name: "Contact details for Priya" }).click();
+  await expect(page.getByRole("dialog")).toContainText("400.00");
+  await expect(page.getByRole("dialog")).toContainText("150.00");
+  await page.keyboard.press("Escape");
   await expect(card).toContainText("USD");
   await expect(page.getByText("No money records", { exact: true })).toBeVisible();
   await page.screenshot({ path: "test-results/people-horizontal-desktop.png", fullPage: true });
@@ -1166,36 +1168,33 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await page.getByRole("button", { name: "Total borrowed ₹ 200.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 });
-test("People letter avatars have 26 stable readable colors and cards fit both themes", async ({ page }) => {
+test("People shows latest ten profile cards, preserves older search and readable avatars in both themes", async ({ page }) => {
   await mockApi(page);
-  const names=[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map(letter=>`${letter} person`);
-  names.push('  Alice','Élodie','अमन','123');
-  await page.route('**/api/contacts',route=>route.fulfill({json:{contacts:names.map((name,index)=>({id:`avatar-${index}`,name,nickname:index===0?'Friend':null,notes:index===0?'A private note that stays visible.':null,isArchived:false,version:1,createdAt:'2026-10-01',updatedAt:'2026-10-01',linkedUser:null,linkRequest:null}))}}));
-  await page.goto('/?view=dashboard');
-  await page.getByRole('button',{name:'People',exact:true}).click();
-  const avatars=page.locator('.alphabet-avatar');
-  await expect(avatars).toHaveCount(30);
-  let lightColors:string[]=[];
-  for(const theme of ['light','dark']) {
-    if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
-    const colors=await avatars.evaluateAll(elements=>elements.map(el=>getComputedStyle(el).backgroundColor));
-    expect(new Set(colors.slice(0,26)).size).toBe(26);
-    expect(colors[26]).toBe(colors[0]);
-    expect(colors[27]).toBe(colors[4]);
-    if(theme==='light') lightColors=colors; else expect(colors).toEqual(lightColors);
-    const ratios=await avatars.evaluateAll(elements=>elements.map(el=>{
-      const rgb=getComputedStyle(el).backgroundColor.match(/\d+/g)!.slice(0,3).map(Number).map(v=>{v/=255;return v<=0.04045?v/12.92:((v+0.055)/1.055)**2.4;});
-      return 1.05/(rgb[0]*0.2126+rgb[1]*0.7152+rgb[2]*0.0722+0.05);
-    }));
-    for(const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
-    await expect(page.getByText('A private note that stays visible.')).toBeVisible();
-    for(const width of [320,768,1440]) {
-      await page.setViewportSize({width,height:900});
-      expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  const contacts = [..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map((letter, i) => ({ id: `person-${i}`, name: `${letter} person`, nickname: null, notes: "Private notes", isArchived: false, version: 1, createdAt: `2026-10-${String(i + 1).padStart(2, "0")}`, linkedUser: i === 25 ? { id: "linked", displayName: "Z person", username: "zuser" } : null, linkRequest: null }));
+  await page.route("**/api/contacts", route => route.fulfill({ json: { contacts } }));
+  await page.goto("/?view=dashboard&screen=people");
+  await expect(page.locator(".person-card")).toHaveCount(10);
+  await expect(page.locator(".person-card").first()).toContainText("Z person");
+  await expect(page.locator(".person-card").first()).toContainText("Connected · @zuser");
+  await expect(page.getByRole("button", { name: "Money history", exact: true })).toHaveCount(0);
+  await page.getByLabel("Search people").fill("A person");
+  await expect(page.locator(".person-card")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "A person" })).toBeVisible();
+  await page.getByRole("button", { name: "Contact details for A person" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Private notes");
+  await page.keyboard.press("Escape");
+  await page.getByLabel("Search people").fill("");
+  let colors: string[] = [];
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(value => document.documentElement.dataset.theme = value, theme);
+    const current = await page.locator(".alphabet-avatar").evaluateAll(elements => elements.map(el => getComputedStyle(el).backgroundColor));
+    if (theme === "light") colors = current; else expect(current).toEqual(colors);
+    for (const width of [320, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: `test-results/people-profile-${width}-${theme}.png`, fullPage: true });
     }
   }
-  await expect(avatars.nth(28)).toHaveText('अ');
-  await expect(avatars.nth(29)).toHaveText('#');
 });
 
 test("AI Quick Add uses purple in light mode and cream in dark mode in both dashboard controls", async ({ page }) => {

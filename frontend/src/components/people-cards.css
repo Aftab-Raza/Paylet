@@ -40,3 +40,32 @@
 @media (prefers-reduced-motion: reduce) { .people-grid .person-card { transition: none; } }
 .people-page .app-header { flex-wrap: wrap; }
 @media (max-width: 600px) { .people-page .app-header > .button:not(.theme-toggle) { flex-basis: 100%; } }
+/* Compact profile cards; the full-card button and independent actions are siblings. */
+.people-grid.people-profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:18px}
+.people-profile-grid .profile-panel.person-card{position:relative;display:flex;flex-direction:column;align-items:stretch;gap:14px;padding:22px;overflow:visible;background:linear-gradient(145deg,#fff,#f4edff);border:1px solid #ddd1f0;border-radius:24px;box-shadow:0 5px 20px #5c27900a}
+.people-profile-grid .profile-panel.person-card:nth-child(even){background:linear-gradient(145deg,#eee3ff,#fff 85%)}
+.people-profile-grid .person-identity{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px}
+.people-profile-grid .person-identity .contact-avatar{width:62px;height:62px;margin-bottom:5px}
+.people-profile-grid .person-identity h2{font-size:17px;margin:0;overflow-wrap:anywhere}
+.people-profile-grid .person-identity .profile-handle{margin:0}
+.people-profile-grid .contact-badge{max-width:100%;overflow-wrap:anywhere}
+.person-private-mark{display:inline-grid;place-items:center;vertical-align:middle;width:20px;height:20px;border-radius:50%;font-size:10px;color:#fff;background:#7c3aed;box-shadow:0 0 10px #9b65ec88}
+.people-profile-grid .person-money{border:0;padding:0;text-align:center}
+.people-profile-grid .person-recorded{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#7c3aed0c;border-radius:13px;padding:10px}
+.people-profile-grid .person-recorded dt{color:var(--muted)}
+.people-profile-grid .person-recorded dd{font-size:16px;color:var(--text)}
+.people-profile-grid .person-currency-label{font-size:12px;margin-bottom:4px}
+.person-card-open{position:absolute;inset:0;z-index:1;border:0;border-radius:24px;background:transparent;cursor:pointer}
+.person-card-open:focus-visible{outline:3px solid var(--purple);outline-offset:4px}
+.people-profile-grid .person-actions,.people-profile-grid .person-money-retry{position:relative;z-index:2}
+.people-profile-grid .person-actions{margin-top:auto}
+.people-profile-grid .person-actions .connection-card{margin-bottom:10px}
+.people-profile-grid .person-actions .connection-card>.button{min-height:36px;font-size:11px;padding:8px 10px;background:#7c3aed;color:#fff}
+.people-profile-grid .person-actions .person-icon-actions{display:flex;justify-content:center;gap:10px}
+.people-profile-grid .person-icon-actions .button{width:40px;height:40px;min-height:40px;padding:0;flex:none;border-radius:12px}
+.people-profile-grid .person-icon-actions .button-blue{background:#315cde;color:white}
+.people-profile-grid .person-icon-actions .button-purple{background:#7c3aed;color:white}
+.people-profile-grid .person-icon-actions .person-archive{background:#a83d6e;color:white;border-color:#a83d6e}
+[data-theme="dark"] .people-profile-grid .profile-panel.person-card{background:linear-gradient(145deg,#16101f,#27183a);border-color:#4c345f}
+[data-theme="dark"] .people-profile-grid .profile-panel.person-card:nth-child(even){background:linear-gradient(145deg,#291b40,#101012)}
+[data-theme="dark"] .people-profile-grid .person-recorded{background:#a879ff14}

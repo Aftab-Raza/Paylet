@@ -8,7 +8,7 @@ import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import LoanBook from "./LoanBook";
 import { useHistoryParam } from "../lib/navigation";
-import { ArrowLeft, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
+import { ArrowLeft, Archive, RotateCcw, Pencil, Info, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import "./people-cards.css";
@@ -44,6 +44,7 @@ type Props = {
 
 export default function People({ onBack }: Props) {
   const notifySuccess = useSuccessToast();
+  const [detailsContact, setDetailsContact] = useState<Contact | null>(null);
   const [showInvite, setShowInvite] = useState(false);
   const [selectedContactId, setSelectedContactId] = useHistoryParam("person");
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -234,7 +235,7 @@ export default function People({ onBack }: Props) {
 
   const search = query.trim().toLowerCase();
 
-  const visibleContacts = contacts.filter((contact) => {
+  const matchingContacts = contacts.filter((contact) => {
     if (contact.isArchived !== showArchived) return false;
 
     return (
@@ -242,6 +243,7 @@ export default function People({ onBack }: Props) {
       (contact.nickname ?? "").toLowerCase().includes(search)
     );
   });
+  const visibleContacts = [...matchingContacts].sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? "") || b.id.localeCompare(a.id)).slice(0, 10);
    if (selectedContactId) {
     return (
       <LoanBook
@@ -392,6 +394,11 @@ export default function People({ onBack }: Props) {
             </form>
           </Modal>
         )}
+        {detailsContact && <Modal title="Contact details" onClose={() => setDetailsContact(null)}>
+          <h3>{detailsContact.name}</h3>{detailsContact.nickname && <p>{detailsContact.nickname}</p>}{detailsContact.notes && <p>{detailsContact.notes}</p>}
+          <p>{detailsContact.linkedUser ? `Connected to @${detailsContact.linkedUser.username}. Past money entries stay private until individually shared.` : "Private contact"}</p>
+          {moneyError ? <p>Amounts unavailable. Please refresh People.</p> : money?.[detailsContact.id]?.map((total) => <p key={total.currency}>{currencyLabel(total.currency)} · Owed to you: {total.owedToYou} · You owe: {total.youOwe}</p>)}
+        </Modal>}
         {showInvite && <InvitePaylet onClose={() => setShowInvite(false)} />}
 
         <div className="people-toolbar">
@@ -432,8 +439,7 @@ export default function People({ onBack }: Props) {
         ) : (
           <>
             <p className="profile-member">
-              {visibleContacts.length}{" "}
-              {showArchived ? "archived" : "active"} contacts
+              Showing {visibleContacts.length} of {matchingContacts.length} {showArchived ? "archived" : "active"} contacts · Latest first
             </p>
 
             {visibleContacts.length === 0 && (
@@ -449,36 +455,22 @@ export default function People({ onBack }: Props) {
               </section>
             )}
 
-            <div className="people-grid people-list">
+            <div className="people-grid people-profile-grid">
               {visibleContacts.map((contact) => (
                 <article className="profile-panel person-card" key={contact.id}>
+                  <button type="button" className="person-card-open" aria-label={`Open money history for ${contact.name}`} disabled={busy || Boolean(draft)} onClick={() => setSelectedContactId(contact.id)} />
                   <div className="person-identity">
                   <AlphabetAvatar name={contact.name} />
 
-                  <h2>{contact.name}</h2>
-
-                  {contact.nickname && (
-                    <p className="profile-handle">
-                      {contact.nickname}
-                    </p>
-                  )}
-
-                  <span className="contact-badge">
-                    {contact.isArchived
-                      ? "Archived contact"
-                      : "Private contact"}
-                  </span>
-                  {contact.linkedUser ? <p className="profile-member">Connected to @{contact.linkedUser.username}. Past money entries remain private until you share them individually.</p> : contact.linkRequest?.status === "PENDING" ? <p className="profile-member">Connection request pending for @{contact.linkRequest.recipient.username}.</p> : null}
-
-                  {contact.notes && (
-                    <p className="contact-note">{contact.notes}</p>
-                  )}
+                  <h2>{contact.name} {!contact.linkedUser && <span className="person-private-mark" title="Private contact" aria-label="Private contact">P</span>}</h2>
+                  {contact.nickname && <p className="profile-handle">{contact.nickname}</p>}
+                  <span className="contact-badge">{contact.isArchived ? "Archived" : contact.linkedUser ? `Connected · @${contact.linkedUser.username}` : contact.linkRequest?.status === "PENDING" ? `Pending · @${contact.linkRequest.recipient.username}` : "Private contact"}</span>
                   </div>
                   <div className="person-money" aria-label={`Money with ${contact.name}`}>
                     {moneyError ? <p className="profile-member">Amounts unavailable. <button type="button" className="person-money-retry" onClick={reload}>Retry</button></p> : !money ? <p className="profile-member">Loading amounts...</p> : !(money[contact.id]?.length) ? <p className="profile-member">No money records</p> : money[contact.id].map((total) => <div className="person-currency" key={`${total.currency}:${total.minorUnit}`}>
                       <span className="person-currency-label">{currencyLabel(total.currency)}</span>
-                      <dl className="person-recorded"><div><dt>Lent</dt><dd>{total.totalLent}</dd></div><div><dt>Borrowed</dt><dd>{total.totalBorrowed}</dd></div></dl>
-                      <span className="person-outstanding-label">Outstanding</span><dl className="person-outstanding"><div><dt>Owed to you</dt><dd>{total.owedToYou}</dd></div><div><dt>You owe</dt><dd>{total.youOwe}</dd></div></dl>
+                      <dl className="person-recorded"><div><dt>Given</dt><dd>{total.totalLent}</dd></div><div><dt>Taken</dt><dd>{total.totalBorrowed}</dd></div></dl>
+
                     </div>)}
                   </div>
                   <div className="person-actions">
@@ -490,39 +482,10 @@ export default function People({ onBack }: Props) {
                     </form> : <button type="button" className="button button-purple" disabled={busy} onClick={() => { setLinkingContactId(contact.id); setLinkUsername(""); }}>Connect to Paylet account</button>}
                   </div>}
 
-                                    <div className="profile-actions">
-                    <button
-                      type="button"
-                      className="button button-green"
-                      disabled={busy || Boolean(draft)}
-                      onClick={() => setSelectedContactId(contact.id)}
-                    >
-                      Money history
-                    </button>
-
-                    {!contact.isArchived && (
-                      <button
-                        type="button"
-                        className="button button-blue"
-                        disabled={busy || Boolean(draft)}
-                        onClick={() => editContact(contact)}
-                      >
-                        Edit
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className={
-                        contact.isArchived
-                          ? "button button-green"
-                          : "button button-outline"
-                      }
-                      disabled={busy || Boolean(draft)}
-                      onClick={() => void toggleArchive(contact)}
-                    >
-                      {contact.isArchived ? "Restore" : "Archive"}
-                    </button>
+                  <div className="profile-actions person-icon-actions">
+                    <button type="button" className="button button-purple" aria-label={`Contact details for ${contact.name}`} title="Contact details" onClick={() => setDetailsContact(contact)}><Info size={17}/></button>
+                    {!contact.isArchived && <button type="button" className="button button-blue" aria-label={`Edit ${contact.name}`} title="Edit" disabled={busy || Boolean(draft)} onClick={() => editContact(contact)}><Pencil size={17}/></button>}
+                    <button type="button" className={contact.isArchived ? "button button-green" : "button person-archive"} aria-label={`${contact.isArchived ? "Restore" : "Archive"} ${contact.name}`} title={contact.isArchived ? "Restore" : "Archive"} disabled={busy || Boolean(draft)} onClick={() => void toggleArchive(contact)}>{contact.isArchived ? <RotateCcw size={17}/> : <Archive size={17}/>}</button>
                   </div>
                   </div>
                 </article>
