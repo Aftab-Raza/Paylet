@@ -195,6 +195,8 @@ model ContactMoneyEntry {
 
   contact Contact               @relation(fields: [contactId], references: [id], onDelete: Restrict)
   history ContactMoneyHistory[]
+  paymentRequest SharedPaymentRequest? @relation("SharedPaymentSource")
+  confirmedPayment SharedPaymentRequest? @relation("SharedPaymentRepayment")
   share ContactMoneyShare?
 
   @@index([contactId, entryDate])
@@ -386,4 +388,19 @@ model GroupSettlementHistory {
 
   @@index([settlementId, createdAt])
   @@map("group_settlement_history")
+}
+
+model SharedPaymentRequest {
+  entryId String @id @db.Uuid
+  recipientId String @db.Uuid
+  status String @default("PENDING") @db.VarChar(12)
+  version Int @default(1)
+  requestedAt DateTime @default(now())
+  respondedAt DateTime?
+  repaymentId String? @unique @db.Uuid
+  entry ContactMoneyEntry @relation("SharedPaymentSource", fields: [entryId], references: [id], onDelete: Restrict)
+  repayment ContactMoneyEntry? @relation("SharedPaymentRepayment", fields: [repaymentId], references: [id], onDelete: Restrict)
+
+  @@index([recipientId, status])
+  @@map("shared_payment_requests")
 }

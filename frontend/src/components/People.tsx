@@ -1,3 +1,4 @@
+import SharedPayments from "./SharedPayments";
 import BrandMark from "./BrandMark";
 import AlphabetAvatar from "./AlphabetAvatar";
 import { useSuccessToast } from "../lib/successToast";
@@ -28,7 +29,7 @@ type Contact = {
   linkRequest: { status: string; recipient: { username: string } } | null;
 };
 type LinkRequest = { id: string; name: string; owner: { displayName: string; username: string }; groups: string[] };
-type SharedEntry = { id: string; owner: { displayName: string }; direction: string; kind: string; amount: string; currency: string; purpose: string; date: string };
+
 
 type Draft = {
   id: string;
@@ -51,7 +52,6 @@ export default function People({ onBack }: Props) {
   const [money, setMoney] = useState<Record<string, PersonTotal[]> | null>(null);
   const [moneyError, setMoneyError] = useState(false);
   const [linkRequests, setLinkRequests] = useState<LinkRequest[]>([]);
-  const [sharedEntries, setSharedEntries] = useState<SharedEntry[]>([]);
   const [linkingContactId, setLinkingContactId] = useState<string | null>(null);
   const [linkUsername, setLinkUsername] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,10 +73,9 @@ export default function People({ onBack }: Props) {
     Promise.allSettled([
       api<{ contacts: Contact[] }>("/contacts", { signal: controller.signal }),
       api<{ requests: LinkRequest[] }>("/contacts/link-requests", { signal: controller.signal }),
-      api<{ entries: SharedEntry[] }>("/contacts/shared-entries", { signal: controller.signal }),
       api<{ summaries: { contactId: string; totals: PersonTotal[] }[] }>("/loans/people-summary", { signal: controller.signal }),
     ])
-      .then(([contactsResult, linksResult, sharedResult, moneyResult]) => {
+      .then(([contactsResult, linksResult, moneyResult]) => {
         if (controller.signal.aborted) return;
 
         if (contactsResult.status === "fulfilled") {
@@ -88,7 +87,6 @@ export default function People({ onBack }: Props) {
             : "Unable to load contacts.");
         }
         setLinkRequests(linksResult.status === "fulfilled" ? linksResult.value.requests : []);
-        setSharedEntries(sharedResult.status === "fulfilled" ? sharedResult.value.entries : []);
         if (moneyResult.status === "fulfilled") {
           setMoney(Object.fromEntries(moneyResult.value.summaries.map((item) => [item.contactId, item.totals]))); setMoneyError(false);
         } else { setMoney(null); setMoneyError(true); }
@@ -321,10 +319,6 @@ export default function People({ onBack }: Props) {
           </div>)}
         </section>}
 
-        {sharedEntries.length > 0 && <section className="profile-panel"><h2>Shared with you</h2>
-          {sharedEntries.map((entry) => <div className="pg-row" key={entry.id}><div className="pg-grow"><strong>{entry.purpose || (entry.kind === "REPAYMENT" ? "Repayment" : "Money entry")}</strong><p>{entry.owner.displayName} shared this {entry.kind === "REPAYMENT" ? "repayment" : "money entry"} · {entry.direction === "LENT" ? "lent to you" : "borrowed from you"} · {entry.date}</p></div><strong>{currencyLabel(entry.currency)} {entry.amount}</strong></div>)}
-        </section>}
-
         {draft && (
           <Modal title={editing ? "Edit contact" : "Add a person"} busy={busy} onClose={() => { setDraft(null); setError(""); }}>
             {error && <p className="error-message" role="alert">{error}</p>}
@@ -469,7 +463,7 @@ export default function People({ onBack }: Props) {
                   <div className="person-money" aria-label={`Money with ${contact.name}`}>
                     {moneyError ? <p className="profile-member">Amounts unavailable. <button type="button" className="person-money-retry" onClick={reload}>Retry</button></p> : !money ? <p className="profile-member">Loading amounts...</p> : !(money[contact.id]?.length) ? <p className="profile-member">No money records</p> : money[contact.id].map((total) => <div className="person-currency" key={`${total.currency}:${total.minorUnit}`}>
                       <span className="person-currency-label">{currencyLabel(total.currency)}</span>
-                      <dl className="person-recorded"><div><dt>Given</dt><dd>{total.totalLent}</dd></div><div><dt>Taken</dt><dd>{total.totalBorrowed}</dd></div></dl>
+                      <dl className="person-recorded"><div><dt>They owe you</dt><dd>{total.owedToYou}</dd></div><div><dt>Taken</dt><dd>{total.totalBorrowed}</dd></div></dl>
 
                     </div>)}
                   </div>
@@ -494,6 +488,7 @@ export default function People({ onBack }: Props) {
           </>
         )}
       </section>
+      <SharedPayments onUpdated={reload} refreshKey={refresh}/>
     </main>
   );
 }

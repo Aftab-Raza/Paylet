@@ -1,3 +1,4 @@
+import { sharedPaymentsRouter } from "./sharedPayments.js";
 import { Router } from "express";
 import { rateLimit } from "express-rate-limit";
 import { z } from "zod";
@@ -56,6 +57,8 @@ contactsRouter.use(async (req, res, next) => {
 
   next();
 });
+
+contactsRouter.use(sharedPaymentsRouter);
 
 contactsRouter.get("/", async (req, res) => {
   const contacts = await prisma.contact.findMany({
@@ -255,12 +258,14 @@ contactsRouter.get("/shared-entries", async (req, res) => {
     where: { recipientId, entry: { voidedAt: null, contact: { linkedUserId: recipientId } } },
     orderBy: { sharedAt: "desc" },
     select: { entryId: true, sharedAt: true, entry: { select: {
+      paymentRequest: { select: { status: true, recipientId: true, repayment: { select: { voidedAt: true } } } },
       direction: true, kind: true, amountMinor: true, minorUnit: true, currency: true,
       purpose: true, entryDate: true, contact: { select: { user: { select: { displayName: true, username: true } } } },
     } } },
   });
   res.json({ entries: shares.map(({ entryId, sharedAt, entry }) => ({
     id: entryId, sharedAt, owner: entry.contact.user,
+    paymentStatus: entry.paymentRequest?.recipientId === recipientId ? (entry.paymentRequest.status === "CONFIRMED" && entry.paymentRequest.repayment?.voidedAt ? "REVERSED" : entry.paymentRequest.status) : null,
     direction: entry.direction === "LENT" ? "BORROWED" : "LENT", kind: entry.kind,
     amount: moneyString(entry.amountMinor, entry.minorUnit),
     currency: entry.currency, purpose: entry.purpose, date: entry.entryDate.toISOString().slice(0, 10),

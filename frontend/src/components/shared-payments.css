@@ -1,0 +1,21 @@
+.shared-payments{display:grid;gap:12px;margin-top:28px}
+.shared-payments:empty{display:none}
+.shared-payments h2{font-size:1.1rem;margin:8px 0}
+.shared-payment-card{display:flex;align-items:center;gap:14px;border:1px solid #d6d7f0;border-radius:18px;padding:18px;background:linear-gradient(120deg,#f2ecff,#edf5ff);color:#292650;flex-wrap:wrap}
+.shared-payment-card .alphabet-avatar{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:50%;background:var(--avatar-color);color:white;font-weight:700}
+.shared-payment-copy{flex:1;min-width:150px;overflow-wrap:anywhere}
+.shared-payment-copy p{font-size:.8rem;color:#5f6080;margin:5px 0}
+.shared-payment-copy small{font-size:.75rem}
+.shared-payment-card>strong{font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.shared-payment-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.shared-payment-actions .button{font-size:.78rem;min-height:40px;padding:9px 12px}
+.shared-paid{background:#087d83!important;color:white!important;border:1px solid #087d83!important}
+.shared-confirm{background:#167545!important;color:white!important;border:1px solid #167545!important}
+.shared-decline{background:#a43b53!important;color:white!important;border:1px solid #a43b53!important}
+.shared-payment-status,.shared-payment-confirmed{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;padding:7px 10px;border-radius:20px;background:#fff1cd;color:#775214}
+.shared-payment-confirmed{background:#dff3e7;color:#155b36}
+[data-theme="dark"] .shared-payment-card{background:linear-gradient(120deg,#231a37,#14253a);color:#e4dcff;border-color:#443957}
+[data-theme="dark"] .shared-payment-copy p{color:#bdbbd6}
+[data-theme="dark"] .shared-payment-status{background:#3d3016;color:#f8db9c}
+[data-theme="dark"] .shared-payment-confirmed{background:#153728;color:#b2e9c8}
+@media(max-width:600px){.shared-payment-card{gap:10px;padding:14px}.shared-payment-actions{width:100%}.shared-payment-card>strong{margin-left:auto}.shared-payment-copy{min-width:120px}}

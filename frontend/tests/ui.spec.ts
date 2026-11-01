@@ -28,6 +28,7 @@ async function mockApi(page: Page, signedIn = true) {
     else if (path === "/groups/settlement-requests") data = { requests: [] };
     else if (path === "/groups") data = { viewerId: user.id, groups: [] };
     else if (path === "/contacts/link-requests") data = { requests: [] };
+    else if (path === "/contacts/payment-requests") data = { requests: [] };
     else if (path === "/contacts/shared-entries") data = { entries: [] };
     else if (path === "/contacts") data = { contacts: [] };
     else if (path === "/profile") data = { user };
@@ -356,7 +357,7 @@ test("past money entries remain hidden until individually shared", async ({ page
   shared = true;
   await page.getByRole("button", { name: "Refresh" }).click();
   await expect(page.getByText("Old repayment")).toBeVisible();
-  await expect(page.getByText(/repayment · borrowed from you/)).toBeVisible();
+  await expect(page.getByText("Shared repayment", { exact: true })).toBeVisible();
 });
 
 test("People still shows contacts when optional sharing requests fail", async ({ page }) => {
@@ -1149,7 +1150,7 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await page.getByRole("button", { name: "Owed to you ₹ 400.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
   const card = page.locator(".person-card").filter({ hasText: "Priya" });
-  await expect(card.locator(".person-recorded").first()).toContainText("500.00");
+  await expect(card.locator(".person-recorded").first()).toContainText("They owe you400.00");
   await card.getByRole("button", { name: "Contact details for Priya" }).click();
   await expect(page.getByRole("dialog")).toContainText("400.00");
   await expect(page.getByRole("dialog")).toContainText("150.00");
@@ -1356,4 +1357,45 @@ test("Groups gallery keeps counts, instant search, layout choices and invitation
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Decline", exact: true }).click();
   await expect(page.getByText("Invitation declined.", { exact: true })).toBeVisible();
+});
+
+test("shared payments request confirmation without marking paid and owner can confirm or decline", async ({ page }) => {
+  await mockApi(page);
+  let status: string | null = null;
+  let receiver = false;
+  let writes = 0;
+  const entry = { id: "shared-debt", owner: { displayName: "Priya" }, direction: "BORROWED", kind: "ADVANCE", amount: "500.00", currency: "INR", purpose: "Dinner", date: "2026-11-01" };
+  await page.route("**/api/contacts/shared-entries", route => route.fulfill({ json: { entries: receiver ? [] : [{ ...entry, paymentStatus: status }, { ...entry, id: "lent", direction: "LENT", purpose: "I lent this" }, { ...entry, id: "repayment", kind: "REPAYMENT", purpose: "Repayment record" }] } }));
+  await page.route("**/api/contacts/payment-requests", route => route.fulfill({ json: { requests: receiver && status === "PENDING" ? [{ id: entry.id, version: 1, name: "Aftab", amount: "500.00", currency: "INR", purpose: "Dinner", date: entry.date }] : [] } }));
+  await page.route("**/api/contacts/shared-entries/shared-debt/paid", route => { writes++; status = "PENDING"; return route.fulfill({ json: { message: "Payment confirmation requested." } }); });
+  await page.route("**/api/contacts/payment-requests/shared-debt/respond", route => { expect(route.request().postDataJSON().version).toBe(1); status = route.request().postDataJSON().action === "CONFIRM" ? "CONFIRMED" : "DECLINED"; return route.fulfill({ json: { message: "Payment updated." } }); });
+  await page.setViewportSize({ width: 320, height: 900 });
+  await page.goto("/?view=dashboard&screen=people");
+  await expect(page.getByRole("button", { name: "I’ve paid", exact: true })).toHaveCount(1);
+  await page.getByRole("button", { name: "I’ve paid", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("outside Paylet");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(writes).toBe(0);
+  await page.getByRole("button", { name: "I’ve paid", exact: true }).click();
+  await page.getByRole("button", { name: "Yes, I’ve paid", exact: true }).click();
+  await expect(page.getByText("Awaiting confirmation", { exact: true })).toBeVisible();
+  await expect(page.getByText("Payment confirmed", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "I’ve paid", exact: true })).toHaveCount(0);
+  expect(writes).toBe(1);
+  receiver = true;
+  await page.reload();
+  await page.getByRole("button", { name: "Not received", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Payment confirmations" })).toHaveCount(0);
+  status = "PENDING";
+  await page.reload();
+  await page.getByRole("button", { name: "Confirm received", exact: true }).click();
+  expect(status).toBe("CONFIRMED");
+  receiver = false;
+  await page.reload();
+  await expect(page.getByText("Payment confirmed", { exact: true })).toBeVisible();
+  for (const theme of ["light", "dark"]) {
+    await page.evaluate(value => document.documentElement.dataset.theme = value, theme);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/shared-payments-${theme}.png`, fullPage: true });
+  }
 });
