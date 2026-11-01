@@ -6,7 +6,7 @@ import "./landing.css";
 import ThemeToggle from "./ThemeToggle";
 import Testimonials from "./Testimonials";
 import CommunityCount from "./CommunityCount";
-import HeroSplitDemo from "./HeroSplitDemo";
+import HeroMoneyFlow from "./HeroMoneyFlow";
 import DashboardPreview from "./DashboardPreview";
 
 type Props = {
@@ -44,18 +44,18 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
     </div></header>
     {sessionError && <div className="landing-width landing-session" role="alert">{sessionError} <button className="button button-outline" onClick={() => window.location.reload()}>Retry</button></div>}
     <main id="landing-main">
-      <section className="landing-hero landing-interactive-hero" aria-labelledby="landing-title">
+      <section className="landing-hero landing-interactive-hero landing-clean-hero" aria-labelledby="landing-title">
+        <HeroMoneyFlow/>
         <div className="landing-hero-copy landing-width">
-          <span className="landing-eyebrow">YOUR MONEY. YOUR PEOPLE. YOUR LIFE.</span>
-          <h1 id="landing-title">Paylet<span>.</span></h1>
-          <p className="landing-hook">Less money stress. More life.</p>
-          <p className="landing-hero-description">Track your spending. Split the bill.<br className="landing-desktop-break" /> Keep money between friends clear.</p>
-          <div className="landing-hero-actions"><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Open dashboard" : "Get started"}<ArrowRight size={18} /></button><a href="#about">Explore Paylet <ChevronRight size={17} /></a></div>
-          <div className="landing-hero-benefits"><span><Check size={15} /> No bank connection</span><span><Check size={15} /> Your records stay private</span></div>
+          <span className="landing-eyebrow">A LITTLE CLARITY. EVERY DAY.</span>
+          <h1 id="landing-title">Your money. Your people.<br/><span>All clear.</span></h1>
+          <p className="landing-hero-description">Track expenses, split group bills, and keep lending and borrowing organised.</p>
+          <div className="landing-hero-actions"><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Open dashboard" : "Get started"}<ArrowRight size={18} /></button><button className="button button-outline" disabled={checking} onClick={user ? onDashboard : onLogin}>{user ? "Your dashboard" : "Sign in"}</button></div>
           <CommunityCount refreshKey={communityRefresh} />
-          <HeroSplitDemo />
+
         </div>
       </section>
+      <div className="landing-hero-benefits landing-clean-benefits"><span><Check size={15}/>No bank connection</span><span><Check size={15}/>Your records stay private</span><a href="#about">Explore Paylet <ChevronRight size={15}/></a></div>
       <div className="landing-band landing-feature-band" id="about"><section className="landing-about landing-width">
         <div className="landing-demo-heading"><span><span className="landing-live-dot" /> A little clarity. At a glance.</span><span>Illustrative examples</span></div>
         <div className="landing-money-grid" aria-label="Examples of Paylet money records">

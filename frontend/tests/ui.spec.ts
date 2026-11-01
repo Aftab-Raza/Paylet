@@ -531,13 +531,13 @@ test("public homepage opens login and registration and supports browser back", a
   await mockApi(page, false);
   await page.route("**/api/auth/login", (route) => route.fulfill({ json: { user } }));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your money. Your people./ })).toBeVisible();
   await expect(page.getByRole("contentinfo")).toContainText("About Paylet");
   await page.getByRole("button", { name: "Get started", exact: true }).click();
   await expect(page.getByLabel("Your name")).toBeVisible();
   await expect(page).toHaveURL(/view=register/);
   await page.goBack();
-  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your money. Your people./ })).toBeVisible();
   await page.getByRole("banner").getByRole("button", { name: "Log in", exact: true }).click();
   await page.getByLabel("Email address").fill("test@example.com");
   await page.getByLabel("Password", { exact: true }).fill("test-password");
@@ -571,7 +571,7 @@ test("logout requires confirmation, cancel preserves session, and failure can re
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your money. Your people./ })).toBeVisible();
   await expect(page.getByRole("banner").getByRole("button", { name: "Log in", exact: true })).toBeVisible();
   expect(logoutCalls).toBe(2);
 });
@@ -641,9 +641,10 @@ test("cinematic hero fits short phones and wide screens with a visible next sect
     const action = await page.getByRole("button", { name: "Get started", exact: true }).boundingBox();
     expect(header!.y + header!.height).toBeLessThanOrEqual(title!.y);
     expect(action!.y + action!.height).toBeLessThanOrEqual(hero!.y + hero!.height);
-    expect((await page.locator("#about").boundingBox())!.y).toBeLessThan(height);
+    expect(hero!.height).toBeLessThan(height * 1.5);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await expect(page.locator(".hero-split")).toBeVisible();
+    await expect(page.locator(".hero-split")).toHaveCount(0);
+    await expect(page.locator(".hero-money-flow")).toBeVisible();
     await page.screenshot({ path: `test-results/cinematic-${width}-${height}.png` });
   }
 });
@@ -1026,7 +1027,7 @@ test("hero shows the real aggregate count and omits unavailable counts", async (
   await expect(page.locator(".landing-hero").getByText("1,250+ strong users", { exact: true })).toBeVisible();
   await page.route("**/api/community/stats", (route) => route.fulfill({ status: 503, json: { message: "Unavailable" } }));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Paylet.", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your money. Your people./ })).toBeVisible();
   await expect(page.locator(".landing-community-count strong")).toHaveCount(0);
 });
 test("landing redesign separates sections and supports hover and reduced motion", async ({ page }) => {
@@ -1077,27 +1078,23 @@ test("deep black theme applies across the app without changing light mode", asyn
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
 });
-test("hero bill demo splits every paisa locally and validates input", async ({ page }) => {
-  const writes = await mockApi(page, false);
+test("clean hero keeps the verified community count and respects reduced motion", async ({ page }) => {
+  await mockApi(page, false);
   await page.goto("/");
-  const demo = page.getByRole("group", { name: "Split the next bill" });
-  await expect(demo.locator(".hero-split-result strong")).toContainText("300.00");
-  await page.getByRole("button", { name: "Fewer friends" }).click();
-  await page.getByLabel("Bill amount").fill("1000");
-  await expect(demo.locator(".hero-split-result strong")).toContainText("333.33");
-  await expect(demo.locator(".hero-split-note")).toContainText("333.34");
-  await page.getByLabel("Bill amount").fill("-10");
-  await expect(page.getByLabel("Bill amount")).toHaveAttribute("aria-invalid", "true");
-  await expect(demo.locator(".hero-split-result strong")).toHaveText("--");
-  await page.getByLabel("Bill amount").fill("0.01");
-  await expect(demo.locator(".hero-split-note")).toContainText("Every paisa accounted for");
-  await page.getByRole("button", { name: "Fewer friends" }).click();
-  await expect(page.getByRole("button", { name: "Fewer friends" })).toBeDisabled();
-  await page.setViewportSize({ width: 320, height: 568 });
-  await page.screenshot({ path: "test-results/hero-split-mobile.png" });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(writes).toHaveLength(0);
+  await expect(page.locator(".landing-hero h1")).toContainText("Your money. Your people.");
+  await expect(page.locator(".hero-split")).toHaveCount(0);
+  await expect(page.locator(".landing-hero").getByText("1,250+ strong users", { exact: true })).toBeVisible();
+  await expect(page.locator(".hero-money-flow")).toHaveAttribute("aria-hidden", "true");
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByLabel("Email address", { exact: true })).toBeVisible();
+  await page.goBack();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.reload();
+  await expect(page.locator(".hero-flow-icon").first()).toHaveCSS("animation-name", "none");
+  await expect(page.locator(".hero-flow-pulse")).toHaveCSS("animation-name", "none");
+  await expect(page.locator(".landing-hero").getByText("1,250+ strong users", { exact: true })).toBeVisible();
 });
+
 test("hero and dashboard preview switch together with the selected theme", async ({ page }) => {
   await mockApi(page, false);
   await page.setViewportSize({ width: 390, height: 844 });
@@ -1106,7 +1103,7 @@ test("hero and dashboard preview switch together with the selected theme", async
   const hero = page.locator(".landing-interactive-hero");
   const image = page.locator(".landing-product");
   expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
-  expect(await page.locator(".hero-split").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 255, 255)");
+  await expect(page.locator(".hero-split")).toHaveCount(0);
   await expect(image).toHaveAttribute("src", "/paylet-preview.png");
   await page.screenshot({ path: "test-results/hero-theme-light.png" });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();

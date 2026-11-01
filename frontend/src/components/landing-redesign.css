@@ -173,3 +173,28 @@
   .landing-page *, .landing-page *::before, .landing-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .landing-page .button:hover, .landing-page article:hover { transform: none !important; }
 }
+/* A quiet center with decorative money flow confined to the edges. */
+.landing-page .landing-clean-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--page-bg);border-bottom:1px solid var(--border)}
+.landing-page .landing-clean-hero .landing-hero-copy{position:relative;z-index:1;max-width:850px;margin:auto;padding:90px 24px 72px;text-align:center;display:flex;align-items:center;flex-direction:column;gap:0}
+.landing-page .landing-clean-hero .landing-eyebrow{border:0;padding:0;font-size:11px;letter-spacing:.15em;color:var(--purple)}
+.landing-page .landing-clean-hero h1{font-size:clamp(36px,5vw,66px);line-height:1.12;margin:22px 0;letter-spacing:-.045em;color:var(--text)}
+.landing-page .landing-clean-hero h1 span{color:var(--purple)}
+.landing-page .landing-clean-hero .landing-hero-description{max-width:520px;font-size:17px;line-height:1.7;margin:0 0 26px;color:var(--muted)}
+.landing-page .landing-clean-hero .landing-hero-actions{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:0}
+.landing-page .landing-clean-hero .landing-community-count{margin-top:28px;color:var(--text);font-size:13px;min-height:32px}
+.landing-page .landing-clean-hero .landing-community-count strong{font-variant-numeric:tabular-nums}
+.landing-clean-benefits{display:flex;justify-content:center;align-items:center;gap:24px;flex-wrap:wrap;margin:0!important;padding:18px 24px;background:var(--surface);color:var(--muted)!important;border-bottom:1px solid var(--border);font-size:12px}
+.landing-clean-benefits>span,.landing-clean-benefits>a{display:inline-flex;gap:6px;align-items:center}
+.landing-clean-benefits>a{color:var(--purple);text-decoration:none}
+.hero-money-flow{position:absolute;inset:0;z-index:0;pointer-events:none;color:var(--purple);opacity:.5;mask-image:linear-gradient(90deg,#000,transparent 33%,transparent 67%,#000)}
+.hero-flow-lines{width:100%;height:100%;position:absolute;inset:0;overflow:visible}
+.hero-flow-lines path{stroke:currentColor;stroke-width:1;opacity:.25}
+.hero-flow-lines .hero-flow-pulse{stroke-width:2;stroke-dasharray:24 1400;opacity:.65;animation:hero-money-pulse 16s linear infinite}
+.hero-flow-icon{position:absolute;display:grid;place-items:center;width:54px;height:54px;border:1px solid color-mix(in srgb,var(--purple) 24%,transparent);border-radius:17px;background:color-mix(in srgb,var(--purple) 6%,transparent);animation:hero-money-drift 9s ease-in-out infinite alternate}
+.hero-flow-icon svg{width:24px;height:24px;stroke-width:1.4}
+.hero-flow-rupee{left:8%;top:22%}.hero-flow-receipt{left:15%;bottom:18%;animation-delay:-3s}.hero-flow-users{right:8%;top:23%;animation-delay:-5s}.hero-flow-wallet{right:15%;bottom:16%;animation-delay:-7s}
+@keyframes hero-money-drift{from{transform:translateY(-8px) rotate(-5deg)}to{transform:translateY(10px) rotate(5deg)}}
+@keyframes hero-money-pulse{to{stroke-dashoffset:-1424}}
+@media(max-width:600px){.landing-page .landing-clean-hero .landing-hero-copy{padding:52px 20px 42px}.landing-page .landing-clean-hero .landing-hero-description{font-size:15px}.hero-money-flow{opacity:.3;mask-image:linear-gradient(90deg,#000,transparent 22%,transparent 78%,#000)}.hero-flow-icon{width:36px;height:36px;border-radius:12px}.hero-flow-rupee,.hero-flow-receipt{left:2%}.hero-flow-users,.hero-flow-wallet{right:2%}.landing-clean-benefits{gap:12px 18px}}
+@media(prefers-reduced-motion:reduce){.hero-flow-icon,.hero-flow-lines .hero-flow-pulse{animation:none}}
+.landing-page .landing-clean-hero .landing-hero-actions .button-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:none}
