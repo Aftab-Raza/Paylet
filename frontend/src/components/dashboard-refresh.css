@@ -97,48 +97,52 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
   .home-page .dashboard-add-expense::after, .dashboard-fab::after { display: none; animation: none; }
 }
 body:has(:is(.home-page, .landing-page)) {
-  background: #f5f6f0;
+  background: #faf9ff;
 }
 
 [data-theme="dark"] body:has(:is(.home-page, .landing-page)) {
-  background: #0f1f17;
+  background: #0a0e15;
 }
 
 :is(.home-page, .landing-page) {
-  --page-bg: #f5f6f0;
-  --surface: #fff;
-  --surface-alt: #e8ede3;
-  --text: #0f1f17;
-  --muted: #485b49;
-  --border: #c7cbb8;
-  --purple: #1e3a2e;
-  --blue-soft: #e8ede3;
-  --blue-text: #1e3a2e;
-  --forest-action: #1e3a2e;
-  --forest-action-text: #fff;
-  --forest-feature: linear-gradient(120deg, #1e3a2e, #3e5a3f);
+  --page-bg: #faf9ff;
+  --surface: #ede9fe;
+  --surface-alt: #e4dcfd;
+  --text: #21203a;
+  --muted: #534768;
+  --border: #c7b3ff;
+  --purple: #5b21b6;
+  --blue-soft: #ede9fe;
+  --blue-text: #5b21b6;
+  --theme-action: #5b21b6;
+  --theme-action-text: #fff;
+  --theme-feature: linear-gradient(120deg, #5b21b6, #6d28d9);
+  --theme-feature-text: #fff;
+  --theme-void-icon: #a71836;
   color: var(--text);
 }
 
 [data-theme="dark"] :is(.home-page, .landing-page) {
-  --page-bg: #0f1f17;
-  --surface: #1e3a2e;
-  --surface-alt: #3d4337;
-  --text: #f5f6f0;
-  --muted: #c7cbb8;
-  --border: #6b7f67;
-  --purple: #c7cbb8;
-  --blue-soft: #3d4337;
-  --blue-text: #f5f6f0;
-  --forest-action: #c7cbb8;
-  --forest-action-text: #0f1f17;
-  --forest-feature: linear-gradient(120deg, #1e3a2e, #3e5a3f);
+  --page-bg: #0a0e15;
+  --surface: #212631;
+  --surface-alt: #373f4e;
+  --text: #fff;
+  --muted: #e0e4eb;
+  --border: #667085;
+  --purple: #e0e4eb;
+  --blue-soft: #373f4e;
+  --blue-text: #e0e4eb;
+  --theme-action: #e0e4eb;
+  --theme-action-text: #0a0e15;
+  --theme-feature: linear-gradient(120deg, #212631, #373f4e);
+  --theme-feature-text: #fff;
+  --theme-void-icon: #ff8197;
 }
 
 :root .home-page :is(.button-primary, .button-green, .button-purple, .dashboard-fab) {
-  background: var(--forest-action);
-  color: var(--forest-action-text);
-  border-color: var(--forest-action);
+  background: var(--theme-action);
+  color: var(--theme-action-text);
+  border-color: var(--theme-action);
   box-shadow: none;
 }
 
@@ -170,12 +174,12 @@ body:has(:is(.home-page, .landing-page)) {
 }
 
 :root .home-page .summary-grid .month-expense-card {
-  background: var(--forest-feature);
-  border-color: #6b7f67;
+  background: var(--theme-feature);
+  border-color: var(--border);
 }
 
 :root .home-page .summary-grid .month-expense-card :is(p, strong) {
-  color: #f5f6f0;
+  color: var(--theme-feature-text);
 }
 
 :root .home-page :is(.quick-actions, .summary-card, .loan-summary-card, .expense-row) {
@@ -183,9 +187,9 @@ body:has(:is(.home-page, .landing-page)) {
   box-shadow: none;
 }
 :root .home-page .header-actions .dashboard-ai-nav {
-  background: var(--forest-action);
-  color: var(--forest-action-text);
-  border-color: var(--forest-action);
+  background: var(--theme-action);
+  color: var(--theme-action-text);
+  border-color: var(--theme-action);
   box-shadow: none;
 }
 
@@ -197,9 +201,9 @@ body:has(:is(.home-page, .landing-page)) {
 }
 
 :root .home-page .quick-actions .dashboard-ai-shortcut .action-symbol.purple {
-  background: var(--forest-action);
-  color: var(--forest-action-text);
-  border-color: var(--forest-action);
+  background: var(--theme-action);
+  color: var(--theme-action-text);
+  border-color: var(--theme-action);
 }
 
 :root .home-page .quick-actions .dashboard-ai-shortcut > span:last-child {
@@ -213,4 +217,26 @@ body:has(:is(.home-page, .landing-page)) {
 .home-page input::placeholder {
   color: var(--muted);
   opacity: 1;
+}
+
+:root[data-theme] .home-page .header-actions > .button,
+:root[data-theme] .home-page .expense-row-actions > .button {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--text);
+}
+
+:root[data-theme] .home-page .expense-row-actions > .button-danger {
+  color: var(--theme-void-icon);
+}
+
+:root[data-theme] .home-page :is(.header-actions, .expense-row-actions) > .button:hover:not(:disabled),
+.home-page .nav-current {
+  background: var(--surface-alt);
+}
+
+.home-page :is(.header-actions, .expense-row-actions) > .button:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
 }

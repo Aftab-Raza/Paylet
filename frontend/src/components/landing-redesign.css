@@ -272,9 +272,9 @@
 }
 
 :root[data-theme] .landing-page :is(.button-primary, .button-purple, .button-green) {
-  background: var(--forest-action);
-  border-color: var(--forest-action);
-  color: var(--forest-action-text);
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
   box-shadow: none;
 }
 
