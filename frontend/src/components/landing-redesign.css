@@ -198,3 +198,105 @@
 @media(max-width:600px){.landing-page .landing-clean-hero .landing-hero-copy{padding:52px 20px 42px}.landing-page .landing-clean-hero .landing-hero-description{font-size:15px}.hero-money-flow{opacity:.3;mask-image:linear-gradient(90deg,#000,transparent 22%,transparent 78%,#000)}.hero-flow-icon{width:36px;height:36px;border-radius:12px}.hero-flow-rupee,.hero-flow-receipt{left:2%}.hero-flow-users,.hero-flow-wallet{right:2%}.landing-clean-benefits{gap:12px 18px}}
 @media(prefers-reduced-motion:reduce){.hero-flow-icon,.hero-flow-lines .hero-flow-pulse{animation:none}}
 .landing-page .landing-clean-hero .landing-hero-actions .button-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);box-shadow:none}
+.landing-page .landing-example-strip {
+  gap: 0;
+  margin-bottom: clamp(32px, 5vw, 60px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.landing-example-strip article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+}
+
+.landing-example-strip article + article { border-inline-start: 1px solid var(--border); }
+.landing-example-strip article > svg { color: var(--muted); }
+.landing-example-strip h3 { font-size: .85rem; margin: 0; }
+.landing-example-strip p { font-size: .75rem; color: var(--muted); margin: 4px 0 0; }
+.landing-example-strip strong { font-size: .95rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.landing-example-value { display: grid; justify-items: end; gap: 4px; }
+.landing-example-value svg { width: 48px; height: 14px; color: var(--muted); }
+.landing-example-value .landing-demo-people { margin: 0; }
+.landing-example-value .landing-demo-people span { width: 18px; height: 18px; font-size: 8px; }
+
+@media (max-width: 800px) {
+  .landing-page .landing-example-strip { grid-template-columns: 1fr; }
+  .landing-example-strip article + article { border-inline-start: 0; border-top: 1px solid var(--border); }
+}
+:root .landing-page {
+  --landing-accent: var(--purple);
+  --landing-band: var(--surface-alt);
+  --landing-card: var(--surface);
+  --landing-muted: var(--muted);
+  --landing-border: var(--border);
+  background: var(--page-bg);
+  color: var(--text);
+}
+
+:root[data-theme] .landing-page :is(.landing-header, .landing-footer, .landing-questions details, .landing-features article, .testimonial-card) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme] .landing-page :is(.landing-feature-band, .landing-community-band) {
+  background: var(--page-bg);
+}
+
+:root[data-theme] .landing-page :is(.landing-showcase, .landing-privacy, .landing-faq-band, .landing-final-cta) {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+
+:root[data-theme] .landing-page .landing-clean-hero {
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--purple) 15%, transparent), transparent 68%), var(--page-bg);
+  border-color: var(--border);
+}
+
+:root[data-theme] .landing-page :is(.landing-clean-hero h1, .landing-questions summary, .testimonials-section, .landing-nav a, .landing-footer nav a, .landing-footer nav button) {
+  color: var(--text);
+}
+
+:root[data-theme] .landing-page :is(.landing-eyebrow, .landing-clean-hero h1 span, .landing-community-count, .landing-privacy-icon, .landing-cta-icon) {
+  color: var(--purple);
+}
+
+:root[data-theme] .landing-page :is(.landing-clean-hero .landing-hero-description, .landing-section-heading p, .landing-features p, .landing-privacy p, .landing-faq p, .landing-final-cta p, .landing-footer p, .landing-footer-bottom, .landing-questions p) {
+  color: var(--muted);
+}
+
+:root[data-theme] .landing-page :is(.button-primary, .button-purple, .button-green) {
+  background: var(--forest-action);
+  border-color: var(--forest-action);
+  color: var(--forest-action-text);
+  box-shadow: none;
+}
+
+:root[data-theme] .landing-page .button-outline {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme] .landing-page .button-danger {
+  background: #b6223c;
+  border-color: #b6223c;
+  color: #fff;
+}
+
+:root[data-theme] .landing-page :is(.landing-feature-icon, .landing-demo-people > span, .landing-questions summary:hover) {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root[data-theme] .landing-page :is(.landing-features article, .testimonial-card):hover {
+  border-color: var(--purple);
+  box-shadow: none;
+}

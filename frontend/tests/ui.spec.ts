@@ -242,8 +242,8 @@ test("daily and monthly amount cards separate currencies, exclude voids and use 
   for(const theme of ['light','dark']) {
     if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
     for(const card of [today,monthly]) {
-      await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today?'rgb(73, 53, 28)':'rgb(255, 255, 255)');
-      expect(await card.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain('linear-gradient');
+      await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today && theme==='light'?'rgb(15, 31, 23)':'rgb(245, 246, 240)');
+      expect(await card.evaluate(el=>getComputedStyle(el).backgroundImage)).toBe(card === today ? 'none' : 'linear-gradient(120deg, rgb(30, 58, 46), rgb(62, 90, 63))');
     }
     await page.setViewportSize({width:320,height:800});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -670,7 +670,7 @@ test("theme preference persists and compact expense rows retain their actions", 
   await page.screenshot({ path: "test-results/dashboard-dark.png", fullPage: true });
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 10, 10)");
+  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(30, 58, 46)");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   await page.screenshot({ path: "test-results/dashboard-purple-light.png", fullPage: true });
@@ -1035,10 +1035,10 @@ test("landing redesign separates sections and supports hover and reduced motion"
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  const card = page.locator(".landing-money-card").first();
+  const card = page.locator(".landing-example-strip article").first();
   await card.scrollIntoViewIfNeeded();
   await card.hover();
-  await expect.poll(() => card.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
+  await expect.poll(() => card.evaluate((element) => getComputedStyle(element).boxShadow)).toBe("none");
   const background = (selector: string) => page.locator(selector).evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(await background(".landing-feature-band")).not.toBe(await background(".landing-showcase"));
   await page.evaluate(() => window.scrollTo(0, 0));
@@ -1064,19 +1064,19 @@ test("capture current Paylet dashboard for landing product preview", async ({ pa
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await page.screenshot({ path: "test-results/paylet-preview-dark.png" });
 });
-test("deep black theme applies across the app without changing light mode", async ({ page }) => {
+test("Forest Ledger dashboard and other screens retain distinct themes", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
-  expect(await page.locator(".today-expense-card").evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(15, 31, 23)");
+  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(30, 58, 46)");
   await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
   expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
   await page.goto("/");
-  expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(15, 31, 23)");
   await page.screenshot({ path: "test-results/landing-deep-black.png" });
   await page.getByRole("button", { name: "Switch to light mode" }).click();
-  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(245, 246, 240)");
 });
 test("clean hero keeps the verified community count and respects reduced motion", async ({ page }) => {
   await mockApi(page, false);
@@ -1102,12 +1102,12 @@ test("hero and dashboard preview switch together with the selected theme", async
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   const hero = page.locator(".landing-interactive-hero");
   const image = page.locator(".landing-product");
-  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(247, 247, 251)");
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(245, 246, 240)");
   await expect(page.locator(".hero-split")).toHaveCount(0);
   await expect(image).toHaveAttribute("src", "/paylet-preview.png");
   await page.screenshot({ path: "test-results/hero-theme-light.png" });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(15, 31, 23)");
   await expect(image).toHaveAttribute("src", "/paylet-preview-dark.png");
   await image.scrollIntoViewIfNeeded();
   await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBe(1440);
@@ -1195,7 +1195,7 @@ test("People shows latest ten profile cards, preserves older search and readable
   }
 });
 
-test("AI Quick Add uses purple in light mode and cream in dark mode in both dashboard controls", async ({ page }) => {
+test("Dashboard shortcuts and AI Quick Add follow Forest Ledger in both themes", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   for (const theme of ["light", "dark"]) {
@@ -1203,13 +1203,12 @@ test("AI Quick Add uses purple in light mode and cream in dark mode in both dash
     const icons = page.locator(".quick-actions > button:not(.dashboard-ai-shortcut) .action-symbol");
     await expect(icons).toHaveCount(5);
     for (const icon of await icons.all()) {
-      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe(theme === "dark" ? "rgb(255, 255, 255)" : "rgb(32, 32, 36)");
+      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe(theme === "dark" ? "rgb(245, 246, 240)" : "rgb(15, 31, 23)");
       expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("2.5px");
     }
-    expect(await page.locator(".dashboard-ai-shortcut .action-symbol").evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
     for (const control of [page.locator('.dashboard-ai-shortcut .action-symbol'), page.locator('.dashboard-ai-nav')]) {
-      await expect(control).toHaveCSS('color',theme==='dark'?'rgb(73, 53, 28)':'rgb(255, 255, 255)');
-      expect(await control.evaluate(el=>getComputedStyle(el).backgroundImage)).toContain(theme==='dark'?'rgb(255, 250, 240)':'rgb(91, 33, 182)');
+      await expect(control).toHaveCSS('color',theme==='dark'?'rgb(15, 31, 23)':'rgb(255, 255, 255)');
+      await expect(control).toHaveCSS('background-color', theme==='dark'?'rgb(199, 203, 184)':'rgb(30, 58, 46)');
     }
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });

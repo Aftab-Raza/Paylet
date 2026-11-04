@@ -96,3 +96,121 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .home-page .dashboard-add-expense::after, .dashboard-fab::after { display: none; animation: none; }
 }
+body:has(:is(.home-page, .landing-page)) {
+  background: #f5f6f0;
+}
+
+[data-theme="dark"] body:has(:is(.home-page, .landing-page)) {
+  background: #0f1f17;
+}
+
+:is(.home-page, .landing-page) {
+  --page-bg: #f5f6f0;
+  --surface: #fff;
+  --surface-alt: #e8ede3;
+  --text: #0f1f17;
+  --muted: #485b49;
+  --border: #c7cbb8;
+  --purple: #1e3a2e;
+  --blue-soft: #e8ede3;
+  --blue-text: #1e3a2e;
+  --forest-action: #1e3a2e;
+  --forest-action-text: #fff;
+  --forest-feature: linear-gradient(120deg, #1e3a2e, #3e5a3f);
+  color: var(--text);
+}
+
+[data-theme="dark"] :is(.home-page, .landing-page) {
+  --page-bg: #0f1f17;
+  --surface: #1e3a2e;
+  --surface-alt: #3d4337;
+  --text: #f5f6f0;
+  --muted: #c7cbb8;
+  --border: #6b7f67;
+  --purple: #c7cbb8;
+  --blue-soft: #3d4337;
+  --blue-text: #f5f6f0;
+  --forest-action: #c7cbb8;
+  --forest-action-text: #0f1f17;
+  --forest-feature: linear-gradient(120deg, #1e3a2e, #3e5a3f);
+}
+
+:root .home-page :is(.button-primary, .button-green, .button-purple, .dashboard-fab) {
+  background: var(--forest-action);
+  color: var(--forest-action-text);
+  border-color: var(--forest-action);
+  box-shadow: none;
+}
+
+:root .home-page :is(.button-outline, .button-blue) {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+:root .home-page .button-danger {
+  background: #b6223c;
+  color: #fff;
+  border-color: #b6223c;
+}
+
+:root .home-page .button:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+
+:root .home-page .summary-grid .today-expense-card,
+:root .home-page .loan-summary-card:is(.lent-summary, .borrowed-summary) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+:root .home-page .summary-grid .today-expense-card :is(p, strong),
+:root .home-page .loan-summary-card:is(.lent-summary, .borrowed-summary) :is(.loan-summary-label, .loan-summary-value, dt, dd, .profile-member) {
+  color: var(--text);
+}
+
+:root .home-page .summary-grid .month-expense-card {
+  background: var(--forest-feature);
+  border-color: #6b7f67;
+}
+
+:root .home-page .summary-grid .month-expense-card :is(p, strong) {
+  color: #f5f6f0;
+}
+
+:root .home-page :is(.quick-actions, .summary-card, .loan-summary-card, .expense-row) {
+  border-radius: 16px;
+  box-shadow: none;
+}
+:root .home-page .header-actions .dashboard-ai-nav {
+  background: var(--forest-action);
+  color: var(--forest-action-text);
+  border-color: var(--forest-action);
+  box-shadow: none;
+}
+
+:root .home-page .quick-actions .action-symbol:is(.orange, .purple, .blue, .green) {
+  background: var(--surface-alt);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+:root .home-page .quick-actions .dashboard-ai-shortcut .action-symbol.purple {
+  background: var(--forest-action);
+  color: var(--forest-action-text);
+  border-color: var(--forest-action);
+}
+
+:root .home-page .quick-actions .dashboard-ai-shortcut > span:last-child {
+  color: var(--text);
+}
+
+:root .home-page :is(.nav-current, .dashboard-heading .eyebrow) {
+  color: var(--purple);
+}
+
+.home-page input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
