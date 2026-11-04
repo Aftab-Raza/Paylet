@@ -10,7 +10,7 @@
   --blue-text: #5b21b6;
   --theme-action: #5b21b6;
   --theme-action-text: #fff;
-  --theme-feature: linear-gradient(120deg, #5b21b6, #6d28d9);
+  --theme-feature: #5b21b6;
   --theme-feature-text: #fff;
   --theme-void-icon: #a71836;
 }
@@ -27,7 +27,7 @@
   --blue-text: #e0e4eb;
   --theme-action: #e0e4eb;
   --theme-action-text: #0a0e15;
-  --theme-feature: linear-gradient(120deg, #212631, #373f4e);
+  --theme-feature: #373f4e;
   --theme-feature-text: #fff;
   --theme-void-icon: #ff8197;
 }
@@ -107,15 +107,14 @@
 }
 
 :root[data-theme] .auth-layout .auth-card {
-  background: var(--surface);
-  border-color: var(--border);
+  background: var(--page-bg);
   color: var(--text);
 }
 
 :root[data-theme] .people-profile-grid .profile-panel.person-card,
 :root[data-theme] .people-profile-grid .profile-panel.person-card:nth-child(even),
 :root[data-theme] .shared-payment-card {
-  background: linear-gradient(145deg, var(--surface), var(--surface-alt));
+  background: var(--surface);
   border-color: var(--border);
   color: var(--text);
   box-shadow: none;
@@ -157,7 +156,7 @@
 
 :root[data-theme] .auth-layout .intro-panel,
 :root[data-theme] .profile-screen .profile-identity-card {
-  background: linear-gradient(135deg, var(--surface), var(--surface-alt));
+  background: var(--surface);
   border-color: var(--border);
   color: var(--text);
 }
@@ -180,4 +179,38 @@
 :root[data-theme] .people-profile-grid .person-icon-actions .button-blue {
   background: var(--action-blue);
   border-color: var(--action-blue);
+}
+
+:root[data-theme] :is(.paylet-modal.logout-modal, .groups-refresh .pg-inbox, .groups-refresh .pg-group-bills, .groups-refresh .pg-add-member) {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+:root[data-theme] .pqa .pqa-input-modes button:not([aria-pressed="true"]) {
+  background: var(--surface-alt);
+}
+
+.auth-layout .auth-card .mode-switch {
+  background: var(--surface);
+}
+
+.auth-layout .auth-card .mode-switch button {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.auth-layout .auth-card .mode-switch button.selected {
+  background: var(--theme-action);
+  color: var(--theme-action-text);
+  box-shadow: none;
+}
+
+.auth-layout .auth-card :is(.password-toggle, .forgot-password-link, .auth-home-link) {
+  color: var(--text);
+}
+
+@media (max-width: 800px) {
+  :root[data-theme] .auth-layout .intro-panel {
+    background: var(--page-bg);
+  }
 }

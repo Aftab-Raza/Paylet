@@ -255,7 +255,7 @@
 }
 
 :root[data-theme] .landing-page .landing-clean-hero {
-  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--purple) 15%, transparent), transparent 68%), var(--page-bg);
+  background: var(--page-bg);
   border-color: var(--border);
 }
 
@@ -300,3 +300,5 @@
   border-color: var(--purple);
   box-shadow: none;
 }
+
+:root[data-theme] .landing-page .landing-header { backdrop-filter: none; }

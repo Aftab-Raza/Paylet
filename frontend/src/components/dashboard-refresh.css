@@ -8,7 +8,7 @@
 [data-theme="dark"] .home-page .header-actions .dashboard-ai-nav { color: #49351c; background: linear-gradient(120deg, #fffaf0, #f0dfba); border-color: #e4cf9f; box-shadow: 0 3px 12px #e6d5aa22; }
 .home-page .summary-grid .summary-card :is(p, strong), [data-theme="dark"] .home-page .summary-grid .summary-card :is(p, strong) { color: #fff; }
 .home-page .expense-list { width: min(100%, 1040px); margin-inline: auto; }
-.home-page .expense-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-radius: 0; margin: 0; border: 0; border-bottom: 1px solid var(--border); padding: 14px 8px; background: transparent; color: var(--text); }
+.home-page .expense-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; border-radius: 0; margin: 0; border: 0; border-bottom: 1px solid var(--border); padding: 14px 8px; background: var(--page-bg); color: var(--text); }
 .home-page .expense-row:hover { filter: none; background: var(--surface-alt); }
 .home-page .expense-row h3 { color: var(--text); font-size: 14px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
 .home-page .expense-row p { color: var(--muted); opacity: 1; font-size: 11px; margin-top: 4px; }
@@ -178,7 +178,7 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 
 :root[data-theme] .home-page .header-actions > .button,
 :root[data-theme] .home-page .expense-row-actions > .button {
-  background: transparent;
+  background: var(--page-bg);
   border-color: transparent;
   box-shadow: none;
   color: var(--text);
@@ -196,4 +196,9 @@ body:has(dialog[open]) .dashboard-fab { display: none; }
 .home-page :is(.header-actions, .expense-row-actions) > .button:focus-visible {
   outline: 2px solid var(--purple);
   outline-offset: 2px;
+}
+
+:root[data-theme] .home-page .expense-row:hover .expense-row-actions > .button:not(:hover),
+:root[data-theme] .home-page .expense-row.is-void .expense-row-actions > .button:not(:hover) {
+  background: var(--surface-alt);
 }

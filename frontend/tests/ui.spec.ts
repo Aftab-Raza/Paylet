@@ -243,7 +243,7 @@ test("daily and monthly amount cards separate currencies, exclude voids and use 
     if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
     for(const card of [today,monthly]) {
       await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today && theme==='light'?'rgb(33, 32, 58)':'rgb(255, 255, 255)');
-      expect(await card.evaluate(el=>getComputedStyle(el).backgroundImage)).toBe(card === today ? 'none' : theme === 'dark' ? 'linear-gradient(120deg, rgb(33, 38, 49), rgb(55, 63, 78))' : 'linear-gradient(120deg, rgb(91, 33, 182), rgb(109, 40, 217))');
+      await expect(card).toHaveCSS("background-image", "none");
     }
     await page.setViewportSize({width:320,height:800});
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
@@ -655,7 +655,7 @@ test("theme preference persists and compact expense rows retain their actions", 
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   const expense = page.getByRole("article").filter({ hasText: "Lunch with friends" });
   await expect(expense).toBeVisible();
-  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(250, 249, 255)");
   for (const name of ["Edit", "Void", "History"]) {
     const action = expense.getByRole("button", { name, exact: true });
     await expect(action).toBeVisible();
@@ -1216,7 +1216,7 @@ test("Dashboard shortcuts and AI Quick Add follow charcoal and lavender in both 
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
-test("logout gradient fits mobile in both themes with only two buttons", async ({ page }) => {
+test("solid logout dialog fits mobile in both themes with only two buttons", async ({ page }) => {
   await mockApi(page);
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/");
@@ -1225,14 +1225,14 @@ test("logout gradient fits mobile in both themes with only two buttons", async (
     await page.getByRole("button", { name: "Log out", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
     await expect(dialog.getByRole("button")).toHaveCount(2);
-    expect(await dialog.evaluate((element) => getComputedStyle(element).backgroundImage)).toContain("linear-gradient");
+    expect(await dialog.evaluate((element) => getComputedStyle(element).backgroundImage)).toBe("none");
     const box = await dialog.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0); expect(box!.x + box!.width).toBeLessThanOrEqual(360);
     await dialog.screenshot({ path: `test-results/logout-simple-${theme}.png` });
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   }
 });
-test("dashboard refresh uses neutral expense rows and solid blue/pink lending cards", async ({ page }) => {
+test("dashboard refresh uses solid expense rows and lending cards", async ({ page }) => {
   await mockApi(page);
   await page.route("**/api/loans/summary", (route) => route.fulfill({ json: { totals: [{ currency: "INR", minorUnit: 2, totalLent: "5000.00", repaymentsReceived: "1000.00", owedToYou: "4000.00", totalBorrowed: "3000.00", repaymentsMade: "500.00", youOwe: "2500.00" }] } }));
   await page.goto("/?view=dashboard");
