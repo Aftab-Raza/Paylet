@@ -1064,14 +1064,14 @@ test("capture current Paylet dashboard for landing product preview", async ({ pa
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await page.screenshot({ path: "test-results/paylet-preview-dark.png" });
 });
-test("charcoal and lavender dashboard and other screens retain distinct themes", async ({ page }) => {
+test("dashboard, AI Quick Add and landing share the charcoal and lavender themes", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
   expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 14, 21)");
   await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(33, 38, 49)");
   await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
-  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 14, 21)");
   await page.goto("/");
   expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 14, 21)");
   await page.screenshot({ path: "test-results/landing-deep-black.png" });

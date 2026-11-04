@@ -6,6 +6,7 @@ import App from './App.tsx'
 import SuccessToastProvider from './components/SuccessToastProvider'
 import './theme.css'
 import './appearance.css'
+import './application-theme.css'
 import './components/landing-redesign.css'
 import './components/dashboard-refresh.css'
 
