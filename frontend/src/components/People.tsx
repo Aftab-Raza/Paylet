@@ -1,16 +1,15 @@
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import SharedPayments from "./SharedPayments";
 import BrandMark from "./BrandMark";
 import AlphabetAvatar from "./AlphabetAvatar";
 import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
-import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import LoanBook from "./LoanBook";
 import { useHistoryParam } from "../lib/navigation";
-import { ArrowLeft, Archive, RotateCcw, Pencil, Info, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
+import { Archive, RotateCcw, Pencil, Info, Check, Plus, RefreshCw, UserPlus } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import "./people-cards.css";
@@ -262,26 +261,7 @@ export default function People({ onBack }: Props) {
           <BrandMark />
           <span>Paylet.</span>
         </span>
-        <MobileActions><ThemeToggle/>
-
-
-
-        <button
-          type="button"
-          className="button button-outline"
-          disabled={busy}
-          onClick={() => {
-            if (
-              draft &&
-              !window.confirm("Leave without saving this contact?")
-            ) return;
-
-            onBack();
-          }}
-        >
-          <ArrowLeft size={18} /> Dashboard
-        </button>
-      </MobileActions>
+        <PageNavigation onBack={onBack} disabled={busy} beforeNavigate={() => !draft || window.confirm("Leave without saving this contact?")}/>
 </header>
 
       <section className="dashboard-page">

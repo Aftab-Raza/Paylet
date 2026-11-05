@@ -1,9 +1,8 @@
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import BrandMark from "./BrandMark";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
-import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
@@ -361,26 +360,7 @@ export default function LoanBook({ contactId, onBack }: Props) {
           <BrandMark />
           <span>Paylet.</span>
         </span>
-        <MobileActions><ThemeToggle/>
-
-
-
-        <button
-          type="button"
-          className="button button-outline"
-          disabled={busy}
-          onClick={() => {
-            if (
-              draft &&
-              !window.confirm("Leave without saving this entry?")
-            ) return;
-
-            onBack();
-          }}
-        >
-          <ArrowLeft size={18} aria-hidden="true" /> People
-        </button>
-      </MobileActions>
+        <PageNavigation onBack={onBack} disabled={busy} beforeNavigate={() => !draft || window.confirm("Leave without saving this entry?")}/>
 </header>
 
       <section className="dashboard-page">

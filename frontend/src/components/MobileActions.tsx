@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 
-export default function MobileActions({ children }: { children: ReactNode }) {
+export default function MobileActions({ children, menu }: { children: ReactNode; menu?: ReactNode }) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -32,14 +32,14 @@ export default function MobileActions({ children }: { children: ReactNode }) {
       <div className="mobile-actions">
         <ThemeToggle/>
         <details ref={detailsRef} className="mobile-menu">
-          <summary><Menu size={18} aria-hidden="true"/><span>Menu</span></summary>
+          <summary aria-label="Menu"><Menu size={18} aria-hidden="true"/><span>Menu</span></summary>
           <div className="mobile-menu-panel" onClick={(event) => {
             if ((event.target as HTMLElement).closest("button, a")) {
               detailsRef.current?.removeAttribute("open");
               detailsRef.current?.querySelector("summary")?.focus();
             }
           }}>
-            {children}
+            {menu ?? children}
           </div>
         </details>
       </div>

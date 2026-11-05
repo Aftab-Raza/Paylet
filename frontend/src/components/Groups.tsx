@@ -1,8 +1,7 @@
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import { useSuccessToast } from "../lib/successToast";
 import BrandMark from "./BrandMark";
 import { useEffect, useRef, useState } from "react";
-import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
@@ -10,7 +9,7 @@ import "./groups.css";
 import "./groups-refresh.css";
 import GroupBills from "./GroupBills";
 import SettlementNotifications from "./SettlementNotifications";
-import { ArrowLeft, ArrowUpRight, LayoutGrid, List, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
+import { ArrowUpRight, LayoutGrid, List, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
 import { useHistoryParam } from "../lib/navigation";
 
@@ -212,7 +211,8 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const selected = data?.groups.find((group) => group.id === selectedId);
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return <main className="signed-in-page pg-page groups-refresh">
-    <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><MobileActions><div className="pg-actions"><ThemeToggle /><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy || refreshing} aria-label="Refresh groups" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); reload(); }}><RefreshCw size={18} className={refreshing ? "spin" : ""} aria-hidden="true"/> {refreshing ? "Refreshing…" : "Refresh"}</button></div></MobileActions></header>
+    <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><PageNavigation onBack={onBack} disabled={busy} beforeNavigate={() => !draft || window.confirm("Discard this unsaved group?")}/></header>
+    <div className="page-tools"><button className="button button-outline" disabled={busy || refreshing} aria-label="Refresh groups" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); reload(); }}><RefreshCw size={18} className={refreshing ? "spin" : ""} aria-hidden="true"/> {refreshing ? "Refreshing…" : "Refresh"}</button></div>
     <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}

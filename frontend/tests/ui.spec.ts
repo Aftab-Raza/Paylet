@@ -5,6 +5,13 @@ const user = { id: "user-1", displayName: "Aftab", username: "aftab", email: "te
 const initialExpense = { id: "expense-1", amount: "250.00", currency: "INR", purpose: "Lunch with friends", category: "Food", date: "2026-10-10", version: 1, voidedAt: null };
 
 async function openPageAction(page: Page, name: string | RegExp) {
+  const pageNavigation = page.getByRole("navigation", { name: "Page navigation", exact: true });
+  const backAction = typeof name === "string" ? ["Dashboard", "Back to dashboard", "People"].includes(name) : name.test("Dashboard");
+  if (backAction && await pageNavigation.count()) {
+    await pageNavigation.getByRole("button", { name: "Back", exact: true }).click();
+    return;
+  }
+
   const action = page.getByRole("button", { name, exact: typeof name === "string" });
   const menu = page.locator(".mobile-menu > summary:visible");
   await expect.poll(async () => await action.isVisible() || await menu.isVisible()).toBe(true);
@@ -974,10 +981,10 @@ test("profile editor preserves drafts on failure, saves in a modal and shows a t
     for(const width of [320,768,1440]) {
       await page.setViewportSize({width,height:900});
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-      if (width <= 800) await page.locator(".mobile-menu > summary:visible").click();
-      await expect(page.locator('header').getByRole('button',{name:'Dashboard',exact:true})).toBeVisible();
-      await expect(page.locator('header').getByRole('button',{name:'Log out',exact:true})).toBeVisible();
-      if (width <= 800) await page.keyboard.press("Escape");
+      await expect(page.locator('header').getByRole('button',{name:'Back',exact:true})).toBeVisible();
+      await expect(page.locator('header').getByRole('button',{name:'Forward',exact:true})).toBeVisible();
+      await expect(page.getByRole('button',{name:'Log out',exact:true})).toBeVisible();
+      await expect(page.locator('.mobile-menu')).toHaveCount(0);
     }
     await page.screenshot({path:`test-results/profile-overview-${theme}.png`});
     await page.getByRole('button',{name:'Edit profile',exact:true}).click();
@@ -1473,4 +1480,141 @@ test("monochrome dark theme and vector hero respect theme and reduced motion", a
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(0, 0, 0)");
   await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(18, 18, 18)");
   await expect(page.locator(".month-expense-card")).toHaveCSS("background-color", "rgb(32, 32, 32)");
+});
+
+test("spending chart keeps exact currency totals, filters categories and switches period", async ({ page }) => {
+  await mockApi(page);
+  await page.clock.install({ time: new Date("2026-11-12T08:00:00Z") });
+  const expenses = [
+    { ...initialExpense, id: "one", date: "2026-11-12", amount: "0.10" },
+    { ...initialExpense, id: "two", date: "2026-11-10", amount: "0.20" },
+    { ...initialExpense, id: "older", date: "2026-11-01", amount: "3.00" },
+    { ...initialExpense, id: "usd", date: "2026-11-12", amount: "9.00", currency: "USD" },
+    { ...initialExpense, id: "jpy", date: "2026-11-12", amount: "150", currency: "JPY", category: "Travel" },
+    { ...initialExpense, id: "voided", date: "2026-11-12", amount: "999.00", voidedAt: "2026-11-12T08:00:00Z" },
+  ];
+  await page.route("**/api/expenses?**", route => route.fulfill({ json: { expenses, count: 5, totals: [] } }));
+  await page.goto("/?view=dashboard");
+  const chart = page.getByRole("region", { name: "Spending by category" });
+  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 3.30");
+  await chart.getByRole("button", { name: "Food ₹ 3.30", exact: true }).click();
+  await expect(page.getByLabel("Filter by category")).toHaveValue("Food");
+  await expect(page.locator(".expense-row")).toHaveCount(4);
+  await chart.getByRole("button", { name: "Last 7 days", exact: true }).click();
+  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 0.30");
+  await chart.getByLabel("Chart currency", { exact: true }).selectOption("USD");
+  await expect(chart.getByLabel("Chart total")).toHaveText("USD 9.00");
+  await chart.getByLabel("Chart currency", { exact: true }).selectOption("JPY");
+  await expect(chart.getByLabel("Chart total")).toHaveText("JPY 150");
+  await chart.getByRole("button", { name: "Clear category filter", exact: true }).click();
+  await expect(page.getByLabel("Filter by category")).toHaveValue("");
+  await page.setViewportSize({ width: 320, height: 800 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await chart.screenshot({ path: "test-results/spending-chart-light.png" });
+});
+
+test("Add again opens an unsaved personal draft with fresh identity and today's date", async ({ page }) => {
+  const writes = await mockApi(page);
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "Add again: Lunch with friends", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Add expense", exact: true });
+  await expect(dialog.getByLabel("Amount", { exact: true })).toHaveValue("250.00");
+  await expect(dialog.getByLabel("Purpose", { exact: true })).toHaveValue("Lunch with friends");
+  expect(writes).toHaveLength(0);
+  await dialog.getByRole("button", { name: "Save expense", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const saved = writes.find(write => write.method === "POST" && write.path === "/expenses")!;
+  expect(saved.body.id).not.toBe(initialExpense.id);
+  expect(saved.body.version).toBeUndefined();
+  expect(saved.body.date).toBe(new Intl.DateTimeFormat("en-CA", { timeZone: user.timezone }).format(new Date()));
+  expect(saved.body.amount).toBe("250.00");
+});
+
+test("notification inbox accepts invitations, reviews payments and handles partial failure", async ({ page }) => {
+  await mockApi(page);
+  let invitations = [{ id: "invite-1", group: { id: "group-1", name: "Weekend", owner: { displayName: "Priya", username: "priya" } } }];
+  const actions: object[] = [];
+  await page.route("**/api/groups/invitations", route => route.fulfill({ json: { invitations } }));
+  await page.route("**/api/groups/invitations/invite-1/respond", async route => { actions.push(route.request().postDataJSON()); invitations = []; await route.fulfill({ json: {} }); });
+  await page.route("**/api/contacts/payment-requests", route => route.fulfill({ json: { requests: [{ id: "pay-1", name: "Alex", purpose: "Lunch", currency: "INR", amount: "250.00" }] } }));
+  await page.goto("/?view=dashboard");
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.getByLabel("Notifications, 2 pending", { exact: true }).click();
+  const inbox = page.getByRole("region", { name: "Notification inbox" });
+  await expect(inbox).toContainText("Invitation to Weekend");
+  await inbox.getByRole("button", { name: "Accept", exact: true }).click();
+  await expect(inbox.getByText("Invitation to Weekend", { exact: true })).toHaveCount(0);
+  expect(actions).toEqual([{ action: "ACCEPT" }]);
+  await expect(inbox).toContainText("Alex says they’ve paid");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await inbox.screenshot({ path: "test-results/notifications-mobile.png" });
+  await inbox.getByRole("button", { name: "Review in People", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
+  await openPageAction(page, "Dashboard");
+  await page.route("**/api/contacts/link-requests", route => route.fulfill({ status: 503, json: { message: "Unavailable" } }));
+  await page.getByLabel("Notifications, 1 pending", { exact: true }).click();
+  await page.getByRole("button", { name: "Refresh notifications", exact: true }).click();
+  await expect(page.getByRole("region", { name: "Notification inbox" }).getByRole("alert")).toContainText("Some updates could not load");
+  await expect(page.getByRole("region", { name: "Notification inbox" })).toContainText("Alex says they’ve paid");
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".notification-center")).not.toHaveAttribute("open", "");
+});
+
+test("phone dashboard menu stays compact and page arrows preserve back and forward history", async ({ page }) => {
+  await mockApi(page);
+  const contact = { id: "contact-1", name: "Priya", nickname: null, notes: null, isArchived: false, version: 1, linkedUser: null, linkRequest: null };
+  await page.route("**/api/contacts", route => route.fulfill({ json: { contacts: [contact] } }));
+  await page.route(/\/api\/loans\?/, route => route.fulfill({ json: { contact, entries: [], totals: [] } }));
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "Refresh expenses", exact: true }).waitFor();
+  const toolbar = page.locator(".month-toolbar");
+  const controls = await Promise.all([toolbar.getByRole("button", { name: "Previous month" }), toolbar.getByLabel("Month", { exact: true }), toolbar.getByRole("button", { name: "Next month" }), toolbar.getByRole("button", { name: "Refresh expenses" })].map(control => control.boundingBox()));
+  const bottom = controls[0]!.y + controls[0]!.height;
+  for (const box of controls) expect(Math.abs(box!.y + box!.height - bottom)).toBeLessThan(2);
+  await page.getByLabel("Menu", { exact: true }).click();
+  const menu = page.locator(".mobile-menu-panel");
+  await expect(menu.getByRole("button")).toHaveCount(5);
+  await expect(menu.getByText("Overview", { exact: true })).toHaveCount(0);
+  await expect(menu.locator(".theme-toggle")).toHaveCount(0);
+  const menuButtons = await menu.getByRole("button").all();
+  const firstMenuButton = await menuButtons[0].boundingBox();
+  for (const button of menuButtons) {
+    const box = await button.boundingBox();
+    expect(Math.abs(box!.x - firstMenuButton!.x)).toBeLessThan(2);
+    expect(await button.evaluate(element => getComputedStyle(element).flexDirection)).toBe("row");
+  }
+  await page.screenshot({ path: "test-results/dashboard-menu-320.png" });
+  await menu.getByRole("button", { name: "People", exact: true }).click();
+  const nav = page.getByRole("navigation", { name: "Page navigation", exact: true });
+  await expect(page.locator(".mobile-menu")).toHaveCount(0);
+  await expect(nav.getByRole("button", { name: "Forward", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: /Open money history for/ }).click();
+  await expect(page.getByRole("heading", { name: "Priya", exact: true })).toBeVisible();
+  await nav.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page).not.toHaveURL(/person=/);
+  await expect(nav.getByRole("button", { name: "Forward", exact: true })).toBeEnabled();
+  await page.reload();
+  await expect(nav.getByRole("button", { name: "Forward", exact: true })).toBeEnabled();
+  await nav.getByRole("button", { name: "Forward", exact: true }).click();
+  await expect(page).toHaveURL(/person=contact-1/);
+  await nav.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page).not.toHaveURL(/person=/);
+  await nav.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your expenses", exact: true })).toBeVisible();
+  await openPageAction(page, "Reports");
+  await expect(nav.getByRole("button", { name: "Forward", exact: true })).toBeDisabled();
+  await expect(page.locator(".mobile-menu")).toHaveCount(0);
+  const month = await page.getByLabel("Month", { exact: true }).boundingBox();
+  const refresh = await page.getByRole("button", { name: /Refresh.*report/i }).boundingBox();
+  expect(Math.abs(month!.y + month!.height - refresh!.y - refresh!.height)).toBeLessThan(2);
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await nav.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/page-arrows-${theme}-320.png` });
+  }
+  await nav.getByRole("button", { name: "Back", exact: true }).click();
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(page.getByLabel("Menu", { exact: true })).toBeHidden();
+  await expect(page.locator("header").getByRole("button", { name: "People", exact: true })).toBeVisible();
 });

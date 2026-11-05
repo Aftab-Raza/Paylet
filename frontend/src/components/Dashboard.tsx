@@ -1,4 +1,5 @@
 import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
 import { dailyExpenseTotals, expenseDateInMonth, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
@@ -14,10 +15,11 @@ import People from "./People";
 import LoanSummary from "./LoanSummary";
 import Reports from "./Reports";
 import Groups from "./Groups";
-import SettlementNotifications from "./SettlementNotifications";
+import NotificationCenter from "./NotificationCenter";
+import SpendingChart from "./SpendingChart";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
-import { ArrowDownLeft, ArrowUpLeft, BarChart3, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
+import { CopyPlus, ArrowDownLeft, ArrowUpLeft, BarChart3, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
 import Modal from "./Modal";
 import InvitePaylet from "./InvitePaylet";
 import { openScreen, useScreen } from "../lib/navigation";
@@ -256,6 +258,11 @@ export default function Dashboard({
         setNotice("");
     }
 
+    function repeatExpense(expense: Expense) {
+        setDraft({ ...emptyExpense(user), amount: expense.amount, currency: expense.currency, purpose: expense.purpose, category: expense.category });
+        setEditing(false); setExpenseType("personal"); setError(""); setNotice("");
+    }
+
     async function saveExpense(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
@@ -396,18 +403,7 @@ export default function Dashboard({
         );
     }
 
-    return (
-        <main className={`signed-in-page home-page${showLogs ? " monthly-logs-page" : ""}`}>
-            <header className="app-header">
-                <a className="brand" href="/">
-                    <BrandMark />
-                    <span>Paylet.</span>
-                </a>
-
-                <MobileActions><div className="header-actions">
-                    <ThemeToggle />
-                    {showLogs ? <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => setShowLogs(false)}><ChevronLeft size={18} /> Back to dashboard</button> : <>
-                    <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
+    const dashboardLinks = <>
                     <button type="button" className="button button-purple dashboard-ai-nav" disabled={disabled || Boolean(draft)} onClick={() => setShowAi(true)}><Sparkles size={18} /> AI Quick Add</button>
                     <button
                         type="button"
@@ -447,24 +443,23 @@ export default function Dashboard({
                     >
                         <span aria-hidden="true" className="nav-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span> My profile
                     </button>
-                    </>}
-                </div></MobileActions>
+    </>;
+
+    return (
+        <main className={`signed-in-page home-page${showLogs ? " monthly-logs-page" : ""}`}>
+            <header className="app-header">
+                <a className="brand" href="/">
+                    <BrandMark />
+                    <span>Paylet.</span>
+                </a>
+
+                {showLogs ? <PageNavigation onBack={() => setShowLogs(false)} disabled={disabled || Boolean(draft)}/> : <div className="dashboard-navigation"><NotificationCenter invites={groupInvites} disabled={disabled || Boolean(draft)} onOpen={(screen, groupId) => openScreen(screen, groupId ? { group: groupId } : {})}/>
+                <MobileActions menu={<div className="header-actions">{dashboardLinks}</div>}><div className="header-actions">
+                    <ThemeToggle />
+                    <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
+                    {dashboardLinks}
+                </div></MobileActions></div>}
             </header>
-
-            {!showLogs && <><div aria-live="polite">
-                {groupInvites.invitations.length > 0 && (
-                    <div className="pg-notification">
-                        <span>You have {groupInvites.invitations.length} pending group invitation(s).</span>
-                        <button type="button" className="button button-blue"
-                            disabled={disabled || Boolean(draft)} onClick={() => setShowGroups(true)}>
-                            View invitations
-                        </button>
-                    </div>
-                )}
-                {groupInvites.error && <p className="pg-muted">Group notifications unavailable. Open Groups to retry.</p>}
-            </div>
-
-            <SettlementNotifications disabled={disabled || Boolean(draft)} onOpen={(groupId) => openScreen("groups", { group: groupId })}/></>}
 
             <section className="dashboard-page">
                 <div className="dashboard-heading">
@@ -755,6 +750,7 @@ export default function Dashboard({
                     </Modal>
                 )}
 
+                {!showLogs && ready && loaded && <SpendingChart expenses={loaded.summary.expenses} month={month} today={today} defaultCurrency={user.defaultCurrency} selectedCategory={category} onSelect={setCategory}/>}
                 {ready && loaded && (
                     <section className="expense-list">
                         <div className="activity-heading"><h2><ReceiptText size={20} /> {showLogs ? "All expenses" : "Recent expenses"}</h2><span className="activity-count">{!showLogs && visibleExpenses.length > 6 ? `6 of ${visibleExpenses.length}` : visibleExpenses.length} {visibleExpenses.length === 1 ? "transaction" : "transactions"}</span></div>
@@ -809,6 +805,7 @@ export default function Dashboard({
                                     </strong>
 
                                     <div className="expense-row-actions">
+                                        {!expense.voidedAt && expense.source !== "SHARED" && <button type="button" className="button button-outline" title="Add again" aria-label={`Add again: ${expense.purpose}`} disabled={disabled || Boolean(draft)} onClick={() => repeatExpense(expense)}><CopyPlus size={18} aria-hidden="true"/><span className="expense-action-label">Add again</span></button>}
                                         {!expense.voidedAt && expense.source !== "SHARED" && (
                                             <>
                                                 <button

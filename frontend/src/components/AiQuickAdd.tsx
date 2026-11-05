@@ -1,12 +1,11 @@
 import BrandMark from "./BrandMark";
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import { useEffect, useRef, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import "./ai-quick-add.css";
-import ThemeToggle from "./ThemeToggle";
-import { ArrowLeft, Camera, Check, CheckCircle2, FileImage, ImagePlus, LoaderCircle, Pencil, ReceiptText, ScanLine, Trash2, Type, Wallet } from "lucide-react";
+import { Camera, Check, CheckCircle2, FileImage, ImagePlus, LoaderCircle, Pencil, ReceiptText, ScanLine, Trash2, Type, Wallet } from "lucide-react";
 import { useNavigationGuard } from "../lib/navigation";
 
 type Intent = "EXPENSE" | "LENT" | "BORROWED" | "REPAYMENT_RECEIVED" | "REPAYMENT_PAID";
@@ -144,8 +143,7 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
     ? new Intl.DateTimeFormat("en", { weekday: "long", year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${draft.date}T00:00:00Z`)) : "Choose a date";
 
   return <main className="pqa">
-    <header className="pqa-header"><a className="brand" href="/"><BrandMark/><span>Paylet.</span></a><MobileActions>
-      <div className="header-theme-actions"><ThemeToggle /><button type="button" className="pqa-btn pqa-outline" onClick={onBack} disabled={locked}><ArrowLeft size={18} /> Back to dashboard</button></div></MobileActions></header>
+    <header className="pqa-header"><a className="brand" href="/"><BrandMark/><span>Paylet.</span></a><PageNavigation onBack={onBack} disabled={locked}/></header>
     <div className="pqa-page-heading"><h1>Add an entry</h1><p>One expense, loan or repayment. You stay in control.</p></div>
     <div className="pqa-steps" aria-label="Entry steps"><span aria-current={!draft && !receipt ? "step" : undefined}><Type size={16} /> 1. Describe</span><span aria-current={draft ? "step" : undefined}><Pencil size={16} /> 2. Review</span><span aria-current={receipt ? "step" : undefined}><CheckCircle2 size={16} /> 3. Save</span></div>
     {loadError && <div className="pqa-error" role="alert">{loadError} <button className="pqa-btn pqa-outline" onClick={() => setLoadKey((value) => value + 1)}>Reload options</button></div>}

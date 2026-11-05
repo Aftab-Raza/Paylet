@@ -1,11 +1,10 @@
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { ArrowLeft, Camera, LogOut, Pencil } from "lucide-react";
+import { Camera, LogOut, Pencil } from "lucide-react";
 import { currencyLabel } from "../lib/currencyLabel";
-import ThemeToggle from "./ThemeToggle";
 import { api } from "../lib/api";
 import type { User } from "../lib/api";
 import GoogleAuth from "./GoogleAuth";
@@ -101,15 +100,9 @@ export default function Profile({ onBack, onUserChange, onLogout, logoutBusy, lo
 
   return <main className="signed-in-page profile-screen">
     <header className="app-header profile-header">
-      <a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><MobileActions>
-      <div className="profile-header-actions">
-        <ThemeToggle />
-        <button type="button" className="button button-outline" disabled={disabled} onClick={onBack}><ArrowLeft size={18} /> Dashboard</button>
-        <button type="button" className="button button-outline" disabled={disabled} onClick={() => void onLogout()}><LogOut size={18} />{logoutBusy ? "Logging out…" : "Log out"}</button>
-      </div>
-    </MobileActions></header>
+      <a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><PageNavigation onBack={onBack} disabled={disabled}/></header>
     <section className="profile-page">
-      <h1>My profile</h1>
+      <div className="dashboard-heading"><h1>My profile</h1><button type="button" className="button button-outline" disabled={disabled} onClick={() => void onLogout()}><LogOut size={18}/>{logoutBusy ? "Logging out…" : "Log out"}</button></div>
       <p className="form-description">Manage how you appear and personalize your preferences.</p>
       {loading && <p role="status">Loading your profile…</p>}
       {(logoutError || (error && !editing && !photo)) && <p className="error-message" role="alert">{logoutError || error}</p>}

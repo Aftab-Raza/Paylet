@@ -1,10 +1,9 @@
-import MobileActions from "./MobileActions";
+import PageNavigation from "./PageNavigation";
 import BrandMark from "./BrandMark";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
-import ThemeToggle from "./ThemeToggle";
 import { api } from "../lib/api";
-import { ArrowLeft, Download, Printer, RefreshCw } from "lucide-react";
+import { Download, Printer, RefreshCw } from "lucide-react";
 
 type Report = {
   month: string;
@@ -168,18 +167,7 @@ export default function Reports({ timezone, onBack }: Props) {
           <BrandMark />
           <span>Paylet.</span>
         </span>
-        <MobileActions><ThemeToggle/>
-
-
-
-        <button
-          type="button"
-          className="button button-outline"
-          onClick={onBack}
-        >
-          <ArrowLeft size={18} /> Dashboard
-        </button>
-      </MobileActions>
+        <PageNavigation onBack={onBack}/>
 </header>
 
       <section className="dashboard-page">

@@ -251,3 +251,66 @@ body { background: var(--page-bg); color: var(--text); }
 
 :root[data-theme] .signed-in-page button:active:not(:disabled) { transform: translateY(1px); }
 :root[data-theme] .signed-in-page :is(h1,h2) { text-wrap: balance; }
+
+/* Interactive ledger tools inherit the app's solid surfaces and action colors. */
+.dashboard-navigation { display: flex; align-items: center; gap: 8px; position: relative; min-width: 0; }
+.notification-center > summary { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; cursor: pointer; list-style: none; border: 1px solid var(--border); border-radius: 8px; color: var(--text); background: var(--surface); position: relative; }
+.notification-center > summary::-webkit-details-marker { display: none; }
+.notification-count { position: absolute; top: -6px; right: -4px; min-width: 18px; padding: 2px 4px; border-radius: 12px; background: var(--action-blue); color: var(--app-on-action); font-size: 10px; font-weight: 600; }
+.notification-panel { position: absolute; z-index: 60; right: 0; top: calc(100% + 12px); width: min(400px, calc(100vi - 32px)); max-height: min(560px, 70svh); overflow-y: auto; overscroll-behavior: contain; padding: 20px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px var(--app-shadow); }
+.notification-center:not([open]) .notification-panel { display: none; }
+.notification-heading, .spending-chart-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+:root[data-theme] .notification-heading h2, :root[data-theme] .spending-chart h2 { margin: 0; font-size: 18px; font-weight: 500; }
+.notification-item { padding-block: 20px; border-top: 1px solid var(--border); overflow-wrap: anywhere; }
+.notification-item p { font-size: 13px; line-height: 1.6; margin: 8px 0 12px; }
+.notification-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+:root[data-theme] .notification-heading > button { padding: 8px; width: 44px; flex: 0 0 44px; }
+:root[data-theme] .spending-chart { max-width: 1040px; margin: 32px auto; border-block: 1px solid var(--border); padding-block: 24px; color: var(--text); }
+.spending-chart h2 { display: flex; align-items: center; gap: 8px; }
+.spending-chart-heading > strong { font-variant-numeric: tabular-nums; white-space: nowrap; font-weight: 500; }
+.spending-chart-controls { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: center; gap: 16px; margin-block: 20px 12px; }
+.spending-chart-controls [role="group"] { display: flex; gap: 4px; }
+.spending-chart-controls [role="group"] > button { font: inherit; font-size: 13px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 8px 12px; min-height: 44px; cursor: pointer; }
+.spending-chart-controls [role="group"] > button[aria-pressed="true"] { background: var(--theme-feature); color: var(--theme-feature-text); border-color: var(--theme-feature); }
+.spending-chart-controls label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+:root[data-theme] .spending-chart-controls select { min-height: 44px; width: 88px; padding: 8px; }
+.spending-chart-bars { display: grid; gap: 4px; max-height: 360px; overflow-y: auto; }
+.spending-chart-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; width: 100%; padding: 12px 8px; border: 1px solid var(--surface); border-radius: 8px; background: var(--surface); color: var(--text); text-align: left; font: inherit; font-size: 13px; cursor: pointer; }
+.spending-chart-row:hover, .spending-chart-row[aria-pressed="true"] { background: var(--surface-alt); border-color: var(--border); }
+.spending-chart-row > span:first-child { overflow-wrap: anywhere; }
+.spending-chart-row strong { font-weight: 500; font-variant-numeric: tabular-nums; }
+.spending-chart-track { grid-column: 1 / -1; height: 6px; border-radius: 4px; overflow: hidden; background: var(--surface-alt); }
+.spending-chart-track > span { display: block; height: 100%; border-radius: inherit; background: var(--action-blue); }
+@media (max-width: 480px) {
+  :root[data-theme] .home-page > header { gap: 8px; }
+  .dashboard-navigation .mobile-menu > summary > span { display: none; }
+  .dashboard-navigation .mobile-menu > summary { width: 44px; padding: 8px; justify-content: center; }
+  .spending-chart-heading { align-items: start; flex-direction: column; gap: 12px; }
+}
+
+/* Dashboard menu is mobile-only; secondary pages use the same small history controls. */
+.page-navigation { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+:root[data-theme] :is(.signed-in-page, .pqa) .page-navigation > button { width: 44px; min-width: 44px; height: 44px; padding: 8px; justify-content: center; }
+:root[data-theme] .page-navigation .theme-toggle { width: 44px; min-width: 44px; height: 44px; padding: 8px; }
+.page-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 16px; }
+:root[data-theme] .home-page .month-toolbar { display: grid; grid-template-columns: 44px minmax(0, 180px) 44px auto; justify-content: start; gap: 8px; align-items: end; }
+:root[data-theme] .home-page .month-toolbar .icon-button { width: 44px; min-width: 44px; }
+:root[data-theme] .home-page .month-toolbar .refresh-button { margin: 0; }
+@media (max-width: 800px) {
+  .mobile-menu-panel .nav-current, .mobile-menu-panel .theme-toggle { display: none; }
+  :root[data-theme] .mobile-menu-panel .header-actions { gap: 0; }
+  :root[data-theme] .mobile-menu-panel .header-actions > button { min-height: 44px; padding: 8px 12px; gap: 12px; font-size: 13px; font-weight: 500; }
+  :root[data-theme] .mobile-menu-panel .header-actions > button > svg { width: 16px; height: 16px; flex-shrink: 0; stroke-width: 1.5; }
+  :root[data-theme] .mobile-menu-panel .header-actions > button:hover { background: var(--surface-alt); }
+  :root[data-theme] .mobile-menu-panel .nav-avatar { width: 20px; height: 20px; font-size: 11px; }
+  :root[data-theme] .home-page .month-toolbar { grid-template-columns: 44px minmax(0, 180px) 44px 44px; gap: 4px; }
+  :root[data-theme] .home-page .month-toolbar input[type="month"] { min-width: 0; width: 100%; }
+  :root[data-theme] .report-toolbar { display: grid; grid-template-columns: minmax(0, 180px) 44px; justify-content: start; gap: 8px; align-items: end; }
+  :root[data-theme] .report-month-field input[type="month"] { width: 100%; min-width: 0; }
+  :root[data-theme] .report-toolbar .refresh-button { width: 44px; padding: 8px; }
+}
+@media (max-width: 800px) {
+  :root[data-theme] .home-page .dashboard-navigation .mobile-menu-panel > .header-actions { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+  :root[data-theme] .home-page .dashboard-navigation .mobile-menu-panel .header-actions > button { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; gap: 12px; padding: 8px 12px; white-space: nowrap; }
+  :root[data-theme] .report-toolbar > .button:not(.refresh-button) { grid-column: 1 / -1; justify-content: center; min-width: 0; min-height: 44px; }
+}

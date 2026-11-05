@@ -9,7 +9,8 @@ Approved direction: precise ledger interfaces inspired by the landing page.
 - Be Vietnam Pro is the existing product typeface.
 - Amounts align consistently with tabular numerals.
 - Controls retain comfortable tap targets at narrow widths.
-- Mobile page headers use logo, theme switch and a compact menu on one row.
+- The mobile dashboard header uses logo, notifications, theme switch and a compact menu on one row. The menu contains page links with small icons, without Overview or another theme switch.
+- Other app pages use compact Back, Forward and theme controls. Forward follows app history and is disabled when unavailable; direct links keep a parent-page fallback.
 - Money filters and refresh controls share a compact row where space permits.
 - Popups use the existing focus-managed Modal and brief opacity/translation feedback.
 - Reduced-motion mode exposes the final state immediately.
