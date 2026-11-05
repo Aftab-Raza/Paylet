@@ -1489,19 +1489,21 @@ test("spending chart keeps exact currency totals, filters categories and switche
     { ...initialExpense, id: "one", date: "2026-11-12", amount: "0.10" },
     { ...initialExpense, id: "two", date: "2026-11-10", amount: "0.20" },
     { ...initialExpense, id: "older", date: "2026-11-01", amount: "3.00" },
+    { ...initialExpense, id: "other", date: "2026-11-10", amount: "0.30", category: "Other" },
     { ...initialExpense, id: "usd", date: "2026-11-12", amount: "9.00", currency: "USD" },
     { ...initialExpense, id: "jpy", date: "2026-11-12", amount: "150", currency: "JPY", category: "Travel" },
     { ...initialExpense, id: "voided", date: "2026-11-12", amount: "999.00", voidedAt: "2026-11-12T08:00:00Z" },
   ];
-  await page.route("**/api/expenses?**", route => route.fulfill({ json: { expenses, count: 5, totals: [] } }));
+  await page.route("**/api/expenses?**", route => route.fulfill({ json: { expenses, count: 6, totals: [] } }));
   await page.goto("/?view=dashboard");
   const chart = page.getByRole("region", { name: "Spending by category" });
-  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 3.30");
-  await chart.getByRole("button", { name: "Food ₹ 3.30", exact: true }).click();
+  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 3.60");
+  await expect(chart.getByRole("button", { name: "Other ₹ 0.30 8.3%", exact: true })).toBeVisible();
+  await chart.getByRole("button", { name: "Food ₹ 3.30 91.7%", exact: true }).click();
   await expect(page.getByLabel("Filter by category")).toHaveValue("Food");
   await expect(page.locator(".expense-row")).toHaveCount(4);
   await chart.getByRole("button", { name: "Last 7 days", exact: true }).click();
-  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 0.30");
+  await expect(chart.getByLabel("Chart total")).toHaveText("₹ 0.60");
   await chart.getByLabel("Chart currency", { exact: true }).selectOption("USD");
   await expect(chart.getByLabel("Chart total")).toHaveText("USD 9.00");
   await chart.getByLabel("Chart currency", { exact: true }).selectOption("JPY");
@@ -1617,4 +1619,60 @@ test("phone dashboard menu stays compact and page arrows preserve back and forwa
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect(page.getByLabel("Menu", { exact: true })).toBeHidden();
   await expect(page.locator("header").getByRole("button", { name: "People", exact: true })).toBeVisible();
+});
+
+test("custom category creation retries safely, reuses duplicates and persists in options", async ({ page }) => {
+  const writes = await mockApi(page);
+  const custom: string[] = [];
+  let attempts = 0;
+  await page.route("**/api/expenses/options", route => route.fulfill({ json: { currencies: ["INR", "USD"], categories: ["Food", "Travel", "Other", ...custom] } }));
+  await page.route("**/api/expenses/categories", async route => {
+    attempts++;
+    if (attempts === 1) { await route.fulfill({ status: 503, json: { message: "Category unavailable. Please retry." } }); return; }
+    expect(route.request().postDataJSON()).toEqual({ name: "Hostel fees" });
+    custom.push("Hostel fees"); await route.fulfill({ json: { category: "Hostel fees" } });
+  });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/?view=dashboard");
+  await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Add expense", exact: true });
+  await dialog.getByLabel("Amount", { exact: true }).fill("12.50");
+  await dialog.getByLabel("Purpose", { exact: true }).fill("Hostel payment");
+  await dialog.getByRole("button", { name: "Add category", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "Save expense", exact: true })).toBeDisabled();
+  await dialog.getByLabel("New category name", { exact: true }).fill("  Hostel   fees  ");
+  await dialog.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Please retry");
+  await expect(dialog.getByLabel("New category name", { exact: true })).toHaveValue("  Hostel   fees  ");
+  await dialog.screenshot({ path: "test-results/custom-category-retry-mobile.png" });
+  await dialog.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(dialog.getByLabel("Category", { exact: true })).toHaveValue("Hostel fees");
+  await expect(dialog.getByRole("button", { name: "Save expense", exact: true })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Save expense", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(writes.find(write => write.method === "POST" && write.path === "/expenses")?.body.category).toBe("Hostel fees");
+  await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
+  await dialog.getByRole("button", { name: "Add category", exact: true }).click();
+  await dialog.getByLabel("New category name", { exact: true }).fill("food");
+  await dialog.getByRole("button", { name: "Save category", exact: true }).click();
+  await expect(dialog.getByLabel("Category", { exact: true })).toHaveValue("Food");
+  expect(attempts).toBe(2);
+  await dialog.getByRole("button", { name: "Add category", exact: true }).click();
+  await dialog.getByLabel("Expense type", { exact: true }).selectOption("shared");
+  await dialog.getByLabel("Expense type", { exact: true }).selectOption("personal");
+  await expect(dialog.getByRole("button", { name: "Save expense", exact: true })).toBeEnabled();
+
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.reload();
+  const list = await page.locator(".expense-list").boundingBox();
+  const chart = await page.getByRole("region", { name: "Spending by category" }).boundingBox();
+  expect(chart!.y).toBeGreaterThanOrEqual(list!.y + list!.height);
+  await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
+  await expect(dialog.getByLabel("Category", { exact: true }).locator('option[value="Hostel fees"]')).toHaveCount(1);
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  for (const theme of ["light", "dark"]) {
+    if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByRole("region", { name: "Spending by category" }).screenshot({ path: `test-results/spending-percent-${theme}.png` });
+  }
 });

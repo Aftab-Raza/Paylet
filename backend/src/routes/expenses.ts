@@ -1,4 +1,6 @@
 import { Router } from "express";
+import type { ErrorRequestHandler } from "express";
+import { defaultCategories, categoryNameSchema, categoryKey, resolveCategory } from "../lib/expenseCategories.js";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { Prisma } from "../generated/prisma/client.js";
@@ -8,18 +10,7 @@ import { monthlySpending } from "../lib/monthlySpending.js";
 
 export const expensesRouter = Router();
 
-const categories = [
-  "Food",
-  "Groceries",
-  "Travel",
-  "Shopping",
-  "Rent",
-  "Utilities",
-  "Health",
-  "Education",
-  "Entertainment",
-  "Other",
-];
+
 
 const currencies = Intl.supportedValuesOf("currency");
 
@@ -79,10 +70,7 @@ const expenseSchema = z.object({
 
   purpose: z.string().trim().max(200).default(""),
 
-  category: z.string().refine(
-    (value) => categories.includes(value),
-    "Choose a category."
-  ),
+  category: categoryNameSchema,
 
   date: dateSchema,
 });
@@ -108,6 +96,7 @@ function convertAmount(amount: string, currency: string) {
 
 export async function createExpenseInTransaction(tx: Prisma.TransactionClient, userId: string, input: unknown) {
   const data = expenseSchema.extend({ id: z.string().uuid() }).strict().parse(input);
+  const category = await resolveCategory(tx, userId, data.category);
   const money = convertAmount(data.amount, data.currency);
   if (!money) throw new z.ZodError([{ code: "custom", path: ["amount"], message: `Enter a positive amount with at most ${digitsFor(data.currency)} decimal places.` }]);
       const created = await tx.expense.create({
@@ -117,7 +106,7 @@ export async function createExpenseInTransaction(tx: Prisma.TransactionClient, u
           ...money,
           currency: data.currency,
           purpose: data.purpose,
-          category: data.category,
+          category,
           spentOn: new Date(
             `${data.date}T00:00:00.000Z`
           ),
@@ -157,8 +146,22 @@ expensesRouter.use(async (req, res, next) => {
   next();
 });
 
-expensesRouter.get("/options", (_req, res) => {
-  res.json({ categories, currencies });
+expensesRouter.get("/options", async (req, res) => {
+  const custom = await prisma.expenseCategory.findMany({ where: { userId: req.session.userId! }, orderBy: { name: "asc" }, select: { name: true } });
+  res.json({ categories: [...defaultCategories, ...custom.map(category => category.name)], currencies });
+});
+
+expensesRouter.post("/categories", async (req, res) => {
+  const input = z.object({ name: categoryNameSchema }).strict().parse(req.body);
+  const normalizedName = categoryKey(input.name);
+  const builtin = defaultCategories.find(name => categoryKey(name) === normalizedName);
+  if (builtin) { res.json({ category: builtin }); return; }
+  const category = await prisma.expenseCategory.upsert({
+    where: { userId_normalizedName: { userId: req.session.userId!, normalizedName } },
+    create: { userId: req.session.userId!, name: input.name, normalizedName },
+    update: {},
+  });
+  res.json({ category: category.name });
 });
 
 // Monthly list and totals.
@@ -299,6 +302,7 @@ expensesRouter.patch("/:id", async (req, res) => {
 
   try {
     const expense = await prisma.$transaction(async (tx) => {
+      const category = await resolveCategory(tx, req.session.userId!, parsed.data.category);
       const updated = await tx.expense.update({
         where: {
           id: id.data,
@@ -310,7 +314,7 @@ expensesRouter.patch("/:id", async (req, res) => {
           ...money,
           currency: parsed.data.currency,
           purpose: parsed.data.purpose,
-          category: parsed.data.category,
+          category,
           spentOn: new Date(
             `${parsed.data.date}T00:00:00.000Z`
           ),
@@ -454,3 +458,8 @@ expensesRouter.get("/:id/history", async (req, res) => {
 
   res.json({ history });
 });
+const categoryErrorHandler: ErrorRequestHandler = (error, _req, res, next) => {
+  if (error instanceof z.ZodError) { res.status(400).json({ message: error.issues[0]?.message ?? "Check your category." }); return; }
+  next(error);
+};
+expensesRouter.use(categoryErrorHandler);

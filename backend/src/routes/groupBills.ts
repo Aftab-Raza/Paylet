@@ -5,6 +5,7 @@ import { prisma } from "../lib/prisma.js";
 import { Prisma } from "../generated/prisma/client.js";
 import { equalShares, moneyString, parseMoney } from "../lib/splitMoney.js";
 
+import { categoryNameSchema, resolveCategory } from "../lib/expenseCategories.js";
 import { publicLedger } from "../lib/groupLedger.js";
 
 export const groupBillsRouter = Router({ mergeParams: true });
@@ -13,7 +14,6 @@ class BillError extends Error {
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
 const idSchema = z.string().uuid();
-const categories = ["Food", "Groceries", "Travel", "Shopping", "Rent", "Utilities", "Health", "Education", "Entertainment", "Other"];
 const currencies = Intl.supportedValuesOf("currency");
 const dateSchema = z.string().refine((value) => {
   if (!/^(19|20|21)\d{2}-\d{2}-\d{2}$/.test(value)) return false;
@@ -22,7 +22,7 @@ const dateSchema = z.string().refine((value) => {
 }, "Enter a valid date between 1900 and 2199.");
 const input = z.object({
   id: idSchema, amount: z.string(), currency: z.string().refine((v) => currencies.includes(v), "Unsupported currency."),
-  purpose: z.string().trim().min(1).max(200), category: z.string().refine((v) => categories.includes(v), "Choose a category."),
+  purpose: z.string().trim().min(1).max(200), category: categoryNameSchema,
   date: dateSchema, payerId: idSchema, splitMode: z.enum(["EQUAL", "CUSTOM"]),
   participants: z.array(z.object({ memberId: idSchema, amount: z.string().optional() }).strict()).min(1).max(100),
 }).strict();
@@ -89,9 +89,10 @@ groupBillsRouter.post<{ groupId: string }>("/", async (req, res) => {
     if (!payer || body.payerId !== payer.id) throw new BillError(403, "You can record an expense only as yourself.");
     const valid = new Set(members.map((m) => m.id));
     if (!valid.has(body.payerId) || shares.some((s) => !valid.has(s.memberId))) throw new BillError(400, "Payer and participants must be members of this group.");
+    const category = await resolveCategory(tx, userId, body.category);
     const created = await tx.sharedBill.create({ data: {
       id: body.id, groupId, creatorId: userId, payerId: payer.id, amountMinor: amount,
-      currency: body.currency, minorUnit: digits, purpose: body.purpose, category: body.category,
+      currency: body.currency, minorUnit: digits, purpose: body.purpose, category,
       spentOn: new Date(`${body.date}T00:00:00.000Z`), splitMode: body.splitMode,
       shares: { create: shares },
     }, include: includeBill });

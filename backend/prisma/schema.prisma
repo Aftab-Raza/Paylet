@@ -29,6 +29,7 @@ model User {
   emailVerifiedAt    DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
+  expenseCategories  ExpenseCategory[]
   expenses           Expense[]
   contacts           Contact[]
   ownedGroups        SplitGroup[]
@@ -403,4 +404,15 @@ model SharedPaymentRequest {
 
   @@index([recipientId, status])
   @@map("shared_payment_requests")
+}
+
+model ExpenseCategory {
+  userId String @db.Uuid
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name String @db.VarChar(40)
+  normalizedName String @db.VarChar(100)
+  createdAt DateTime @default(now())
+
+  @@id([userId, normalizedName])
+  @@map("expense_categories")
 }

@@ -162,3 +162,10 @@ Sources: [Docker Ubuntu](https://docs.docker.com/engine/install/ubuntu/),
 [PostgreSQL recovery](https://www.postgresql.org/docs/17/continuous-archiving.html),
 [Restic](https://restic.readthedocs.io/en/stable/),
 [OWASP](https://cheatsheetseries.owasp.org/cheatsheets/Database_Security_Cheat_Sheet.html).
+
+
+### Custom expense categories
+
+Apply `20261105000100_custom_expense_categories` to the same database used by the backend before deploying this version. Use the existing production `prisma migrate deploy` workflow. The migration only adds the account-scoped `expense_categories` table; existing expense and bill records are unchanged.
+
+Category names are limited to 40 characters and are unique per account after whitespace, Unicode and case normalization. Personal expenses, AI-reviewed entries and group bills validate custom category ownership when saved. Categories selected on a shared bill are visible with that bill; the owner's reusable category list remains private.

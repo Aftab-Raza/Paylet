@@ -314,3 +314,16 @@ body { background: var(--page-bg); color: var(--text); }
   :root[data-theme] .home-page .dashboard-navigation .mobile-menu-panel .header-actions > button { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; width: 100%; min-height: 44px; gap: 12px; padding: 8px 12px; white-space: nowrap; }
   :root[data-theme] .report-toolbar > .button:not(.refresh-button) { grid-column: 1 / -1; justify-content: center; min-width: 0; min-height: 44px; }
 }
+
+.expense-category-field { min-width: 0; }
+.category-add-link { display: inline-flex; align-items: center; gap: 4px; padding: 8px 0; min-height: 44px; background: var(--surface); color: var(--purple); border: 0; cursor: pointer; font: inherit; font-size: 13px; }
+.category-create { margin-top: 12px; }
+.category-create-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+:root[data-theme] .category-create-actions > button { font-size: 12px; padding: 8px; }
+.spending-chart-total { display: grid; gap: 4px; text-align: right; font-variant-numeric: tabular-nums; }
+.spending-chart-total > span, .spending-chart-amount small { color: var(--muted); font-size: 12px; }
+.spending-chart-total strong { font-size: 20px; font-weight: 500; }
+.spending-chart-period { margin: 16px 0 4px; font-size: 14px; font-weight: 500; }
+.spending-chart-amount { display: flex; align-items: baseline; gap: 12px; }
+.spending-chart-row .spending-chart-track > span { min-width: 2px; }
+@media(max-width:480px) { .spending-chart-total { text-align: left; } }

@@ -17,6 +17,7 @@ import Reports from "./Reports";
 import Groups from "./Groups";
 import NotificationCenter from "./NotificationCenter";
 import SpendingChart from "./SpendingChart";
+import ExpenseCategorySelect from "./ExpenseCategorySelect";
 import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
 import { CopyPlus, ArrowDownLeft, ArrowUpLeft, BarChart3, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, CircleSlash, History, LayoutDashboard, Pencil, Plus, ReceiptText, RefreshCw, Search, Sparkles, UserRound, UserPlus, Users, Wallet, Utensils, ShoppingBasket, Bus, ShoppingBag, House, HeartPulse, GraduationCap, Film, Zap } from "lucide-react";
@@ -166,6 +167,7 @@ export default function Dashboard({
 
     const [draft, setDraft] = useState<Expense | null>(null);
     const [editing, setEditing] = useState(false);
+    const [addingCategory, setAddingCategory] = useState(false);
     const [expenseType, setExpenseType] = useState("personal");
 
     const [history, setHistory] = useState<Revision[] | null>(null);
@@ -251,6 +253,7 @@ export default function Dashboard({
     }
 
     function beginAdd() {
+        setAddingCategory(false);
         setDraft(emptyExpense(user));
         setEditing(false);
         setExpenseType("personal");
@@ -259,6 +262,7 @@ export default function Dashboard({
     }
 
     function repeatExpense(expense: Expense) {
+        setAddingCategory(false);
         setDraft({ ...emptyExpense(user), amount: expense.amount, currency: expense.currency, purpose: expense.purpose, category: expense.category });
         setEditing(false); setExpenseType("personal"); setError(""); setNotice("");
     }
@@ -266,7 +270,7 @@ export default function Dashboard({
     async function saveExpense(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        if (!draft || busy || expenseType !== "personal") {
+        if (!draft || busy || addingCategory || expenseType !== "personal") {
             return;
         }
 
@@ -574,9 +578,10 @@ export default function Dashboard({
                                         <select
                                             id="expense-type"
                                             value={expenseType}
-                                            onChange={(event) =>
-                                                setExpenseType(event.target.value)
-                                            }
+                                            onChange={(event) => {
+                                                setExpenseType(event.target.value);
+                                                setAddingCategory(false);
+                                            }}
                                         >
                                             <option value="personal">
                                                 Personal expense
@@ -673,34 +678,8 @@ export default function Dashboard({
 
                                         <div className="profile-fields-row">
                                             <div>
-                                                <label htmlFor="expense-category">
-                                                    Category
-                                                </label>
+                                                <ExpenseCategorySelect key={draft.id} value={draft.category} categories={loaded?.choices.categories ?? []} onChange={name => updateDraft("category", name)} onEditingChange={setAddingCategory} onSavingChange={setBusy} onAdded={name => setLoaded(current => current ? { ...current, choices: { ...current.choices, categories: [...new Set([...current.choices.categories, name])] } } : current)}/>
 
-                                                <select
-                                                    id="expense-category"
-                                                    value={draft.category}
-                                                    onChange={(event) =>
-                                                        updateDraft(
-                                                            "category",
-                                                            event.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    {Array.from(
-                                                        new Set([
-                                                            draft.category,
-                                                            ...(loaded?.choices.categories ?? []),
-                                                        ])
-                                                    ).map((category) => (
-                                                        <option
-                                                            key={category}
-                                                            value={category}
-                                                        >
-                                                            {category}
-                                                        </option>
-                                                    ))}
-                                                </select>
                                             </div>
 
                                             <div>
@@ -732,6 +711,7 @@ export default function Dashboard({
                                         <button
                                             className="button button-green"
                                             type="submit"
+                                            disabled={addingCategory}
                                         >
                                             <CheckCircle2 size={18} /> {busy ? "Saving…" : "Save expense"}
                                         </button>
@@ -750,7 +730,6 @@ export default function Dashboard({
                     </Modal>
                 )}
 
-                {!showLogs && ready && loaded && <SpendingChart expenses={loaded.summary.expenses} month={month} today={today} defaultCurrency={user.defaultCurrency} selectedCategory={category} onSelect={setCategory}/>}
                 {ready && loaded && (
                     <section className="expense-list">
                         <div className="activity-heading"><h2><ReceiptText size={20} /> {showLogs ? "All expenses" : "Recent expenses"}</h2><span className="activity-count">{!showLogs && visibleExpenses.length > 6 ? `6 of ${visibleExpenses.length}` : visibleExpenses.length} {visibleExpenses.length === 1 ? "transaction" : "transactions"}</span></div>
@@ -814,6 +793,7 @@ export default function Dashboard({
                                                     title="Edit"
                                                     disabled={disabled}
                                                     onClick={() => {
+                                                        setAddingCategory(false);
                                                         setDraft({ ...expense });
                                                         setEditing(true);
                                                         setExpenseType("personal");
@@ -856,6 +836,8 @@ export default function Dashboard({
                         {!showLogs && loaded.summary.expenses.length > 0 && <div className="expense-log-footer"><p className="profile-member">{visibleExpenses.length > 6 ? "Showing your 6 most recent matching expenses." : "Explore the full month’s expense history."}</p><button type="button" className="button button-purple" disabled={disabled || Boolean(draft)} onClick={() => openScreen("logs", { logMonth: month })}>View all expenses <ChevronRight size={18} aria-hidden="true" /></button></div>}
                     </section>
                 )}
+
+                {!showLogs && ready && loaded && <SpendingChart expenses={loaded.summary.expenses} month={month} today={today} defaultCurrency={user.defaultCurrency} selectedCategory={category} onSelect={selected => { setCategory(selected); requestAnimationFrame(() => document.querySelector(".expense-list")?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })); }}/>}
 
                 {history && (
                     <Modal title="Expense history" onClose={() => setHistory(null)}>
