@@ -7,6 +7,7 @@ import ThemeToggle from "./ThemeToggle";
 import Testimonials from "./Testimonials";
 import CommunityCount from "./CommunityCount";
 import ReceiptPreview from "./ReceiptPreview";
+import HeroGeometry from "./HeroGeometry";
 import "./landing-editorial.css";
 import DashboardPreview from "./DashboardPreview";
 
@@ -58,12 +59,13 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
               {user ? <a href="#about">Explore Paylet <ChevronRight size={18}/></a> : <button className="editorial-text-action" disabled={checking} onClick={onLogin}>Sign in <ArrowRight size={18}/></button>}
             </div>
           </div>
-          <ReceiptPreview/>
+          <HeroGeometry/>
           <div className="editorial-community"><CommunityCount refreshKey={communityRefresh}/></div>
         </div>
       </section>
       <div className="landing-hero-benefits landing-clean-benefits"><span><Check size={15}/>No bank connection</span><span><Check size={15}/>Your records stay private</span><a href="#about">Explore Paylet <ChevronRight size={15}/></a></div>
       <div className="landing-band landing-feature-band" id="about"><section className="landing-about landing-width">
+        <div className="editorial-receipt-detail"><ReceiptPreview/></div>
         <div className="landing-demo-heading"><span>Your records at a glance</span><span>Illustrative examples</span></div>
         <div className="landing-money-grid landing-example-strip" aria-label="Examples of Paylet money records">
           <article>

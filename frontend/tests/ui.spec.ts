@@ -684,7 +684,7 @@ test("theme preference persists and compact expense rows retain their actions", 
   await page.screenshot({ path: "test-results/dashboard-dark.png", fullPage: true });
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(14, 28, 26)");
+  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(18, 18, 18)");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   await page.screenshot({ path: "test-results/dashboard-purple-light.png", fullPage: true });
@@ -1086,12 +1086,12 @@ test("dashboard, AI Quick Add and landing share the charcoal and lavender themes
   await mockApi(page);
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
-  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(14, 28, 26)");
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
+  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(18, 18, 18)");
   await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
-  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
+  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
   await page.goto("/");
-  expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
+  expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
   await page.screenshot({ path: "test-results/landing-deep-black.png" });
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 255, 255)");
@@ -1125,7 +1125,7 @@ test("hero and dashboard preview switch together with the selected theme", async
   await expect(image).toHaveAttribute("src", "/paylet-preview.png");
   await page.screenshot({ path: "test-results/hero-theme-light.png" });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
+  expect(await hero.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(0, 0, 0)");
   await expect(image).toHaveAttribute("src", "/paylet-preview-dark.png");
   await image.scrollIntoViewIfNeeded();
   await expect.poll(() => image.evaluate((element) => (element as HTMLImageElement).naturalWidth)).toBe(1440);
@@ -1226,7 +1226,7 @@ test("Dashboard shortcuts and AI Quick Add follow charcoal and lavender in both 
     }
     for (const control of [page.locator('.dashboard-ai-shortcut .action-symbol')]) {
       await expect(control).toHaveCSS('color', theme==='dark'?'rgb(255, 255, 255)':'rgb(9, 20, 19)');
-      await expect(control).toHaveCSS('background-color', theme === "dark" ? "rgb(24, 40, 36)" : "rgb(241, 244, 243)");
+      await expect(control).toHaveCSS('background-color', theme === "dark" ? "rgb(32, 32, 32)" : "rgb(241, 244, 243)");
     }
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
@@ -1448,4 +1448,29 @@ test("mobile menu stays aligned and refresh tracks the pending request", async (
   await page.screenshot({ path: "test-results/app-mobile-light.png", fullPage: true });
   await page.getByRole("button", { name: "Switch to dark mode" }).click();
   await page.screenshot({ path: "test-results/app-mobile-dark.png", fullPage: true });
+});
+
+test("monochrome dark theme and vector hero respect theme and reduced motion", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.locator(".landing-page")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(page.locator(".hero-geometry")).toHaveCSS("color", "rgb(255, 255, 255)");
+  await expect(page.locator(".hero-geometry ellipse")).toHaveCount(21);
+  await expect(page.locator(".hero-geometry-orbit")).toHaveCSS("animation-name", "hero-orbit");
+  for (const width of [320, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/geometry-dark-${width}.png` });
+  }
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await expect(page.locator(".hero-geometry-orbit")).toHaveCSS("animation-name", "none");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(page.locator(".hero-geometry")).toHaveCSS("color", "rgb(9, 20, 19)");
+  await page.screenshot({ path: "test-results/geometry-light.png" });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await page.getByRole("banner").getByRole("button", { name: "Dashboard", exact: true }).click();
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(0, 0, 0)");
+  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(18, 18, 18)");
+  await expect(page.locator(".month-expense-card")).toHaveCSS("background-color", "rgb(32, 32, 32)");
 });

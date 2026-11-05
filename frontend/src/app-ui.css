@@ -36,22 +36,22 @@
 }
 
 :root[data-theme="dark"] {
-  --page-bg: #091413;
-  --surface: #0e1c1a;
-  --surface-alt: #182824;
+  --page-bg: #000000;
+  --surface: #121212;
+  --surface-alt: #202020;
   --text: #ffffff;
-  --muted: #b8c4bf;
-  --border: #40564c;
-  --purple: #c4d6ff;
-  --orange: #c4d6ff;
-  --blue-soft: #172d42;
-  --blue-text: #c4d6ff;
-  --theme-feature: #182824;
+  --muted: #a0a0a0;
+  --border: #505050;
+  --purple: #ffffff;
+  --orange: #ffffff;
+  --blue-soft: #202020;
+  --blue-text: #ffffff;
+  --theme-feature: #202020;
   --theme-void-icon: #ff9eb0;
   --success-text: #a0ddbc;
-  --success-bg: #152e23;
+  --success-bg: #202020;
   --danger-text: #ff9eb0;
-  --danger-bg: #381c24;
+  --danger-bg: #202020;
 }
 
 html, body { overflow-x: clip; }

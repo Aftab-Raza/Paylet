@@ -22,18 +22,18 @@
 }
 
 :root[data-theme="dark"] .landing-page.landing-editorial {
-  --page-bg: #091413;
-  --surface: #0e1c1a;
-  --surface-alt: #142320;
+  --page-bg: #000000;
+  --surface: #121212;
+  --surface-alt: #202020;
   --text: #ffffff;
-  --muted: #b8c4bf;
-  --border: #30413c;
+  --muted: #a0a0a0;
+  --border: #505050;
   --purple: #ffffff;
   --landing-accent: #ffffff;
-  --landing-muted: #b8c4bf;
-  --landing-card: #0e1c1a;
-  --landing-band: #142320;
-  --landing-border: #30413c;
+  --landing-muted: #a0a0a0;
+  --landing-card: #121212;
+  --landing-band: #202020;
+  --landing-border: #505050;
 }
 
 body:has(.landing-editorial) { background: #ffffff; }
@@ -154,3 +154,12 @@ body:has(.landing-editorial) { background: #ffffff; }
 @media(max-width:600px) {
   .editorial-hero-inner { padding-block: 48px 32px; gap: 32px; }
 }
+
+/* Interlocking wireframe rings: a lightweight vector, with no image or 3D dependency. */
+.hero-geometry { display: grid; place-items: center; min-width: 0; aspect-ratio: 1.15; color: var(--text); overflow: hidden; }
+.hero-geometry svg { display: block; width: 100%; max-width: 520px; height: auto; overflow: visible; }
+.hero-geometry-orbit { transform-origin: 260px 260px; animation: hero-orbit 64s linear infinite; }
+.editorial-receipt-detail { max-width: 600px; margin: 0 auto 64px; }
+@keyframes hero-orbit { to { transform: rotate(360deg); } }
+@media (max-width: 800px) { .hero-geometry { max-width: 400px; width: 100%; margin-inline: auto; aspect-ratio: 1.4; } }
+@media (prefers-reduced-motion: reduce) { .hero-geometry-orbit { animation: none; } }
