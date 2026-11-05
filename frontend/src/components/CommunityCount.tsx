@@ -23,5 +23,5 @@ export default function CommunityCount({ refreshKey = 0 }: { refreshKey?: number
     }).catch(() => { /* Keep the verified count if community photos are unavailable. */ });
     return () => controller.abort();
   }, [refreshKey]);
-  return <div className="landing-community-count" aria-live="polite">{count !== null && <span title="Registered Paylet accounts" aria-label={`${count.toLocaleString("en-IN")}+ strong users`}>{faces.length > 0 && <span className="community-faces" aria-label="Community members who chose to share their photos">{faces.map((face, index) => <PublicAvatar key={index} name={face.displayName} url={face.avatarUrl} />)}</span>}<strong aria-hidden="true">{displayCount.toLocaleString("en-IN")}+ strong users</strong><span aria-hidden="true">🚀</span></span>}</div>;
+  return <div className="landing-community-count" aria-live="polite">{count !== null && <span title="Registered Paylet accounts" aria-label={`${count.toLocaleString("en-IN")}+ strong users`}>{faces.length > 0 && <span className="community-faces" aria-label="Community members who chose to share their photos">{faces.map((face, index) => <PublicAvatar key={index} name={face.displayName} url={face.avatarUrl} />)}</span>}<strong aria-hidden="true">{displayCount.toLocaleString("en-IN")}+ strong users</strong></span>}</div>;
 }
