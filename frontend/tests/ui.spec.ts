@@ -4,6 +4,16 @@ import type { Page } from "@playwright/test";
 const user = { id: "user-1", displayName: "Aftab", username: "aftab", email: "test@example.com", defaultCurrency: "INR", timezone: "Asia/Kolkata", avatarUrl: null, bio: null };
 const initialExpense = { id: "expense-1", amount: "250.00", currency: "INR", purpose: "Lunch with friends", category: "Food", date: "2026-10-10", version: 1, voidedAt: null };
 
+async function openPageAction(page: Page, name: string | RegExp) {
+  const action = page.getByRole("button", { name, exact: typeof name === "string" });
+  const menu = page.locator(".mobile-menu > summary:visible");
+  await expect.poll(async () => await action.isVisible() || await menu.isVisible()).toBe(true);
+  if (!await action.isVisible()) {
+    await page.locator(".mobile-menu > summary:visible").click();
+  }
+  await action.click();
+}
+
 // Intercept every API request so these UI checks never touch a real database.
 async function mockApi(page: Page, signedIn = true) {
   let expenses = [{ ...initialExpense }];
@@ -96,8 +106,8 @@ test("dashboard shows six recent expenses and monthly logs group all records wit
     }
     await page.screenshot({path:`test-results/monthly-logs-${theme}.png`,fullPage:true});
   }
-  await page.getByRole('button',{name:'Back to dashboard',exact:true}).click();
-  await expect(page.getByRole('heading',{name:/Hello, Aftab/})).toBeVisible();
+  await openPageAction(page, "Back to dashboard");
+  await expect(page.getByRole('heading',{name:/Your expenses/})).toBeVisible();
   await expect(page.locator('.expense-row')).toHaveCount(6);
 });
 
@@ -111,7 +121,7 @@ test("monthly logs retain the selected month on reload and support phone Back", 
   await expect(page.getByLabel('Month',{exact:true})).toHaveValue('2026-09');
   await expect(page.getByRole('heading',{name:'Monthly expense logs',exact:true})).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole('heading',{name:/Hello, Aftab/})).toBeVisible();
+  await expect(page.getByRole('heading',{name:/Your expenses/})).toBeVisible();
   await expect(page.locator('.expense-date-heading')).toHaveCount(0);
 });
 
@@ -181,20 +191,24 @@ test("profile and contact actions use success toasts with manual dismissal", asy
   });
   await page.route('**/api/contacts/*/archive',async route=>{ contact={...contact,isArchived:true}; await route.fulfill({json:{}}); });
   await page.goto('/?view=dashboard');
-  await page.getByRole('button',{name:'My profile'}).click();
+  await openPageAction(page, "My profile");
   await page.getByRole('button',{name:'Edit profile',exact:true}).click();
   await page.getByRole('button',{name:'Save changes'}).click();
   await expect(page.locator('.success-toast')).toContainText('Profile saved.');
   await page.getByRole('button',{name:'Dismiss notification'}).click();
   await expect(page.locator('.success-toast')).toHaveCount(0);
-  await page.getByRole('button',{name:/Dashboard$/}).click();
-  await page.getByRole('button',{name:'People',exact:true}).click();
+  await openPageAction(page, /Dashboard$/);
+  await openPageAction(page, "People");
   await page.getByRole('button',{name:'Add person',exact:true}).click();
   await page.getByRole('dialog').getByLabel('Name',{exact:true}).fill('Alex');
   await page.getByRole('button',{name:'Save contact'}).click();
   await expect(page.locator('.success-toast')).toContainText('Contact added.');
-  page.once('dialog',dialog=>dialog.accept());
   await page.getByRole('button',{name:/^Archive /}).click();
+  await page.getByRole('dialog', { name: 'Archive contact?' }).getByRole('button', { name: 'No', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'Archive contact?' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Archive Alex', exact: true })).toBeVisible();
+  await page.getByRole('button',{name:/^Archive /}).click();
+  await page.getByRole('dialog', { name: 'Archive contact?' }).getByRole('button', { name: 'Yes', exact: true }).click();
   await expect(page.locator('.success-toast')).toContainText('Contact archived.');
   await page.getByRole('button',{name:'Dismiss notification'}).click();
   await expect(page.locator('.success-toast')).toHaveCount(0);
@@ -242,7 +256,7 @@ test("daily and monthly amount cards separate currencies, exclude voids and use 
   for(const theme of ['light','dark']) {
     if(await page.locator('html').getAttribute('data-theme')!==theme) await page.getByRole('button',{name:`Switch to ${theme} mode`}).click();
     for(const card of [today,monthly]) {
-      await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today && theme==='light'?'rgb(33, 32, 58)':'rgb(255, 255, 255)');
+      await expect(card.locator('.expense-total').first()).toHaveCSS('color',card===today && theme==='light'?'rgb(9, 20, 19)':'rgb(255, 255, 255)');
       await expect(card).toHaveCSS("background-image", "none");
     }
     await page.setViewportSize({width:320,height:800});
@@ -351,7 +365,7 @@ test("past money entries remain hidden until individually shared", async ({ page
     entries: shared ? [{ id: "entry-1", owner: { displayName: "Alex" }, direction: "BORROWED", kind: "REPAYMENT", amount: "100.00", currency: "INR", purpose: "Old repayment", date: "2026-10-01" }] : [],
   } }));
   await page.goto("/?view=dashboard");
-  await page.getByRole("button", { name: "People", exact: true }).click();
+  await openPageAction(page, "People");
   await expect(page.getByRole("heading", { name: "Shared with you" })).toHaveCount(0);
   await expect(page.getByText("Old repayment")).toHaveCount(0);
   shared = true;
@@ -378,7 +392,7 @@ test("People still shows contacts when optional sharing requests fail", async ({
   await page.route("**/api/contacts/link-requests", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
   await page.route("**/api/contacts/shared-entries", (route) => route.fulfill({ status: 503, json: { message: "Request failed. Please try again." } }));
   await page.goto("/?view=dashboard");
-  await page.getByRole("button", { name: "People", exact: true }).click();
+  await openPageAction(page, "People");
   await expect(page.getByRole("heading", { name: "Priya" })).toBeVisible();
   await expect(page.getByText("Connection requests or shared entries are temporarily unavailable. Your contacts are still here.")).toHaveCount(0);
   await page.getByRole("button", { name: "Add person" }).click();
@@ -397,7 +411,7 @@ test("People sends username requests and preserves the form after a failure", as
     return route.fulfill({ status: fail ? 409 : 201, json: { message: fail ? "No Paylet account has that username." : "Connection request sent." } });
   });
   await page.goto("/?view=dashboard");
-  await page.getByRole("button", { name: "People", exact: true }).click();
+  await openPageAction(page, "People");
   await page.getByRole("button", { name: "Connect to Paylet account" }).click();
   await page.getByLabel("Their exact Paylet username").fill("@Priya_123");
   await page.getByRole("button", { name: "Send connection request" }).click();
@@ -435,7 +449,7 @@ for (const owner of [true, false]) {
     });
     await page.route("**/api/groups/group-1/bills/bill-1", (route) => { expect(route.request().method()).toBe("DELETE"); deleted = true; return route.fulfill({ json: {} }); });
     await page.goto("/?view=dashboard");
-    await page.getByRole("button", { name: "Groups", exact: true }).click();
+    await openPageAction(page, "Groups");
     await page.getByLabel("Find a group").fill("missing group");
     await expect(page.getByRole("heading", { name: "No matching groups" })).toBeVisible();
     await page.getByLabel("Find a group").fill("week");
@@ -542,7 +556,7 @@ test("public homepage opens login and registration and supports browser back", a
   await page.getByLabel("Email address").fill("test@example.com");
   await page.getByLabel("Password", { exact: true }).fill("test-password");
   await page.getByRole("button", { name: "Log in", exact: true }).last().click();
-  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your expenses/ })).toBeVisible();
   await expect(page).toHaveURL(/view=dashboard/);
   await page.reload();
   await expect(page.getByLabel("Email address")).toBeVisible();
@@ -556,7 +570,7 @@ test("logout requires confirmation, cancel preserves session, and failure can re
     return route.fulfill({ status: logoutCalls === 1 ? 503 : 200, json: { message: logoutCalls === 1 ? "Please try again." : "Logged out." } });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await openPageAction(page, "Log out");
   const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button")).toHaveCount(2);
@@ -564,8 +578,8 @@ test("logout requires confirmation, cancel preserves session, and failure can re
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   expect(logoutCalls).toBe(0);
   await page.getByRole("banner").getByRole("button", { name: "Dashboard", exact: true }).click();
-  await page.getByRole("button", { name: "My profile" }).click();
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await openPageAction(page, "My profile");
+  await openPageAction(page, "Log out");
   await dialog.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(dialog.getByRole("alert")).toHaveText("Please try again.");
   await expect(dialog).toBeVisible();
@@ -655,7 +669,7 @@ test("theme preference persists and compact expense rows retain their actions", 
   if (await page.locator("html").getAttribute("data-theme") === "dark") await page.getByRole("button", { name: "Switch to light mode" }).click();
   const expense = page.getByRole("article").filter({ hasText: "Lunch with friends" });
   await expect(expense).toBeVisible();
-  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(250, 249, 255)");
+  expect(await expense.evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(255, 255, 255)");
   for (const name of ["Edit", "Void", "History"]) {
     const action = expense.getByRole("button", { name, exact: true });
     await expect(action).toBeVisible();
@@ -670,7 +684,7 @@ test("theme preference persists and compact expense rows retain their actions", 
   await page.screenshot({ path: "test-results/dashboard-dark.png", fullPage: true });
   await page.getByRole("button", { name: "Add expense", exact: true }).first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(33, 38, 49)");
+  expect(await page.getByRole("dialog").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(14, 28, 26)");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Switch to light mode" }).click();
   await page.screenshot({ path: "test-results/dashboard-purple-light.png", fullPage: true });
@@ -683,7 +697,7 @@ test("phone Back closes an expense dialog before leaving the dashboard", async (
   await expect(page.getByRole("dialog", { name: "Add expense", exact: true })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your expenses/ })).toBeVisible();
 });
 
 test("phone Back returns from a person's history to People and then dashboard", async ({ page }) => {
@@ -692,7 +706,7 @@ test("phone Back returns from a person's history to People and then dashboard", 
   await page.route("**/api/contacts", (route) => route.fulfill({ json: { contacts: [contact] } }));
   await page.route(/\/api\/loans\?/, (route) => route.fulfill({ json: { contact, entries: [], totals: [] } }));
   await page.goto("/?view=dashboard");
-  await page.getByRole("button", { name: "People", exact: true }).click();
+  await openPageAction(page, "People");
   await expect(page).toHaveURL(/screen=people/);
   await page.getByRole("button", { name: /Open money history for/ }).click();
   await expect(page).toHaveURL(/person=contact-1/);
@@ -703,7 +717,7 @@ test("phone Back returns from a person's history to People and then dashboard", 
   await expect(page.getByRole("button", { name: /Open money history for/ })).toBeVisible();
   await expect(page).not.toHaveURL(/person=/);
   await page.goBack();
-  await expect(page.getByRole("heading", { name: /Hello, Aftab/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Your expenses/ })).toBeVisible();
   await page.goForward();
   await expect(page.getByRole("button", { name: /Open money history for/ })).toBeVisible();
 });
@@ -771,7 +785,7 @@ test("AI text and photo previews require review and reuse the same ID on a faile
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   page.once("dialog", (dialog) => dialog.dismiss());
   await page.goBack();
-  await expect(page.getByRole("heading", { name: "Add it in your own words." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Add an entry" })).toBeVisible();
 });
 
 for (const width of [320, 360, 390, 768, 1440]) {
@@ -793,13 +807,13 @@ for (const width of [320, 360, 390, 768, 1440]) {
     await page.getByRole("button", { name: "Invite a friend" }).click();
     await page.screenshot({ path: `test-results/invite-${width}.png` });
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "People", exact: true }).click();
+    await openPageAction(page, "People");
     await page.getByRole("button", { name: "Add person", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Add a person" })).toBeVisible();
     await page.keyboard.press("Escape");
     await page.screenshot({ path: `test-results/people-${width}.png`, fullPage: true });
-    await page.getByRole("button", { name: "Dashboard", exact: true }).click();
-    await page.getByRole("button", { name: "Groups", exact: true }).click();
+    await openPageAction(page, "Dashboard");
+    await openPageAction(page, "Groups");
     await page.getByRole("button", { name: "Create group", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Create a group" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
@@ -893,6 +907,8 @@ test("public photos require opt-in, show in reviews and community, and fall back
   }
   await page.route(photo, (route) => route.abort());
   await page.reload();
+  await expect(page.locator(".testimonial-author .public-avatar")).toBeAttached();
+  await page.locator(".testimonials-section, #testimonials").first().scrollIntoViewIfNeeded();
   await expect(page.locator(".testimonial-author .public-avatar")).toHaveText("A");
   await expect(page.locator(".testimonial-author img")).toHaveCount(0);
 });
@@ -910,7 +926,7 @@ test("profile community-photo preference saves independently of testimonials", a
     await route.fulfill({json:{user:profile}});
   });
   await page.goto("/?view=dashboard");
-  await page.getByRole("button",{name:"My profile"}).click();
+  await openPageAction(page, "My profile");
   await page.getByRole('button',{name:'Edit profile',exact:true}).click();
   const consent=page.getByRole("checkbox",{name:'Show my photo in the public community.',exact:true});
   await expect(consent).not.toBeChecked();
@@ -935,7 +951,7 @@ test("profile editor preserves drafts on failure, saves in a modal and shows a t
     await route.fulfill({json:{user:profile}});
   });
   await page.goto('/?view=dashboard');
-  await page.getByRole('button',{name:'My profile'}).click();
+  await openPageAction(page, "My profile");
   await expect(page.getByRole('button',{name:'Edit profile',exact:true})).toBeVisible();
   await expect(page.getByLabel('Display name',{exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'Edit profile',exact:true}).click();
@@ -958,8 +974,10 @@ test("profile editor preserves drafts on failure, saves in a modal and shows a t
     for(const width of [320,768,1440]) {
       await page.setViewportSize({width,height:900});
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+      if (width <= 800) await page.locator(".mobile-menu > summary:visible").click();
       await expect(page.locator('header').getByRole('button',{name:'Dashboard',exact:true})).toBeVisible();
       await expect(page.locator('header').getByRole('button',{name:'Log out',exact:true})).toBeVisible();
+      if (width <= 800) await page.keyboard.press("Escape");
     }
     await page.screenshot({path:`test-results/profile-overview-${theme}.png`});
     await page.getByRole('button',{name:'Edit profile',exact:true}).click();
@@ -990,7 +1008,7 @@ test("avatar camera opens the picker, previews before upload, retries failures a
     await route.fulfill({json:{user:profile}});
   });
   await page.goto('/?view=dashboard');
-  await page.getByRole('button',{name:'My profile'}).click();
+  await openPageAction(page, "My profile");
   const picker=page.waitForEvent('filechooser');
   await expect(page.getByLabel('Profile photo file',{exact:true})).toBeHidden();
   await page.getByRole('button',{name:'Change profile photo',exact:true}).click();
@@ -1005,7 +1023,7 @@ test("avatar camera opens the picker, previews before upload, retries failures a
   await expect(page.locator('.success-toast-top')).toContainText('Profile photo saved.');
   await expect(page.locator('.avatar-preview img')).toBeVisible();
   await page.getByRole('button',{name:'Dismiss notification'}).click();
-  page.once('dialog',dialog=>dialog.accept());
+  page.once("dialog", dialog => dialog.accept());
   await page.getByRole('button',{name:'Remove photo',exact:true}).click();
   await expect(page.locator('.avatar-preview img')).toHaveCount(0);
   await expect(page.locator('.success-toast-top')).toContainText('Profile photo removed.');
@@ -1068,10 +1086,10 @@ test("dashboard, AI Quick Add and landing share the charcoal and lavender themes
   await mockApi(page);
   await page.goto("/?view=dashboard");
   if (await page.locator("html").getAttribute("data-theme") !== "dark") await page.getByRole("button", { name: "Switch to dark mode" }).click();
-  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 14, 21)");
-  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(33, 38, 49)");
+  expect(await page.locator("body").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
+  await expect(page.locator(".today-expense-card")).toHaveCSS("background-color", "rgb(14, 28, 26)");
   await page.getByRole("button", { name: "AI Quick Add", exact: true }).first().click();
-  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(10, 14, 21)");
+  expect(await page.locator(".pqa").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
   await page.goto("/");
   expect(await page.locator(".landing-page").evaluate((element) => getComputedStyle(element).backgroundColor)).toBe("rgb(9, 20, 19)");
   await page.screenshot({ path: "test-results/landing-deep-black.png" });
@@ -1162,7 +1180,7 @@ test("balance cards open People and horizontal contact cards show recorded and o
   await page.screenshot({path:'test-results/people-redesign-dark-mobile.png',fullPage:true});
   await page.setViewportSize({width:1440,height:960});
   await page.screenshot({path:'test-results/people-redesign-dark-desktop.png',fullPage:true});
-  await page.getByRole("button", { name: "Dashboard", exact: true }).click();
+  await openPageAction(page, "Dashboard");
   await page.getByRole("button", { name: "Total borrowed ₹ 200.00. Open People" }).click();
   await expect(page.getByRole("heading", { name: "People", exact: true })).toBeVisible();
 });
@@ -1203,12 +1221,12 @@ test("Dashboard shortcuts and AI Quick Add follow charcoal and lavender in both 
     const icons = page.locator(".quick-actions > button:not(.dashboard-ai-shortcut) .action-symbol");
     await expect(icons).toHaveCount(5);
     for (const icon of await icons.all()) {
-      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe(theme === "dark" ? "rgb(255, 255, 255)" : "rgb(33, 32, 58)");
-      expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("2.5px");
+      expect(await icon.evaluate((element) => getComputedStyle(element).color)).toBe(theme === "dark" ? "rgb(255, 255, 255)" : "rgb(9, 20, 19)");
+      expect(await icon.locator("svg").evaluate((element) => getComputedStyle(element).strokeWidth)).toBe("1.5px");
     }
     for (const control of [page.locator('.dashboard-ai-shortcut .action-symbol')]) {
-      await expect(control).toHaveCSS('color',theme==='dark'?'rgb(10, 14, 21)':'rgb(255, 255, 255)');
-      await expect(control).toHaveCSS('background-color', theme==='dark'?'rgb(224, 228, 235)':'rgb(91, 33, 182)');
+      await expect(control).toHaveCSS('color', theme==='dark'?'rgb(255, 255, 255)':'rgb(9, 20, 19)');
+      await expect(control).toHaveCSS('background-color', theme === "dark" ? "rgb(24, 40, 36)" : "rgb(241, 244, 243)");
     }
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.screenshot({ path: `test-results/dashboard-ivory-${theme}.png` });
@@ -1222,7 +1240,7 @@ test("solid logout dialog fits mobile in both themes with only two buttons", asy
   await page.goto("/");
   for (const theme of ["light", "dark"]) {
     if (await page.locator("html").getAttribute("data-theme") !== theme) await page.getByRole("button", { name: `Switch to ${theme} mode` }).click();
-    await page.getByRole("button", { name: "Log out", exact: true }).click();
+    await openPageAction(page, "Log out");
     const dialog = page.getByRole("dialog", { name: "Log out of Paylet?" });
     await expect(dialog.getByRole("button")).toHaveCount(2);
     expect(await dialog.evaluate((element) => getComputedStyle(element).backgroundImage)).toBe("none");
@@ -1255,7 +1273,7 @@ test("dashboard refresh uses solid expense rows and lending cards", async ({ pag
 test("rupee labels preserve currency codes and floating expense control works while scrolled", async ({ page }) => {
   await mockApi(page);
   await page.goto("/?view=dashboard");
-  await expect(page.getByRole("img", { name: "waving hand" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your expenses", exact: true })).toBeVisible();
   await expect(page.locator(".expense-row-right > strong").first()).toContainText("₹ 250.00");
   const fab = page.locator(".dashboard-fab");
   await expect(fab).toBeEnabled();
@@ -1277,7 +1295,7 @@ test("rupee labels preserve currency codes and floating expense control works wh
   await expect(currency.locator('option[value="USD"]')).toHaveText("USD");
   await page.getByRole("button", { name: "Close dialog" }).click();
   await expect(fab).toBeVisible(); await expect(fab).toBeFocused();
-  expect(await page.locator(".dashboard-add-expense").evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
+  expect(await page.locator(".dashboard-add-expense").evaluate((element) => getComputedStyle(element).backgroundImage)).toBe("none");
   await page.screenshot({ path: "test-results/dashboard-rupee-fab.png" });
 });
 
@@ -1296,7 +1314,7 @@ for (const paidByViewer of [true, false]) {
     await page.goto("/?view=dashboard&screen=groups&group=group-compact");
     const card = page.locator(".pg-transaction");
     await expect(card).toContainText(paidByViewer ? "Receive ₹ 250.00 from Priya · ₹ 250.00 from Rahul · ₹ 250.00 from Neha" : "Pay ₹ 250.00 to Priya");
-    await expect(card).toContainText("ORIGINAL SPLIT");
+    await expect(card).toContainText("Original split");
     await expect(card.getByText("Recorded by", { exact: false })).toBeHidden();
     await card.getByText("View split", { exact: true }).click();
     await expect(card.getByText(`Recorded by ${payer.displayName}`)).toBeVisible();
@@ -1394,4 +1412,40 @@ test("shared payments request confirmation without marking paid and owner can co
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: `test-results/shared-payments-${theme}.png`, fullPage: true });
   }
+});
+
+test("mobile menu stays aligned and refresh tracks the pending request", async ({ page }) => {
+  await mockApi(page);
+  await page.setViewportSize({ width: 320, height: 800 });
+  let release: (() => void) | undefined;
+  let delay = false;
+  await page.route("**/api/expenses?**", async route => {
+    if (delay) await new Promise<void>(resolve => { release = resolve; });
+    await route.fulfill({ json: { expenses: [initialExpense], count: 1, totals: [] } });
+  });
+  await page.goto("/?view=dashboard");
+  const refresh = page.getByRole("button", { name: "Refresh expenses" });
+  await expect(refresh).toBeEnabled();
+  const brand = await page.getByRole("link", { name: "Paylet." }).boundingBox();
+  const menu = page.locator(".mobile-menu > summary:visible");
+  const bounds = await menu.boundingBox();
+  expect(Math.abs(brand!.y - bounds!.y)).toBeLessThan(24);
+  await menu.click();
+  await expect(page.getByRole("button", { name: "My profile", exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeFocused();
+  await expect(page.locator(".mobile-menu")).not.toHaveAttribute("open", "");
+  delay = true;
+  await refresh.click();
+  await expect(refresh).toBeDisabled();
+  await expect(refresh).toHaveAttribute("aria-busy", "true");
+  await expect(refresh.locator(".refresh-spinner")).toBeVisible();
+  await expect.poll(() => Boolean(release)).toBe(true);
+  delay = false;
+  release!();
+  await expect(refresh).toBeEnabled();
+  await expect(refresh).toHaveAttribute("aria-busy", "false");
+  await page.screenshot({ path: "test-results/app-mobile-light.png", fullPage: true });
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await page.screenshot({ path: "test-results/app-mobile-dark.png", fullPage: true });
 });

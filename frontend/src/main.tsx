@@ -9,6 +9,7 @@ import './appearance.css'
 import './application-theme.css'
 import './components/landing-redesign.css'
 import './components/dashboard-refresh.css'
+import './app-ui.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

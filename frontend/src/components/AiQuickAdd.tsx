@@ -1,10 +1,12 @@
+import BrandMark from "./BrandMark";
+import MobileActions from "./MobileActions";
 import { useEffect, useRef, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
 import "./ai-quick-add.css";
 import ThemeToggle from "./ThemeToggle";
-import { ArrowLeft, Camera, Check, CheckCircle2, FileImage, ImagePlus, LoaderCircle, Pencil, ReceiptText, ScanLine, Sparkles, Trash2, Type, Wallet } from "lucide-react";
+import { ArrowLeft, Camera, Check, CheckCircle2, FileImage, ImagePlus, LoaderCircle, Pencil, ReceiptText, ScanLine, Trash2, Type, Wallet } from "lucide-react";
 import { useNavigationGuard } from "../lib/navigation";
 
 type Intent = "EXPENSE" | "LENT" | "BORROWED" | "REPAYMENT_RECEIVED" | "REPAYMENT_PAID";
@@ -142,8 +144,9 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
     ? new Intl.DateTimeFormat("en", { weekday: "long", year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${draft.date}T00:00:00Z`)) : "Choose a date";
 
   return <main className="pqa">
-    <header className="pqa-header"><div><span className="pqa-kicker">PAYLET / AI QUICK ADD</span><h1>Add it in your own words.</h1><p>One expense, loan or repayment. You stay in control.</p></div>
-      <div className="header-theme-actions"><ThemeToggle /><button type="button" className="pqa-btn pqa-outline" onClick={onBack} disabled={locked}><ArrowLeft size={18} /> Back to dashboard</button></div></header>
+    <header className="pqa-header"><a className="brand" href="/"><BrandMark/><span>Paylet.</span></a><MobileActions>
+      <div className="header-theme-actions"><ThemeToggle /><button type="button" className="pqa-btn pqa-outline" onClick={onBack} disabled={locked}><ArrowLeft size={18} /> Back to dashboard</button></div></MobileActions></header>
+    <div className="pqa-page-heading"><h1>Add an entry</h1><p>One expense, loan or repayment. You stay in control.</p></div>
     <div className="pqa-steps" aria-label="Entry steps"><span aria-current={!draft && !receipt ? "step" : undefined}><Type size={16} /> 1. Describe</span><span aria-current={draft ? "step" : undefined}><Pencil size={16} /> 2. Review</span><span aria-current={receipt ? "step" : undefined}><CheckCircle2 size={16} /> 3. Save</span></div>
     {loadError && <div className="pqa-error" role="alert">{loadError} <button className="pqa-btn pqa-outline" onClick={() => setLoadKey((value) => value + 1)}>Reload options</button></div>}
     {error && <div className="pqa-error" role="alert">{error}</div>}
@@ -151,20 +154,20 @@ export default function AiQuickAdd({ onBack }: { onBack: () => void }) {
     {pending && <section className="pqa-card"><h2>Confirming your save</h2><p>Your reviewed entry is locked until its save is confirmed. Retry sends the same entry ID.</p><button className="pqa-btn pqa-green" type="button" disabled={busy} onClick={() => void save(pending)}>{busy ? "Saving…" : "Retry same entry"}</button></section>}
     {!loaded && !loadError && <p role="status">Loading your contacts and currencies…</p>}
     <div className="pqa-layout"><section className="pqa-card">
-      <div className="pqa-title-row"><Sparkles size={22} /><h2>What happened?</h2></div><p className="pqa-muted">Write naturally in English or Hinglish, or use a bill photo.</p>
+      <div className="pqa-title-row"><h2>What happened?</h2></div><p className="pqa-muted">Write naturally in English or Hinglish, or use a bill photo.</p>
       <div className="pqa-input-modes" role="group" aria-label="Input method"><button type="button" aria-pressed={inputMode === "text"} disabled={locked} onClick={() => switchInput("text")}><Type size={18} /> Type an entry</button><button type="button" aria-pressed={inputMode === "photo"} disabled={locked} onClick={() => switchInput("photo")}><ScanLine size={18} /> Scan a bill</button></div>
       <form onSubmit={(event) => void prepare(event)}>
         {inputMode === "text" ? <>
         <label htmlFor="ai-text">Your entry</label>
         <textarea id="ai-text" required minLength={3} maxLength={2000} rows={6} value={text} disabled={locked} onChange={(event) => { setText(event.target.value); setPreview(null); setDraft(null); setReviewed(false); }} placeholder="I lent Uncle 250 rupees for groceries today" />
         </> : <>
-          <div className="pqa-upload-actions"><button type="button" className="button button-blue" disabled={locked} onClick={() => cameraRef.current?.click()}><Camera size={28} /> Scan with camera</button><button type="button" className="button button-outline" disabled={locked} onClick={() => uploadRef.current?.click()}><ImagePlus size={28} /> Upload photo</button><p className="pqa-upload-hint">JPG, PNG or WebP · Up to 6 MB · One bill per scan</p></div><input ref={uploadRef} key={photoKey} className="pqa-hidden-input" aria-label="Bill photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} /><input ref={cameraRef} key={`camera-${photoKey}`} className="pqa-hidden-input" aria-label="Camera photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} />
+          <div className="pqa-upload-actions"><button type="button" className="button button-blue" disabled={locked} onClick={() => cameraRef.current?.click()}><Camera size={18} /> Scan with camera</button><button type="button" className="button button-outline" disabled={locked} onClick={() => uploadRef.current?.click()}><ImagePlus size={18} /> Upload photo</button><p className="pqa-upload-hint">JPG, PNG or WebP · Up to 6 MB · One bill per scan</p></div><input ref={uploadRef} key={photoKey} className="pqa-hidden-input" aria-label="Bill photo" type="file" accept="image/jpeg,image/png,image/webp" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} /><input ref={cameraRef} key={`camera-${photoKey}`} className="pqa-hidden-input" aria-label="Camera photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={locked} onChange={(event) => choosePhoto(event.target.files?.[0])} />
           {photo && <><img src={photo.url} alt="Selected bill to scan" className="pqa-receipt-photo" /><p className="pqa-muted">{photo.file.name}</p><button type="button" className="pqa-btn pqa-outline" disabled={locked} onClick={() => { choosePhoto(undefined); setPhotoKey((value) => value + 1); }}><Trash2 size={17} /> Remove photo</button></>}
           <label>Notes (optional)<textarea maxLength={2000} rows={2} value={photoNotes} disabled={locked} onChange={(event) => { setPhotoNotes(event.target.value); setPreview(null); setDraft(null); setReviewed(false); }} placeholder="For example: the currency is ₹" /></label>
           <p className="pqa-note">This prepares one personal expense using the bill's final total. For shared bills, use Groups. Confirm only spending you actually paid.</p>
         </>}
         <p className="pqa-muted">{inputMode === "photo" ? "The selected bill image, notes and date/currency context are sent to Groq when you scan. Paylet does not keep the photo after processing." : "Only this text and date/currency context are sent to Groq."} Your saved contact list and financial history are not sent.</p>
-        <button className="pqa-btn pqa-primary" type="submit" disabled={locked || !loaded || (inputMode === "photo" && !photo)}>{busy && !pending ? <LoaderCircle size={18} className="pqa-spinner" /> : <Sparkles size={18} />}{busy && !pending ? "Preparing preview..." : inputMode === "photo" ? "Scan and review" : "Review with AI"}</button>
+        <button className="pqa-btn pqa-primary" type="submit" disabled={locked || !loaded || (inputMode === "photo" && !photo)}>{busy && !pending ? <LoaderCircle size={18} className="pqa-spinner" /> : <ReceiptText size={18} />}{busy && !pending ? "Preparing preview..." : inputMode === "photo" ? "Scan and review" : "Review with AI"}</button>
       </form>
       {inputMode === "text" && <div className="pqa-examples"><span className="pqa-muted">Try an example</span>{["I spent 200 rupees on lunch today", "Maine Uncle ko 250 rupees udhaar diye groceries ke liye", "Uncle returned 200 rupees of the money I lent him today"].map((example) => <button type="button" key={example} disabled={locked} onClick={() => { setText(example); setPreview(null); setDraft(null); setReviewed(false); }}>{example}</button>)}</div>}
     </section>

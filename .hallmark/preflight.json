@@ -1,0 +1,10 @@
+{
+  "scope": "signed-in app",
+  "palette": ["#091413", "#FFFFFF"],
+  "type": "Be Vietnam Pro",
+  "signature": "Aligned personal and shared money records",
+  "routes": ["dashboard", "people", "groups", "reports", "profile", "ai"],
+  "source": ["frontend/src/application-theme.css", "frontend/src/components/Dashboard.tsx", "frontend/src/components/People.tsx"],
+  "material": "Existing Paylet screens and real API contracts",
+  "audience": "People tracking expenses and shared bills"
+}

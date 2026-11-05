@@ -1,7 +1,7 @@
-import { ArrowUpRight, History, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowUpRight, History, ReceiptText, RefreshCw, Trash2 } from "lucide-react";
 import Modal from "./Modal";
 import { useSuccessToast } from "../lib/successToast";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -53,6 +53,8 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
   const notify = useSuccessToast();
   const viewerMember = members.find((member) => member.userId === viewerId);
   const [revision, setRevision] = useState(0);
+  const [refreshing, setRefreshing] = useState(true);
+  const manualRefresh = useRef(false);
   const [data, setData] = useState<{ bills: Bill[]; balances: Balance[] } | null>(null);
   const [options, setOptions] = useState<{ currencies: string[]; categories: string[]; currency: string; timezone: string } | null>(null);
   const [error, setError] = useState("");
@@ -69,10 +71,11 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
       api<{ user: { defaultCurrency: string; timezone: string } }>("/auth/me", { signal: controller.signal }),
     ]).then(([result, choices, profile]) => {
       if (controller.signal.aborted) return;
-      setData(result); setOptions({ ...choices, currency: profile.user.defaultCurrency, timezone: profile.user.timezone }); setError("");
-    }).catch((err: unknown) => { if (!controller.signal.aborted) setError(errorText(err)); });
+      setData(result); setOptions({ ...choices, currency: profile.user.defaultCurrency, timezone: profile.user.timezone }); setError(""); setRefreshing(false);
+      if (manualRefresh.current) { manualRefresh.current = false; notify("Bills refreshed.", { position: "top-left" }); }
+    }).catch((err: unknown) => { if (!controller.signal.aborted) { setError(errorText(err)); setRefreshing(false); if (manualRefresh.current) { manualRefresh.current = false; notify(errorText(err), { position: "top-left", tone: "error" }); } } });
     return () => controller.abort();
-  }, [groupId, revision]);
+  }, [groupId, revision, notify]);
   function begin() {
     if (!options || !viewerMember) return;
     setDraft({ id: crypto.randomUUID(), amount: "", currency: options.currency, purpose: "", category: "Other", date: today(options.timezone), payerId: viewerMember.id, splitMode: "EQUAL", participants: members.map((m) => ({ memberId: m.id, amount: "" })) });
@@ -84,13 +87,13 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
     setBusy(true); setError("");
     try {
       await api(`/groups/${groupId}/bills`, { method: "POST", body: JSON.stringify({ ...draft, payerId: viewerMember.id, participants: draft.participants.map((p) => draft.splitMode === "EQUAL" ? { memberId: p.memberId } : p) }) });
-      setDraft(null); notify("Bill saved.", { position: "top-left" }); setRevision((n) => n + 1);
+      setDraft(null); notify("Bill saved.", { position: "top-left" }); setRefreshing(true); setRevision((n) => n + 1);
     } catch (err) { setError(errorText(err)); notify(errorText(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   async function remove(bill: Bill) {
     if (!window.confirm(`Delete “${bill.purpose}”? This removes its shares from everyone’s totals and preserves history.`)) return;
     setBusy(true); setError("");
-    try { await api(`/groups/${groupId}/bills/${bill.id}`, { method: "DELETE" }); setHistory(null); notify("Bill deleted.", { position: "top-left" }); setRevision((n) => n + 1); }
+    try { await api(`/groups/${groupId}/bills/${bill.id}`, { method: "DELETE" }); setHistory(null); notify("Bill deleted.", { position: "top-left" }); setRefreshing(true); setRevision((n) => n + 1); }
     catch (err) { setError(errorText(err)); notify(errorText(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
   async function openHistory(bill: Bill) {
@@ -101,7 +104,7 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
   }
   const split = draft ? preview(draft) : null;
   return <section className="pg-panel pg-stack pg-group-bills">
-    <div className="pg-between"><div><span className="pg-kicker">SHARED SPENDING</span><h2>Group bills</h2></div><div className="pg-actions"><button className="button button-outline" disabled={busy || !!draft} onClick={() => setRevision((n) => n + 1)}>Refresh bills</button><button className="button pg-add-expense" disabled={busy || !!draft || !options || !viewerMember} onClick={begin}>+ Add expense</button></div></div>
+    <div className="pg-between"><div><h2>Group bills</h2></div><div className="pg-actions"><button className="button button-outline" disabled={busy || !!draft || refreshing} aria-label="Refresh bills" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); setRevision((n) => n + 1); }}><RefreshCw size={16} className={refreshing ? "spin" : ""} aria-hidden="true"/>{refreshing ? "Refreshing…" : "Refresh bills"}</button><button className="button pg-add-expense" disabled={busy || !!draft || !options || !viewerMember} onClick={begin}>+ Add expense</button></div></div>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}
     {!data && !error && <p role="status">Loading shared bills…</p>}
     {data && data.balances.length > 0 && <details className="pg-balance-details"><summary>Group balances · after repayments</summary><div className="pg-grid">{data.balances.map((b) => <article className="pg-balance" key={`${b.memberId}:${b.currency}`}><strong>{b.user.displayName}{b.user.id === viewerId ? " (You)" : ""}</strong><p>{currencyLabel(b.currency)} · Paid {b.paid} · Share {b.share}</p><strong>{/^0(?:\.0+)?$/.test(b.net) ? "Settled for these bills" : b.net.startsWith("-") ? `To pay: ${currencyLabel(b.currency)} ${b.net.slice(1)}` : `To receive: ${currencyLabel(b.currency)} ${b.net}`}</strong></article>)}</div></details>}
@@ -123,7 +126,7 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
     {data?.bills.filter((b) => showDeleted || !b.deletedAt).map((bill) => <article key={bill.id} className={`pg-bill pg-transaction ${bill.deletedAt ? "pg-bill-deleted" : ""}`}>
       <div className="pg-transaction-heading"><span className="pg-receipt-icon" aria-hidden="true"><ReceiptText size={21}/></span><div className="pg-transaction-title"><h3>{bill.purpose}</h3><p>{displayDate(bill.date)} · {bill.category}</p></div><strong className="pg-transaction-amount">{currencyLabel(bill.currency)} {bill.amount}</strong></div>
       <p className="pg-bill-payer">Paid by <strong>{bill.payer.id === viewerId ? "You" : bill.payer.displayName}</strong></p>
-      <div className="pg-personal-split"><ArrowUpRight size={17} aria-hidden="true"/><p><small>{bill.deletedAt ? "DELETED EXPENSE" : "ORIGINAL SPLIT"}</small>{billSummary(bill, viewerId, viewerMember?.id)}</p></div>
+      <div className="pg-personal-split"><ArrowUpRight size={17} aria-hidden="true"/><p><small>{bill.deletedAt ? "Deleted expense" : "Original split"}</small>{billSummary(bill, viewerId, viewerMember?.id)}</p></div>
       <div className="pg-transaction-footer"><details className="pg-bill-split"><summary>View split</summary><p className="pg-muted">Recorded by {bill.creator.displayName}</p>{bill.shares.map((share) => <p key={share.memberId}><strong>{share.user.displayName}</strong><span>{currencyLabel(bill.currency)} {share.amount}</span></p>)}</details><div className="pg-actions"><button className="button button-outline" aria-disabled={busy || !!draft} onClick={() => void openHistory(bill)}><History size={15}/>History</button>{!bill.deletedAt && (bill.creatorId === viewerId || ownerId === viewerId) && <button className="button pg-danger" disabled={busy || !!draft} onClick={() => void remove(bill)}><Trash2 size={15}/>Delete</button>}</div></div>
     </article>)}
     {data && !data.bills.some((b) => showDeleted || !b.deletedAt) && <p className="pg-muted">No bills to show. Add an expense to start splitting.</p>}

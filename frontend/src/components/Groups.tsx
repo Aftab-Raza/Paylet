@@ -1,6 +1,7 @@
+import MobileActions from "./MobileActions";
 import { useSuccessToast } from "../lib/successToast";
 import BrandMark from "./BrandMark";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import type { FormEvent } from "react";
 import { api } from "../lib/api";
@@ -41,6 +42,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   const [sent, setSent] = useState<Sent[]>([]);
   const [sentError, setSentError] = useState("");
   const [sentLoading, setSentLoading] = useState(owner);
+  const manualInvitations = useRef(false);
   const [revision, setRevision] = useState(0);
   const [contacts, setContacts] = useState<{ id: string; name: string; linkedUser: Person | null; isArchived: boolean }[]>([]);
   const [offlineContactId, setOfflineContactId] = useState("");
@@ -48,10 +50,10 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     if (!owner) return;
     const controller = new AbortController();
     api<{ invitations: Sent[] }>(`/groups/${group.id}/invitations`, { signal: controller.signal })
-      .then((result) => { if (!controller.signal.aborted) { setSent(result.invitations); setSentLoading(false); setSentError(""); } })
-      .catch((err: unknown) => { if (!controller.signal.aborted) { setSentError(message(err)); setSentLoading(false); } });
+      .then((result) => { if (!controller.signal.aborted) { setSent(result.invitations); setSentLoading(false); setSentError(""); if (manualInvitations.current) { manualInvitations.current = false; notify("Invitations refreshed.", { position: "top-left" }); } } })
+      .catch((err: unknown) => { if (!controller.signal.aborted) { setSentError(message(err)); setSentLoading(false); if (manualInvitations.current) { manualInvitations.current = false; notify(message(err), { position: "top-left", tone: "error" }); } } });
     return () => controller.abort();
-  }, [group.id, owner, revision]);
+  }, [group.id, owner, revision, notify]);
   useEffect(() => {
     if (!owner) return;
     const controller = new AbortController();
@@ -81,7 +83,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         body: JSON.stringify(kind === "invite" ? { username: username.trim() } : { name: name.trim() }),
       });
       if (kind === "invite") {
-        setUsername(""); setRevision((n) => n + 1); notify("Invitation sent.", { position: "top-left" });
+        setUsername(""); setSentLoading(true); setRevision((n) => n + 1); notify("Invitation sent.", { position: "top-left" });
       } else { notify("Group name saved.", { position: "top-left" }); onChange(); }
     } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
@@ -90,7 +92,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     setBusy(true);
     try {
       await api(`/groups/${group.id}/invitations`, { method: "POST", body: JSON.stringify({ username: recipientUsername }) });
-      setRevision((n) => n + 1); notify("Invitation resent.", { position: "top-left" });
+      setSentLoading(true); setRevision((n) => n + 1); notify("Invitation resent.", { position: "top-left" });
     } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); }
     finally { setBusy(false); }
   }
@@ -106,7 +108,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
     <button className="button button-outline" disabled={busy} onClick={onBack}>← All groups</button>
     <section className="pg-panel pg-hero">
       <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
-      <div><span className="pg-kicker">SHARED GROUP</span><h1>{group.name}</h1><p>{group.members.length} members · {owner ? "Created by you" : "You are a member"}</p></div>
+      <div><h1>{group.name}</h1><p>{group.members.length} members · {owner ? "Created by you" : "You are a member"}</p></div>
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
     <section className="pg-panel pg-member-panel">
@@ -144,7 +146,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
           <button className="button button-green" disabled={busy || !username.trim()}><Send size={18} /> Send invitation</button>
         </form>
       </>}
-        <div className="pg-between"><h3>Invitation status</h3><button className="button button-outline" disabled={busy || sentLoading} onClick={() => { setSentLoading(true); setRevision((n) => n + 1); }}>{sentLoading ? "Refreshing…" : "Refresh invitations"}</button></div>
+        <div className="pg-between"><h3>Invitation status</h3><button className="button button-outline" disabled={busy || sentLoading} aria-label="Refresh invitations" aria-busy={sentLoading} onClick={() => { manualInvitations.current = true; setSentLoading(true); setRevision((n) => n + 1); }}><RefreshCw size={16} className={sentLoading ? "spin" : ""} aria-hidden="true"/>{sentLoading ? "Refreshing…" : "Refresh invitations"}</button></div>
         <div className="pg-invitation-scroll" role="region" aria-label="Sent invitations" tabIndex={0}>
         {sentError ? <p className="pg-error" role="alert">{sentError}</p> : sentLoading ? <p role="status">Loading invitations…</p> : sent.length === 0 ? <p className="pg-muted">No invitations sent yet.</p> : sent.map((item) => <div className="pg-row" key={item.id}><div className="pg-grow"><strong>{item.recipient.displayName}</strong><p>@{item.recipient.username}</p></div><span className={`pg-tag pg-${item.status.toLowerCase()}`}>{item.status.toLowerCase()}</span>{item.status !== "ACCEPTED" && !group.members.some((member) => member.userId === item.recipient.id) && <button className="button button-outline" disabled={busy} onClick={() => void resend(item.recipient.username)}>Resend</button>}</div>)}
         </div>
@@ -163,6 +165,9 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
 }
 
 export default function Groups({ onBack }: { onBack: () => void; initialGroupId?: string | null }) {
+  const notify = useSuccessToast();
+  const manualRefresh = useRef(false);
+  const [refreshing, setRefreshing] = useState(true);
   const [data, setData] = useState<Listing | null>(null);
   const [revision, setRevision] = useState(0);
   const [selectedId, setSelectedId] = useHistoryParam("group");
@@ -178,17 +183,17 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   useEffect(() => {
     const controller = new AbortController();
     api<Listing>("/groups", { signal: controller.signal })
-      .then((result) => { if (!controller.signal.aborted) { setData(result); setLoading(false); setLoadError(""); } })
-      .catch((err: unknown) => { if (!controller.signal.aborted) { setLoadError(message(err)); setLoading(false); } });
+      .then((result) => { if (!controller.signal.aborted) { setData(result); setLoading(false); setLoadError(""); setRefreshing(false); if (manualRefresh.current) { manualRefresh.current = false; notify("Groups refreshed.", { position: "top-left" }); } } })
+      .catch((err: unknown) => { if (!controller.signal.aborted) { setLoadError(message(err)); setLoading(false); setRefreshing(false); if (manualRefresh.current) { manualRefresh.current = false; notify(message(err), { position: "top-left", tone: "error" }); } } });
     return () => controller.abort();
-  }, [revision]);
+  }, [revision, notify]);
   // Refresh group membership/deletions without interrupting forms with periodic remounts.
   useEffect(() => {
-    function focused() { if (!document.hidden) setRevision((n) => n + 1); }
+    function focused() { if (!document.hidden) { setRefreshing(true); setRevision((n) => n + 1); } }
     window.addEventListener("focus", focused);
     return () => window.removeEventListener("focus", focused);
   }, []);
-  function reload() { setRevision((n) => n + 1); invites.refresh(); }
+  function reload() { setRefreshing(true); setRevision((n) => n + 1); invites.refresh(); }
   async function create(event: FormEvent) {
     event.preventDefault(); if (!draft || busy) return;
     setBusy(true); setError(""); setNotice("");
@@ -207,18 +212,18 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const selected = data?.groups.find((group) => group.id === selectedId);
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return <main className="signed-in-page pg-page groups-refresh">
-    <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><div className="pg-actions"><ThemeToggle /><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy} onClick={reload}><RefreshCw size={18} /> Refresh</button></div></header>
+    <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><MobileActions><div className="pg-actions"><ThemeToggle /><button className="button button-outline" disabled={busy} onClick={() => { if (!draft || window.confirm("Discard this unsaved group?")) onBack(); }}><ArrowLeft size={18} /> Dashboard</button><button className="button button-outline" disabled={busy || refreshing} aria-label="Refresh groups" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); reload(); }}><RefreshCw size={18} className={refreshing ? "spin" : ""} aria-hidden="true"/> {refreshing ? "Refreshing…" : "Refresh"}</button></div></MobileActions></header>
     <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}
     {loading ? <p role="status">Loading groups…</p> : selected && data ? <GroupDetails key={selected.id} group={selected} viewerId={data.viewerId} owner={selected.ownerId === data.viewerId} onChange={reload} onBack={() => setSelectedId(null)}/> : <>
-      <section className="pg-hero"><div><span className="pg-kicker">BETTER TOGETHER</span><h1>Your groups</h1><p className="pg-muted">One place for your people and shared plans.</p></div></section>
+      <section className="pg-hero"><div><h1>Your groups</h1><p className="pg-muted">Split expenses and track what everyone owes.</p></div></section>
       <div className="pg-stats"><div><strong>{data?.groups.length ?? "—"}</strong><span>Your groups</span></div><div><strong>{invites.loading ? "—" : invites.invitations.length}</strong><span>Pending invitations</span></div><div><strong>{data?.groups.filter((group) => group.ownerId === data.viewerId).length ?? "—"}</strong><span>Created by you</span></div></div>
       <div className="pg-workspace pg-gallery-workspace">
         <section className="pg-panel pg-directory" aria-label="Your group list">
           <div className="pg-gallery-toolbar"><label className="pg-stack pg-grow" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label><div className="pg-layout-toggle" role="group" aria-label="Group layout"><button className="button button-outline" aria-label="Grid view" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}><LayoutGrid size={19}/></button><button className="button button-outline" aria-label="List view" aria-pressed={layout === "list"} onClick={() => setLayout("list")}><List size={19}/></button></div></div>
           <div className={`pg-group-gallery pg-gallery-${layout}`}>
-            <button className="pg-create-tile" aria-label="Create group" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><span className="pg-create-icon"><Plus size={26}/></span><strong>Create group</strong><small>Bring your people together</small></button>
+            <button className="pg-create-tile" aria-label="Create group" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><span className="pg-create-icon"><Plus size={26}/></span><strong>Create group</strong><small>Share expenses with a group</small></button>
             {visible.map((group) => <article className="pg-gallery-item" key={group.id}>
               <button className="pg-group-tile" aria-label={`Open group ${group.name}`} disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}>
                 <span className={`pg-tag pg-gallery-role ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span>
@@ -228,12 +233,12 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
               </button>
             </article>)}
           </div>
-          {!loadError && data && visible.length === 0 && <div className="pg-empty"><Users size={32}/><h2>{search ? "No matching groups" : "Start with your people"}</h2><p className="pg-muted">{search ? "Try a different group name." : "Create a group for two friends or your whole circle."}</p></div>}
+          {!loadError && data && visible.length === 0 && <div className="pg-empty"><Users size={32}/><h2>{search ? "No matching groups" : "No groups yet"}</h2><p className="pg-muted">{search ? "Try a different group name." : "Create a group to split expenses."}</p></div>}
         </section>
         <aside className="pg-stack pg-overview-side" aria-label="Group overview and invitations">
 
 
-      <section className="pg-panel pg-inbox" aria-label="Group invitations"><div className="pg-between"><h2><Mail size={20}/> Invitations <span className="pg-badge">{invites.invitations.length}</span></h2><span className="pg-muted">Updates every 20 seconds</span></div>
+      <section className="pg-panel pg-inbox" aria-label="Group invitations"><div className="pg-between"><h2><Mail size={20}/> Invitations <span className="pg-badge">{invites.invitations.length}</span></h2></div>
         {invites.error && <p className="pg-error" role="alert">{invites.error} <button className="button button-outline" onClick={invites.refresh}>Retry</button></p>}
         {invites.loading ? <p>Checking invitations…</p> : !invites.error && invites.invitations.length === 0 ? <p className="pg-muted">You’re all caught up. New invitations will appear here.</p> : null}
         <div className="pg-incoming-scroll">

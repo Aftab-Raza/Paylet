@@ -1,3 +1,4 @@
+import MobileActions from "./MobileActions";
 import BrandMark from "./BrandMark";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
@@ -124,6 +125,7 @@ export default function Reports({ timezone, onBack }: Props) {
 
   const current = result?.key === requestKey ? result : null;
   const report = current?.report;
+  const loading = !current;
 
   function downloadCsv() {
     if (!report) return;
@@ -162,12 +164,13 @@ export default function Reports({ timezone, onBack }: Props) {
 
   return (
     <main className="signed-in-page report-page">
-      <header className="app-header report-controls">
-        <ThemeToggle />
-        <span className="brand">
+      <header className="app-header report-controls"><span className="brand">
           <BrandMark />
           <span>Paylet.</span>
         </span>
+        <MobileActions><ThemeToggle/>
+
+
 
         <button
           type="button"
@@ -176,14 +179,14 @@ export default function Reports({ timezone, onBack }: Props) {
         >
           <ArrowLeft size={18} /> Dashboard
         </button>
-      </header>
+      </MobileActions>
+</header>
 
       <section className="dashboard-page">
-        <span className="eyebrow">PAYLET REPORTS</span>
         <h1>Monthly expense report</h1>
 
         <div className="report-toolbar report-controls">
-          <div>
+          <div className="report-month-field">
             <label htmlFor="report-month">Month</label>
             <input
               id="report-month"
@@ -201,10 +204,14 @@ export default function Reports({ timezone, onBack }: Props) {
 
           <button
             type="button"
-            className="button button-outline"
+            className="button button-outline refresh-button"
+            disabled={loading}
+            aria-label={loading ? "Refreshing report" : "Refresh report"}
+            title={loading ? "Refreshing report" : "Refresh report"}
+            aria-busy={loading}
             onClick={() => setRefresh((value) => value + 1)}
           >
-            <RefreshCw size={18} /> Refresh
+            <RefreshCw size={18} aria-hidden="true" className={loading ? "refresh-spinner" : undefined} />
           </button>
 
           <button

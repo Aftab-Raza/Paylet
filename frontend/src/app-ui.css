@@ -1,0 +1,253 @@
+/* Hallmark v2.0.0 · scope: app · redesign: full · theme: Paylet ledger (user palette) · font: Be Vietnam Pro · signature: aligned money records */
+/* Critique · hierarchy 4 · specificity 4 · execution 4 · restraint 4 · philosophy 4 · variety 3 */
+/* User palette overrides neutral-theme defaults. Existing records and consent copy are preserved. */
+/* Adapted with Unslop by Damir Sokolovsky (@heydamir), CC BY 4.0, https://heydamir.design/unslop */
+
+:root {
+  --app-font: "Be Vietnam Pro", system-ui, sans-serif;
+  --page-bg: #ffffff;
+  --surface: #ffffff;
+  --surface-alt: #f1f4f3;
+  --text: #091413;
+  --muted: #485551;
+  --border: #cbd5d0;
+  --purple: #2458bf;
+  --orange: #2458bf;
+  --blue-soft: #edf3ff;
+  --blue-text: #2458bf;
+  --theme-action: #2458bf;
+  --theme-action-text: #ffffff;
+  --theme-feature: #091413;
+  --theme-feature-text: #ffffff;
+  --theme-void-icon: #b6223c;
+  --action-red: #b6223c;
+  --action-green: #167044;
+  --action-blue: #2458bf;
+  --success-text: #167044;
+  --success-bg: #e8f4ed;
+  --danger-text: #b6223c;
+  --danger-bg: #fff0f3;
+  --app-on-action: #ffffff;
+  --app-shadow: #0914131f;
+  --app-overlay: #091413a8;
+  --app-space: 8px;
+  --app-radius: 12px;
+  --app-ease: cubic-bezier(.16, 1, .3, 1);
+}
+
+:root[data-theme="dark"] {
+  --page-bg: #091413;
+  --surface: #0e1c1a;
+  --surface-alt: #182824;
+  --text: #ffffff;
+  --muted: #b8c4bf;
+  --border: #40564c;
+  --purple: #c4d6ff;
+  --orange: #c4d6ff;
+  --blue-soft: #172d42;
+  --blue-text: #c4d6ff;
+  --theme-feature: #182824;
+  --theme-void-icon: #ff9eb0;
+  --success-text: #a0ddbc;
+  --success-bg: #152e23;
+  --danger-text: #ff9eb0;
+  --danger-bg: #381c24;
+}
+
+html, body { overflow-x: clip; }
+body { background: var(--page-bg); color: var(--text); }
+:root[data-theme] :is(.signed-in-page, .pqa) {
+  font-family: var(--app-font);
+  color: var(--text);
+  width: min(1200px, calc(100% - 64px));
+  margin-inline: auto;
+  padding-block: 24px 96px;
+  background: var(--page-bg);
+}
+:root[data-theme] .pqa { min-height: 100svh; padding-inline: 0; }
+:root[data-theme] :is(.signed-in-page, .pqa) h1 {
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -.025em;
+  margin-block: 0 16px;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+:root[data-theme] :is(.signed-in-page, .pqa) :is(h2, h3) {
+  font-weight: 500;
+  letter-spacing: 0;
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+:root[data-theme] :is(.signed-in-page, .pqa) :is(.eyebrow, .pg-kicker, .pqa-kicker) { display: none; }
+:root[data-theme] :is(.signed-in-page, .pqa) :is(.profile-member, .form-description, .pg-muted, .profile-handle, .pqa-muted) { color: var(--muted); }
+:root[data-theme] :is(.signed-in-page, .pqa) :is(.button, .pqa-btn) {
+  border-radius: 8px;
+  min-height: 44px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  transition: background-color 160ms var(--app-ease), color 160ms var(--app-ease), border-color 160ms var(--app-ease);
+}
+:root[data-theme] :is(.signed-in-page, .pqa) :is(button, a, summary, input, textarea, select):focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 3px;
+}
+:root[data-theme] :is(.signed-in-page, .pqa) :is(input, textarea, select) {
+  font-family: var(--app-font);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  border-radius: 8px;
+}
+:root[data-theme] :is(.signed-in-page, .pqa) :is(.pg-panel, .profile-panel, .pqa-card, .person-card, .summary-card, .loan-summary-card, .shared-payment-card) {
+  border-radius: var(--app-radius);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: none;
+}
+:root[data-theme] .people-profile-grid .profile-panel.person-card:nth-child(even),
+:root[data-theme] .profile-screen .profile-identity-card {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: none;
+}
+:root[data-theme] .home-page .summary-grid .month-expense-card {
+  background: var(--theme-feature);
+  color: var(--theme-feature-text);
+  border-color: var(--border);
+}
+:root[data-theme] .home-page .summary-grid .month-expense-card :is(p, strong) { color: var(--theme-feature-text); }
+:root[data-theme] .home-page .summary-grid .today-expense-card { background: var(--surface); border-color: var(--border); }
+:root[data-theme] .home-page .summary-grid .today-expense-card :is(p, strong) { color: var(--text); }
+:root[data-theme] .home-page .summary-card p > svg { padding: 0; border: 0; border-radius: 0; width: 18px; height: 18px; }
+:root[data-theme] .home-page .summary-grid .summary-card { padding: 24px; box-shadow: none; }
+:root[data-theme] .home-page .quick-actions { padding: 8px 0 24px; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: var(--page-bg); }
+:root[data-theme] .home-page .quick-actions > button { border-radius: 8px; gap: 8px; padding: 12px 4px; font-weight: 500; }
+:root[data-theme] .home-page .quick-actions .action-symbol:is(.orange, .purple, .blue, .green) {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  color: var(--text);
+  box-shadow: none;
+}
+:root[data-theme] .home-page .quick-actions .action-symbol svg { width: 20px; height: 20px; stroke-width: 1.5; }
+:root[data-theme] .home-page .quick-actions .dashboard-ai-shortcut .action-symbol.purple { background: var(--surface-alt); color: var(--text); box-shadow: none; }
+:root[data-theme] .home-page .dashboard-add-expense,
+:root[data-theme] .home-page .dashboard-fab { box-shadow: none; }
+:root[data-theme] .home-page .dashboard-add-expense::after,
+:root[data-theme] .home-page .dashboard-fab::after { display: none; }
+:root[data-theme] .signed-in-page .person-private-mark { box-shadow: none; }
+:root[data-theme] .groups-refresh .pg-group-tile,
+:root[data-theme] .groups-refresh .pg-create-tile {
+  border-radius: var(--app-radius);
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+}
+:root[data-theme] .groups-refresh .pg-group-tile:hover,
+:root[data-theme] .groups-refresh .pg-create-tile:hover { background: var(--surface-alt); transform: none; box-shadow: none; }
+:root[data-theme] .groups-refresh .pg-avatar-large { box-shadow: none; background: var(--surface-alt); color: var(--text); }
+:root[data-theme] .groups-refresh .pg-group-bills .pg-transaction { border-radius: 0; border: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 20px 0; }
+:root[data-theme] .groups-refresh .pg-personal-split { background: var(--surface-alt); color: var(--text); }
+:root[data-theme] .groups-refresh .pg-personal-split small { font-size: 12px; letter-spacing: 0; text-transform: none; }
+:root[data-theme] .groups-refresh .pg-workspace { gap: 24px; }
+:root[data-theme] .signed-in-page .loan-summary-card { padding: 24px; }
+:root[data-theme] .signed-in-page .loan-summary-card :is(.loan-summary-label, .loan-summary-value, dt, dd, .profile-member) { color: var(--text); }
+:root[data-theme] .report-page .report-table :is(th, td) { border-color: var(--border); color: var(--text); }
+:root[data-theme] .report-page .report-table th { background: var(--surface-alt); text-transform: none; letter-spacing: 0; }
+:root[data-theme] .pqa .pqa-review-amount { border-left: 0; border-radius: 8px; }
+:root[data-theme] .signed-in-page .brand { font-size: 24px; font-weight: 600; letter-spacing: -.02em; }
+:root[data-theme] .signed-in-page .brand-mark, :root[data-theme] .pqa .brand-mark { width: 36px; height: 36px; }
+
+.app-navigation { position: relative; }
+.desktop-actions { display: contents; }
+.mobile-actions { display: none; }
+:root[data-theme] :is(.signed-in-page > header, .pqa > header) { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-between; gap: 16px; padding-block: 0 24px; margin-bottom: 32px; border-bottom: 1px solid var(--border); }
+:root[data-theme] .home-page .header-actions > .button { background: var(--page-bg); color: var(--text); border-color: var(--page-bg); box-shadow: none; }
+.month-toolbar, .report-toolbar { gap: 8px; align-items: end; }
+:root[data-theme] .month-toolbar input[type="month"], :root[data-theme] .report-month-field input[type="month"] { width: 168px; min-width: 0; min-height: 44px; padding: 8px; font-size: 14px; }
+:root[data-theme] .month-toolbar .icon-button { width: 40px; height: 44px; min-width: 40px; padding: 8px; }
+:root[data-theme] :is(.refresh-button, .report-page .refresh-button) { display: inline-flex; justify-content: center; align-items: center; min-width: 44px; height: 44px; padding: 12px; }
+:root[data-theme] .refresh-button[aria-busy="true"] { color: var(--muted); cursor: wait; }
+.refresh-spinner, .spin { animation: app-refresh-spin 800ms linear infinite; }
+@keyframes app-refresh-spin { to { transform: rotate(360deg); } }
+
+:root[data-theme] .paylet-modal {
+  border-radius: 16px;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--app-font);
+  box-shadow: 0 16px 48px var(--app-shadow);
+  animation: app-dialog-enter 180ms var(--app-ease) both;
+}
+.paylet-modal::backdrop { background: var(--app-overlay); }
+@keyframes app-dialog-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+:root[data-theme] .success-toast {
+  width: min(360px, calc(100% - 32px));
+  padding: 12px 12px 16px 16px;
+  border-radius: 12px;
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 8px 24px var(--app-shadow);
+  animation: app-dialog-enter 180ms var(--app-ease) both;
+}
+:root[data-theme] .success-toast p { font-weight: 500; font-size: 14px; }
+:root[data-theme] .success-toast-icon { color: var(--success-text); width: 20px; height: 20px; }
+:root[data-theme] .success-toast-error .success-toast-icon { color: var(--danger-text); }
+:root[data-theme] .success-toast-close { color: var(--muted); background: var(--surface); }
+:root[data-theme] .success-toast-track { background: var(--surface-alt); }
+:root[data-theme] .success-toast-track > span { background: var(--success-text); }
+:root[data-theme] .success-toast-error .success-toast-track > span { background: var(--danger-text); }
+
+@media(max-width:800px) {
+  :root[data-theme] :is(.signed-in-page, .pqa) { width: calc(100% - 32px); padding-top: 16px; }
+  :root[data-theme] :is(.signed-in-page > header, .pqa > header) { gap: 8px; padding-bottom: 16px; margin-bottom: 24px; }
+  :root[data-theme] .signed-in-page .brand, :root[data-theme] .pqa .brand { gap: 8px; font-size: 21px; }
+  :root[data-theme] :is(.signed-in-page, .pqa) .brand-mark { width: 28px; height: 28px; }
+  .desktop-actions { display: none; }
+  .mobile-actions { display: flex; align-items: center; gap: 4px; }
+  .mobile-menu { position: relative; }
+  .mobile-menu > summary { display: inline-flex; gap: 8px; align-items: center; min-height: 44px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; cursor: pointer; list-style: none; }
+  .mobile-menu > summary::-webkit-details-marker { display: none; }
+  .mobile-menu[open] > summary { background: var(--surface-alt); }
+  .mobile-menu-panel { position: absolute; top: calc(100% + 12px); right: 0; z-index: 50; width: min(280px, calc(100vi - 32px)); max-height: calc(100svh - 112px); overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 8px; box-shadow: 0 12px 32px var(--app-shadow); animation: app-dialog-enter 160ms var(--app-ease) both; }
+  .mobile-menu:not([open]) .mobile-menu-panel { display: none; }
+  .mobile-menu-panel .theme-toggle { display: none; }
+  :root[data-theme] .mobile-menu-panel :is(.header-actions, .profile-header-actions, .header-theme-actions, .pg-actions) { display: grid; gap: 4px; width: 100%; }
+  :root[data-theme] .mobile-menu-panel .button, :root[data-theme] .mobile-menu-panel .pqa-btn { display: flex; justify-content: flex-start; width: 100%; background: var(--surface); color: var(--text); border: 0; }
+  .mobile-menu-panel .nav-current { display: flex; gap: 8px; padding: 12px 16px; font-size: 14px; }
+  :root[data-theme] .signed-in-page .app-navigation .theme-toggle { width: 40px; min-width: 40px; padding: 8px; }
+  :root[data-theme] .home-page .month-toolbar { display: grid; grid-template-columns: 36px minmax(0,1fr) 36px 44px; gap: 4px; width: 100%; }
+  :root[data-theme] .home-page .month-toolbar > div { min-width: 0; }
+  :root[data-theme] .home-page .month-toolbar input[type="month"] { width: 100%; max-width: 180px; font-size: 13px; }
+  :root[data-theme] .home-page .month-toolbar .icon-button { width: 36px; min-width: 36px; }
+  .refresh-label { display: none; }
+  :root[data-theme] .home-page .refresh-button { margin: 0; align-self: end; width: 44px; min-width: 44px; }
+  :root[data-theme] .report-toolbar { flex-wrap: wrap; }
+  :root[data-theme] .report-month-field { min-width: 0; }
+  :root[data-theme] .report-month-field input[type="month"] { width: 156px; }
+  :root[data-theme] .home-page .quick-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  :root[data-theme] .home-page .quick-actions > button { font-size: 12px; }
+  :root[data-theme] .home-page .summary-grid .summary-card { padding: 16px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .refresh-spinner, .spin { animation: none; }
+  :root[data-theme] .paylet-modal, :root[data-theme] .success-toast, .mobile-menu-panel { animation: none; }
+}
+@media print {
+  .app-navigation { display: none; }
+}
+
+:root[data-theme] .signed-in-page button:active:not(:disabled) { transform: translateY(1px); }
+:root[data-theme] .signed-in-page :is(h1,h2) { text-wrap: balance; }

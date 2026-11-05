@@ -1,4 +1,6 @@
+import MobileActions from "./MobileActions";
 import BrandMark from "./BrandMark";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { currencyLabel } from "../lib/currencyLabel";
 import ThemeToggle from "./ThemeToggle";
@@ -355,12 +357,13 @@ export default function LoanBook({ contactId, onBack }: Props) {
 
   return (
     <main className="signed-in-page">
-      <header className="app-header">
-        <ThemeToggle />
-        <span className="brand">
+      <header className="app-header"><span className="brand">
           <BrandMark />
           <span>Paylet.</span>
         </span>
+        <MobileActions><ThemeToggle/>
+
+
 
         <button
           type="button"
@@ -375,14 +378,14 @@ export default function LoanBook({ contactId, onBack }: Props) {
             onBack();
           }}
         >
-          ← People
+          <ArrowLeft size={18} aria-hidden="true" /> People
         </button>
-      </header>
+      </MobileActions>
+</header>
 
       <section className="dashboard-page">
         <div className="dashboard-heading">
           <div>
-            <span className="eyebrow">PRIVATE PERSON LEDGER</span>
             <h1>{contact?.name ?? "Loading person…"}</h1>
             <p className="form-description">
               Repayments reduce this person’s total—not a particular loan.
@@ -391,11 +394,14 @@ export default function LoanBook({ contactId, onBack }: Props) {
 
           <button
             type="button"
-            className="button button-outline"
-            disabled={busy || Boolean(draft)}
+            className="button button-outline refresh-button"
+            disabled={busy || Boolean(draft) || (!ready && !error)}
+            aria-label={!ready && !error ? "Refreshing records" : "Refresh records"}
+            title={!ready && !error ? "Refreshing records" : "Refresh records"}
+            aria-busy={!ready && !error}
             onClick={reload}
           >
-            Reload
+            <RefreshCw size={18} aria-hidden="true" className={!ready && !error ? "refresh-spinner" : undefined} />
           </button>
         </div>
 

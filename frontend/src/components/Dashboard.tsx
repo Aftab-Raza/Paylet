@@ -1,3 +1,4 @@
+import MobileActions from "./MobileActions";
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
 import { dailyExpenseTotals, expenseDateInMonth, zeroExpenseTotal } from "../lib/dailyExpenseTotals";
@@ -158,6 +159,7 @@ export default function Dashboard({
 
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
+    const [refreshing, setRefreshing] = useState(false);
     const [busy, setBusy] = useState(false);
 
     const [draft, setDraft] = useState<Expense | null>(null);
@@ -190,10 +192,12 @@ export default function Dashboard({
                 });
 
                 setError("");
+                setRefreshing(false);
             })
             .catch((err: unknown) => {
                 if (controller.signal.aborted) return;
 
+                setRefreshing(false);
                 setError(
                     err instanceof Error
                         ? err.message
@@ -400,7 +404,7 @@ export default function Dashboard({
                     <span>Paylet.</span>
                 </a>
 
-                <div className="header-actions">
+                <MobileActions><div className="header-actions">
                     <ThemeToggle />
                     {showLogs ? <button type="button" className="button button-outline" disabled={disabled || Boolean(draft)} onClick={() => setShowLogs(false)}><ChevronLeft size={18} /> Back to dashboard</button> : <>
                     <span className="nav-current"><LayoutDashboard size={18} /> Overview</span>
@@ -441,10 +445,10 @@ export default function Dashboard({
                         disabled={disabled || Boolean(draft)}
                         onClick={() => setShowProfile(true)}
                     >
-                        <span className="nav-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span> My profile
+                        <span aria-hidden="true" className="nav-avatar">{user.displayName.slice(0, 1).toUpperCase()}</span> My profile
                     </button>
                     </>}
-                </div>
+                </div></MobileActions>
             </header>
 
             {!showLogs && <><div aria-live="polite">
@@ -465,11 +469,7 @@ export default function Dashboard({
             <section className="dashboard-page">
                 <div className="dashboard-heading">
                     <div>
-                        <span className="eyebrow">
-                            {showLogs ? "YOUR MONTHLY RECORD" : "YOUR MONEY, AT A GLANCE"}
-                        </span>
-
-                        {showLogs ? <h1>Monthly expense logs</h1> : <h1>Hello, {user.displayName} <span role="img" aria-label="waving hand">👋</span></h1>}
+                        {showLogs ? <h1>Monthly expense logs</h1> : <h1>Your expenses</h1>}
 
                         <p className="form-description">
                             {showLogs ? `${monthLabel} · All your expenses, organized by date.` : "A little clarity for your everyday spending."}
@@ -521,14 +521,18 @@ export default function Dashboard({
 
                     <button
                         type="button"
-                        className="button button-outline"
-                        disabled={disabled}
+                        className="button button-outline refresh-button"
+                        aria-label="Refresh expenses"
+                        title={refreshing ? "Refreshing expenses" : "Refresh expenses"}
+                        aria-busy={refreshing}
+                        disabled={disabled || refreshing || !ready && !error}
                         onClick={() => {
                             setError("");
+                            setRefreshing(true);
                             setRefresh((value) => value + 1);
                         }}
                     >
-                        <RefreshCw size={17} /> Refresh
+                        <RefreshCw size={18} className={refreshing ? "refresh-spinner" : ""}/> <span className="refresh-label">{refreshing ? "Refreshing…" : "Refresh"}</span>
                     </button>
                 </div>
 

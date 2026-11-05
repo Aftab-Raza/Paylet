@@ -1,3 +1,4 @@
+import MobileActions from "./MobileActions";
 import BrandMark from "./BrandMark";
 import { useSuccessToast } from "../lib/successToast";
 import { useEffect, useRef, useState } from "react";
@@ -100,15 +101,15 @@ export default function Profile({ onBack, onUserChange, onLogout, logoutBusy, lo
 
   return <main className="signed-in-page profile-screen">
     <header className="app-header profile-header">
-      <a className="brand" href="/"><BrandMark /><span>Paylet.</span></a>
+      <a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><MobileActions>
       <div className="profile-header-actions">
         <ThemeToggle />
         <button type="button" className="button button-outline" disabled={disabled} onClick={onBack}><ArrowLeft size={18} /> Dashboard</button>
         <button type="button" className="button button-outline" disabled={disabled} onClick={() => void onLogout()}><LogOut size={18} />{logoutBusy ? "Logging out…" : "Log out"}</button>
       </div>
-    </header>
+    </MobileActions></header>
     <section className="profile-page">
-      <span className="eyebrow">YOUR PAYLET ACCOUNT</span><h1>My profile</h1>
+      <h1>My profile</h1>
       <p className="form-description">Manage how you appear and personalize your preferences.</p>
       {loading && <p role="status">Loading your profile…</p>}
       {(logoutError || (error && !editing && !photo)) && <p className="error-message" role="alert">{logoutError || error}</p>}

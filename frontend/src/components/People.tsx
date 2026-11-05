@@ -1,3 +1,4 @@
+import MobileActions from "./MobileActions";
 import SharedPayments from "./SharedPayments";
 import BrandMark from "./BrandMark";
 import AlphabetAvatar from "./AlphabetAvatar";
@@ -46,6 +47,8 @@ type Props = {
 export default function People({ onBack }: Props) {
   const notifySuccess = useSuccessToast();
   const [detailsContact, setDetailsContact] = useState<Contact | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Contact | null>(null);
+  const [archiveError, setArchiveError] = useState("");
   const [showInvite, setShowInvite] = useState(false);
   const [selectedContactId, setSelectedContactId] = useHistoryParam("person");
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -198,14 +201,12 @@ export default function People({ onBack }: Props) {
     }
   }
 
-  async function toggleArchive(contact: Contact) {
-    const action = contact.isArchived ? "restore" : "archive";
-
-    if (!window.confirm(
-      `Do you want to ${action} ${contact.name}?`
-    )) return;
+  async function toggleArchive() {
+    if (!archiveTarget || busy) return;
+    const contact = archiveTarget;
 
     setBusy(true);
+    setArchiveError("");
     setError("");
     setNotice("");
 
@@ -218,12 +219,13 @@ export default function People({ onBack }: Props) {
         }),
       });
 
+      setArchiveTarget(null);
       notifySuccess(
         contact.isArchived ? "Contact restored." : "Contact archived."
       );
       reload();
     } catch (err) {
-      setError(
+      setArchiveError(
         err instanceof Error ? err.message : "Unable to update contact."
       );
     } finally {
@@ -256,12 +258,13 @@ export default function People({ onBack }: Props) {
   }
   return (
     <main className="signed-in-page people-page">
-      <header className="app-header">
-        <ThemeToggle />
-        <span className="brand">
+      <header className="app-header"><span className="brand">
           <BrandMark />
           <span>Paylet.</span>
         </span>
+        <MobileActions><ThemeToggle/>
+
+
 
         <button
           type="button"
@@ -278,12 +281,13 @@ export default function People({ onBack }: Props) {
         >
           <ArrowLeft size={18} /> Dashboard
         </button>
-      </header>
+      </MobileActions>
+</header>
 
       <section className="dashboard-page">
         <div className="dashboard-heading">
           <div>
-            <span className="eyebrow">YOUR PRIVATE CONTACTS</span>
+
             <h1>People</h1>
             <p className="form-description">
               Add someone without asking them to create an account.
@@ -388,6 +392,16 @@ export default function People({ onBack }: Props) {
             </form>
           </Modal>
         )}
+        {archiveTarget && (
+          <Modal title={archiveTarget.isArchived ? "Restore contact?" : "Archive contact?"} busy={busy} onClose={() => { setArchiveTarget(null); setArchiveError(""); }}>
+            <p>Do you want to {archiveTarget.isArchived ? "restore" : "archive"} {archiveTarget.name}?</p>
+            {archiveError && <p className="error-message" role="alert">{archiveError}</p>}
+            <div className="profile-actions">
+              <button type="button" className={archiveTarget.isArchived ? "button button-green" : "button person-archive"} disabled={busy} onClick={() => void toggleArchive()}>{busy ? "Updating…" : "Yes"}</button>
+              <button type="button" className="button button-outline" data-autofocus disabled={busy} onClick={() => { setArchiveTarget(null); setArchiveError(""); }}>No</button>
+            </div>
+          </Modal>
+        )}
         {detailsContact && <Modal title="Contact details" onClose={() => setDetailsContact(null)}>
           <h3>{detailsContact.name}</h3>{detailsContact.nickname && <p>{detailsContact.nickname}</p>}{detailsContact.notes && <p>{detailsContact.notes}</p>}
           <p>{detailsContact.linkedUser ? `Connected to @${detailsContact.linkedUser.username}. Past money entries stay private until individually shared.` : "Private contact"}</p>
@@ -479,7 +493,7 @@ export default function People({ onBack }: Props) {
                   <div className="profile-actions person-icon-actions">
                     <button type="button" className="button button-purple" aria-label={`Contact details for ${contact.name}`} title="Contact details" onClick={() => setDetailsContact(contact)}><Info size={17}/></button>
                     {!contact.isArchived && <button type="button" className="button button-blue" aria-label={`Edit ${contact.name}`} title="Edit" disabled={busy || Boolean(draft)} onClick={() => editContact(contact)}><Pencil size={17}/></button>}
-                    <button type="button" className={contact.isArchived ? "button button-green" : "button person-archive"} aria-label={`${contact.isArchived ? "Restore" : "Archive"} ${contact.name}`} title={contact.isArchived ? "Restore" : "Archive"} disabled={busy || Boolean(draft)} onClick={() => void toggleArchive(contact)}>{contact.isArchived ? <RotateCcw size={17}/> : <Archive size={17}/>}</button>
+                    <button type="button" className={contact.isArchived ? "button button-green" : "button person-archive"} aria-label={`${contact.isArchived ? "Restore" : "Archive"} ${contact.name}`} title={contact.isArchived ? "Restore" : "Archive"} disabled={busy || Boolean(draft)} onClick={() => { setArchiveTarget(contact); setArchiveError(""); }}>{contact.isArchived ? <RotateCcw size={17}/> : <Archive size={17}/>}</button>
                   </div>
                   </div>
                 </article>
