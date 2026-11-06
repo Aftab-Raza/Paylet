@@ -1,11 +1,11 @@
 # Paylet application design
 
-Approved direction: precise ledger interfaces inspired by the landing page.
+Approved direction: precise ledger interfaces sharing the landing page's midnight, white and lime palette.
 
-- Light page #FFFFFF with #091413 text.
-- Dark page #000000, charcoal #121212 / #202020 surfaces, white text, #A0A0A0 secondary text and #505050 borders.
+- Light app canvas #F7F9F6, white surfaces, #091413 text, and #C8FF39 brand accents.
+- Dark app canvas #080B10, #10151D / #181F29 surfaces, white text, #B4BDC9 secondary text, #39414D borders, and #C8FF39 brand accents.
 - Raised surfaces and quiet borders belong to the same neutral ramp.
-- Blue marks primary actions, green confirms success, red marks destructive actions.
+- Lime marks primary brand actions; solid blue, green and red remain reserved for their existing action meanings.
 - Be Vietnam Pro is the existing product typeface.
 - Amounts align consistently with tabular numerals.
 - Controls retain comfortable tap targets at narrow widths.

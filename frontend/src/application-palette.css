@@ -1,0 +1,230 @@
+/* Paylet app palette: carry the landing page's midnight, white and lime into product screens. */
+:root {
+  color-scheme: light;
+  --page-bg: #f7f9f6;
+  --surface: #ffffff;
+  --surface-alt: #eef2ec;
+  --text: #091413;
+  --muted: #45554d;
+  --border: #d5ddd2;
+  --purple: #405700;
+  --orange: #405700;
+  --blue-soft: #e8eee8;
+  --blue-text: #405700;
+  --theme-action: #c8ff39;
+  --theme-action-text: #101500;
+  --theme-feature: #c8ff39;
+  --theme-feature-text: #101500;
+  --brand-accent: #c8ff39;
+  --brand-accent-text: #405700;
+  --brand-accent-soft: #edf7d5;
+  --action-red: #b6223c;
+  --action-green: #167044;
+  --action-blue: #2458bf;
+  --success-text: #167044;
+  --success-bg: #e8f4ed;
+  --danger-text: #b6223c;
+  --danger-bg: #fff0f3;
+  --app-on-action: #101500;
+  --app-shadow: #0914131a;
+  --app-overlay: #091413a8;
+  --mark-purple: #405700;
+  --mark-blue: #091413;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #080b10;
+  --surface: #10151d;
+  --surface-alt: #181f29;
+  --text: #ffffff;
+  --muted: #b4bdc9;
+  --border: #39414d;
+  --purple: #c8ff39;
+  --orange: #c8ff39;
+  --blue-soft: #181f29;
+  --blue-text: #ffffff;
+  --theme-action: #c8ff39;
+  --theme-action-text: #101500;
+  --theme-feature: #c8ff39;
+  --theme-feature-text: #101500;
+  --brand-accent: #c8ff39;
+  --brand-accent-text: #c8ff39;
+  --brand-accent-soft: #181f29;
+  --action-red: #b6223c;
+  --action-green: #167044;
+  --action-blue: #2458bf;
+  --success-text: #a8e5bd;
+  --success-bg: #14251b;
+  --danger-text: #ffb9c5;
+  --danger-bg: #29171d;
+  --app-on-action: #101500;
+  --app-shadow: #00000070;
+  --app-overlay: #000000b8;
+  --mark-purple: #c8ff39;
+  --mark-blue: #ffffff;
+}
+
+body { background: var(--page-bg); color: var(--text); }
+::selection { background: var(--brand-accent); color: #101500; }
+:root[data-theme] :is(.signed-in-page, .pqa, .recovery-page, .auth-layout) {
+  background: var(--page-bg);
+  color: var(--text);
+}
+:root[data-theme] :is(.signed-in-page, .pqa, .recovery-page, .auth-layout) :is(input, select, textarea) {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+:root[data-theme] :is(.signed-in-page, .pqa, .recovery-page, .auth-layout) :is(button, a, summary, input, select, textarea):focus-visible {
+  outline: 2px solid var(--brand-accent-text);
+  outline-offset: 3px;
+}
+
+/* Primary brand actions use the same lime surface as the landing page. */
+:root[data-theme] :is(.button-primary, .button-purple, .pqa-primary, .auth-card .submit-button) {
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
+}
+:root[data-theme] :is(.button-green, .pqa-green, .shared-confirm) {
+  background: var(--action-green);
+  border-color: var(--action-green);
+  color: #ffffff;
+}
+:root[data-theme] :is(.button-blue, .pqa-blue) {
+  background: var(--action-blue);
+  border-color: var(--action-blue);
+  color: #ffffff;
+}
+:root[data-theme] :is(.button-danger, .pg-danger, .person-archive, .shared-decline) {
+  background: var(--action-red);
+  border-color: var(--action-red);
+  color: #ffffff;
+}
+:root[data-theme] :is(.button-outline, .pqa-outline) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* Replace legacy lavender surfaces with the same quiet, solid neutral ramp. */
+:root[data-theme] :is(
+  .auth-layout .intro-panel,
+  .auth-layout .auth-card,
+  .recovery-panel,
+  .profile-screen .profile-identity-card,
+  .people-profile-grid .profile-panel.person-card,
+  .shared-payment-card,
+  .paylet-modal.logout-modal
+) {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+:root[data-theme] .people-profile-grid .person-recorded,
+:root[data-theme] .person-outstanding,
+:root[data-theme] .pg-page:not(.groups-refresh) .pg-notification {
+  background: var(--surface-alt);
+  color: var(--text);
+}
+:root[data-theme] .shared-payment-copy p,
+:root[data-theme] .person-identity .profile-handle,
+:root[data-theme] .person-money dt {
+  color: var(--muted);
+}
+:root[data-theme] .home-page .expense-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+:root[data-theme] .home-page .expense-row :is(h3, p, .expense-row-right > strong) {
+  color: var(--text);
+  opacity: 1;
+}
+:root[data-theme] .home-page .expense-row .transaction-icon {
+  background: var(--brand-accent-soft);
+  color: var(--brand-accent-text);
+}
+:root[data-theme] .home-page .expense-row .button:not(.button-danger) {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+:root[data-theme] .home-page .expense-row .button-danger {
+  background: var(--action-red);
+  border-color: var(--action-red);
+  color: #ffffff;
+}
+:root[data-theme] .home-page .summary-grid .month-expense-card {
+  background: var(--theme-feature);
+  border-color: var(--theme-feature);
+  color: var(--theme-feature-text);
+}
+:root[data-theme] .home-page .summary-grid .month-expense-card :is(p, strong, svg) {
+  color: var(--theme-feature-text);
+}
+:root[data-theme] .home-page .quick-actions .action-symbol {
+  background: var(--surface-alt);
+  color: var(--brand-accent-text);
+  border-color: var(--border);
+  box-shadow: none;
+}
+:root[data-theme] .home-page .quick-actions > button:hover:not(:disabled) .action-symbol {
+  background: var(--brand-accent);
+  color: var(--theme-action-text);
+  box-shadow: none;
+}
+:root[data-theme] .home-page .header-actions .dashboard-ai-nav {
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
+  box-shadow: none;
+}
+:root[data-theme] .home-page .dashboard-fab {
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
+  box-shadow: 0 5px 18px var(--app-shadow);
+}
+:root[data-theme] .home-page .dashboard-add-expense {
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
+  box-shadow: none;
+}
+:root[data-theme] .people-profile-grid .person-actions .connection-card > .button,
+:root[data-theme] .people-profile-grid .person-icon-actions .button-purple {
+  background: var(--theme-action);
+  border-color: var(--theme-action);
+  color: var(--theme-action-text);
+}
+:root[data-theme] :is(.contact-avatar, .avatar-preview, .profile-initial, .nav-avatar) {
+  background: var(--surface-alt);
+  color: var(--brand-accent-text);
+}
+:root[data-theme] .brand-mark.brand-mark { --mark-purple: var(--brand-accent); --mark-blue: var(--text); }
+
+/* Let the user distinguish success, warnings and destructive actions by color and label. */
+:root[data-theme] :is(.pg-success, .google-success, .pqa-success, .status-paid, .pg-accepted, .pg-payment-confirmed) {
+  color: var(--success-text);
+}
+:root[data-theme] :is(.pg-error, .error-message, .pqa-error, .status-voided, .pg-declined, .pg-cancelled) {
+  color: var(--danger-text);
+}
+:root[data-theme] :is(.pending-message, .pqa-note) {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] :is(.signed-in-page, .pqa, .recovery-page, .auth-layout) {
+  color-scheme: dark;
+}
+:root[data-theme="dark"] .home-page .expense-row.is-void {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+:root[data-theme="dark"] .home-page .expense-row.is-void :is(h3, p, strong) { color: var(--muted); }
+:root[data-theme="dark"] .loan-summary-card .outstanding-line :is(dt, dd) { color: var(--text); }

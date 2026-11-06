@@ -11,6 +11,7 @@ import './components/landing-redesign.css'
 import './components/dashboard-refresh.css'
 import './app-ui.css'
 import './components/groups-midnight.css'
+import './application-palette.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
