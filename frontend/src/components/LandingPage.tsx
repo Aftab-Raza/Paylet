@@ -1,5 +1,5 @@
 import BrandMark from "./BrandMark";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ArrowDownLeft, ArrowRight, BarChart3, Check, ChevronRight, LayoutDashboard, LogIn, LogOut, Plus, ReceiptText, ShieldCheck, Users, Wallet } from "lucide-react";
 import type { User } from "../lib/api";
 import "./landing.css";
@@ -7,8 +7,9 @@ import ThemeToggle from "./ThemeToggle";
 import Testimonials from "./Testimonials";
 import CommunityCount from "./CommunityCount";
 import ReceiptPreview from "./ReceiptPreview";
-import HeroGeometry from "./HeroGeometry";
+import HeroMoneyFlow from "./HeroMoneyFlow";
 import "./landing-editorial.css";
+import "./landing-midnight.css";
 import DashboardPreview from "./DashboardPreview";
 
 type Props = {
@@ -23,19 +24,7 @@ type Props = {
 
 export default function LandingPage({ user, checking, sessionError, onLogin, onRegister, onDashboard, onLogout }: Props) {
   const [communityRefresh, setCommunityRefresh] = useState(0);
-  const pageRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!window.IntersectionObserver) return;
-    pageRef.current?.classList.add("landing-observed");
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) {
-        entry.target.classList.add("landing-entered"); observer.unobserve(entry.target);
-      }
-    }, { threshold: 0.08 });
-    pageRef.current?.querySelectorAll(".receipt-preview").forEach((section) => observer.observe(section));
-    return () => observer.disconnect();
-  }, []);
-  return <div className="landing-page landing-editorial" ref={pageRef}>
+  return <div className="landing-page landing-editorial">
     <a className="landing-skip" href="#landing-main">Skip to content</a>
     <header className="landing-header"><div className="landing-header-inner landing-width">
       <a className="brand" href="/" aria-label="Paylet home"><BrandMark /><span>Paylet.</span></a>
@@ -48,6 +37,7 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
     {sessionError && <div className="landing-width landing-session" role="alert">{sessionError} <button className="button button-outline" onClick={() => window.location.reload()}>Retry</button></div>}
     <main id="landing-main">
       <section className="landing-hero editorial-hero" aria-labelledby="landing-title">
+        <HeroMoneyFlow/>
         <div className="editorial-hero-inner landing-width">
           <div className="editorial-hero-copy">
             <h1 id="landing-title">Every expense<br/>in its place</h1>
@@ -59,13 +49,12 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
               {user ? <a href="#about">Explore Paylet <ChevronRight size={18}/></a> : <button className="editorial-text-action" disabled={checking} onClick={onLogin}>Sign in <ArrowRight size={18}/></button>}
             </div>
           </div>
-          <HeroGeometry/>
           <div className="editorial-community"><CommunityCount refreshKey={communityRefresh}/></div>
         </div>
       </section>
       <div className="landing-hero-benefits landing-clean-benefits"><span><Check size={15}/>No bank connection</span><span><Check size={15}/>Your records stay private</span><a href="#about">Explore Paylet <ChevronRight size={15}/></a></div>
       <div className="landing-band landing-feature-band" id="about"><section className="landing-about landing-width">
-        <div className="editorial-receipt-detail"><ReceiptPreview/></div>
+        <div className="landing-sharing-story"><div><h2>One person pays.<br/>Everyone knows their share.</h2><p>A dinner, a trip, a shared plan. See who paid, what each person owes, and who should receive it.</p><p className="sharing-story-note">Equal or custom splits. Include friends who haven’t joined Paylet yet.</p></div><ReceiptPreview/></div>
         <div className="landing-demo-heading"><span>Your records at a glance</span><span>Illustrative examples</span></div>
         <div className="landing-money-grid landing-example-strip" aria-label="Examples of Paylet money records">
           <article>
@@ -103,6 +92,6 @@ export default function LandingPage({ user, checking, sessionError, onLogin, onR
       </div></section></div>
       <section className="landing-final-cta"><div className="landing-width"><Wallet size={32} className="landing-cta-icon" /><h2>Start with your next expense</h2><p>Start with one expense. Keep going from there.</p><button className="button button-primary" disabled={checking} onClick={user ? onDashboard : onRegister}>{user ? "Your dashboard awaits" : "Get started with Paylet"}<ArrowRight size={19} /></button></div></section>
     </main>
-    <footer className="landing-footer"><div className="landing-width landing-footer-main"><div><a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><p>A clear record of your everyday money</p></div><nav aria-label="Footer navigation"><a href="#about"><Wallet size={16} /> About Paylet</a><a href="#privacy"><ShieldCheck size={16} /> Your privacy</a><button onClick={user ? onDashboard : onLogin}><BarChart3 size={16} /> {user ? "Dashboard" : "Log in"}</button></nav></div><div className="landing-width landing-footer-bottom"><span>&copy; 2026 Paylet. All rights reserved.</span></div></footer>
+    <footer className="landing-footer"><div className="landing-width landing-footer-main"><div><a className="brand" href="/"><BrandMark /><span>Paylet.</span></a><p>A clear record of your everyday money</p></div><nav aria-label="Footer navigation"><a href="#about"><Wallet size={16} /> About Paylet</a><a href="#privacy"><ShieldCheck size={16} /> Your privacy</a><button onClick={user ? onDashboard : onLogin}><BarChart3 size={16} /> {user ? "Dashboard" : "Log in"}</button></nav></div><div className="landing-width landing-footer-bottom"><span>&copy; 2026 Raza.co. All rights reserved.</span></div></footer>
   </div>;
 }

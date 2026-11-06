@@ -1,8 +1,13 @@
-import { IndianRupee, ReceiptText, Users, Wallet } from "lucide-react";
+import { IndianRupee, ReceiptText, Users } from "lucide-react";
 
 export default function HeroMoneyFlow() {
-  return <div className="hero-money-flow" aria-hidden="true">
-    <svg className="hero-flow-lines" viewBox="0 0 1440 650" preserveAspectRatio="none" fill="none"><path d="M-60 440C150 30 240 680 480 460S800 150 1500 180"/><path d="M-80 140C200 410 270 30 470 140S1020 700 1500 430"/><path className="hero-flow-pulse" d="M-60 440C150 30 240 680 480 460S800 150 1500 180"/></svg>
-    <span className="hero-flow-icon hero-flow-rupee"><IndianRupee/></span><span className="hero-flow-icon hero-flow-receipt"><ReceiptText/></span><span className="hero-flow-icon hero-flow-users"><Users/></span><span className="hero-flow-icon hero-flow-wallet"><Wallet/></span>
+  return <div className="hero-money-ribbons" aria-hidden="true">
+    <svg className="money-ribbon-lines" viewBox="0 0 1600 700" preserveAspectRatio="none" fill="none">
+      <path d="M-100 90C140 170 230 300 490 350M-100 610C140 530 230 400 490 350M1700 90C1460 170 1370 300 1110 350M1700 610C1460 530 1370 400 1110 350"/>
+      <path className="money-ribbon-transfer" d="M-100 90C140 170 230 300 490 350M1700 610C1460 530 1370 400 1110 350"/>
+    </svg>
+    <span className="money-ribbon-icon money-ribbon-receipt"><ReceiptText size={24}/></span>
+    <span className="money-ribbon-icon money-ribbon-people"><Users size={24}/></span>
+    <span className="money-ribbon-icon money-ribbon-rupee"><IndianRupee size={20}/></span>
   </div>;
 }

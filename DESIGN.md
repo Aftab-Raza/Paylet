@@ -18,4 +18,6 @@ Approved direction: precise ledger interfaces inspired by the landing page.
 - Records, privacy choices and consent language come from the existing product.
 - Unslop method credit: Damir Sokolovsky (@heydamir), CC BY 4.0, https://heydamir.design/unslop.
 
-- Landing hero uses an interlocking wireframe sculpture; slow rotation stops with reduced motion. The shared-expense example remains in the About section.
+- Landing dark mode uses midnight black #080B10, white, and lime #C8FF39 accents (visual balance roughly 60/30/10). Major dark-mode sections alternate black and white.
+- The landing hero follows the supplied centered Better Stack reference composition: large centered headline and actions, with restrained dotted side ribbons and expense-to-people trails. The money animation ends after three cycles and is disabled for reduced motion. The About section explains who owes whom.
+- Landing copyright: © 2026 Raza.co. All rights reserved.
