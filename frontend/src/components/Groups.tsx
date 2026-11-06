@@ -8,8 +8,10 @@ import { useGroupInvitations } from "../hooks/useGroupInvitations";
 import "./groups.css";
 import "./groups-refresh.css";
 import GroupBills from "./GroupBills";
+import type { GroupBalance } from "./GroupBills";
+import { currencyLabel } from "../lib/currencyLabel";
 import SettlementNotifications from "./SettlementNotifications";
-import { ArrowUpRight, LayoutGrid, List, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutGrid, List, ChevronDown, Users, UserPlus, Mail, Plus, RefreshCw, Send } from "lucide-react";
 import Modal from "./Modal";
 import { useHistoryParam } from "../lib/navigation";
 
@@ -21,8 +23,8 @@ const message = (error: unknown) => error instanceof Error ? error.message : "Re
 const initials = (name: string) => name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
 
 function MemberAvatar({ person }: { person: Person }) {
-  const [failed, setFailed] = useState(false);
-  return <span className="pg-avatar" aria-hidden="true">{person.avatarUrl && !failed ? <img src={person.avatarUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)}/> : initials(person.displayName)}</span>;
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  return <span className="pg-avatar" aria-hidden="true">{person.avatarUrl && person.avatarUrl !== failedUrl ? <img src={person.avatarUrl} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedUrl(person.avatarUrl ?? null)}/> : initials(person.displayName)}</span>;
 }
 
 function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
@@ -33,6 +35,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
   const [peopleSearch, setPeopleSearch] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [balances, setBalances] = useState<GroupBalance[] | null>(null);
   const [name, setName] = useState(group.name);
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
@@ -103,30 +106,32 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
       notify("Group deleted.", { position: "top-left" }); onBack(); onChange();
     } catch (err) { notify(message(err), { position: "top-left", tone: "error" }); } finally { setBusy(false); }
   }
+  const viewerBalances = balances?.filter(balance => balance.user.id === viewerId || balance.memberId === group.members.find(member => member.userId === viewerId)?.id);
   return <>
-    <button className="button button-outline" disabled={busy} onClick={onBack}>← All groups</button>
+    <button className="button button-outline" disabled={busy} onClick={onBack}><ChevronLeft size={16} aria-hidden="true"/>All groups</button>
     <section className="pg-panel pg-hero">
       <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
       <div><h1>{group.name}</h1><p>{group.members.length} members · {owner ? "Created by you" : "You are a member"}</p></div>
     </section>
     {error && <p className="pg-error" role="alert">{error}</p>}
+    <section className="pg-your-balance" aria-label="Your group balance"><div><h2>Your balance</h2><p className="pg-muted">After confirmed repayments</p></div><div className="pg-your-balance-values">
+      {balances === null ? <p className="pg-muted">Your balance appears when group bills load.</p> : viewerBalances?.length === 0 ? <p className="pg-muted">No recorded balance for you in this group.</p> : viewerBalances?.map(balance => <div className={`pg-your-balance-value ${balance.net.startsWith("-") ? "pg-balance-owe" : "pg-balance-receive"}`} key={balance.currency}><span>{/^0(?:\.0+)?$/.test(balance.net) ? "Settled" : balance.net.startsWith("-") ? "You owe" : "To receive"}</span><strong>{currencyLabel(balance.currency)} {balance.net.replace(/^-/, "")}</strong></div>)}
+    </div></section>
     <section className="pg-panel pg-member-panel">
-      <button className="pg-member-toggle" aria-expanded={membersOpen} aria-controls="pg-member-list" onClick={() => setMembersOpen(!membersOpen)}>
-        <span className="pg-avatar-list" aria-hidden="true">{group.members.slice(0, 4).map((member) => <MemberAvatar key={member.id} person={member.user}/>)}{group.members.length > 4 && <span className="pg-avatar">+{group.members.length - 4}</span>}</span>
-        <span>People in this group <small>{group.members.length} members · {membersOpen ? "Hide" : "View"} members</small></span><ChevronDown size={20} className={membersOpen ? "pg-chevron-open" : ""}/>
-      </button>
-      <div id="pg-member-list" hidden={!membersOpen}>
+      <div className="pg-members-heading"><h2>Members</h2><button className="pg-member-toggle" aria-label="People in this group" aria-expanded={membersOpen} aria-controls="pg-member-list" onClick={() => setMembersOpen(!membersOpen)}><span>{membersOpen ? "Hide members" : `View all (${group.members.length})`}</span><ChevronDown size={18} className={membersOpen ? "pg-chevron-open" : ""}/></button></div>
+      <div className="pg-member-preview" role="list" aria-label="Member preview" hidden={membersOpen}>{group.members.slice(0,5).map(member => <div role="listitem" key={member.id} title={member.user.displayName}><MemberAvatar person={member.user}/><span>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</span><small>{member.userId === group.ownerId ? "Owner" : (member.offline || !member.userId) ? "Not on Paylet" : "Member"}</small></div>)}{group.members.length > 5 && <span className="pg-member-more">+{group.members.length - 5} more</span>}</div>
+      <div id="pg-member-list" role="region" aria-label="All group members" tabIndex={membersOpen ? 0 : -1} hidden={!membersOpen}>
         {group.members.map((member) => <div className="pg-row" key={member.id}>
           <MemberAvatar person={member.user}/>
-          <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>{member.offline ? "Not on Paylet yet" : `@${member.user.username}`}</p></div>
-          <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : member.offline ? "Offline" : "Member"}</span>
+          <div className="pg-grow"><strong>{member.user.displayName}{member.userId === viewerId ? " (You)" : ""}</strong><p>{(member.offline || !member.userId) ? "Not on Paylet yet" : `@${member.user.username}`}</p></div>
+          <span className="pg-tag">{member.userId === group.ownerId ? "Owner" : (member.offline || !member.userId) ? "Offline" : "Member"}</span>
         </div>)}
         <p className="pg-muted">Your personal expenses and private lending records stay private.</p>
       </div>
     </section>
-    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId}/>
-    {owner && <section className="pg-panel pg-stack pg-add-member">
-      <div className="pg-between"><h2><UserPlus size={21}/> Add member</h2><div className="pg-member-tabs" role="group" aria-label="Add member method"><button className="button button-outline" aria-pressed={memberMode === "username"} onClick={() => setMemberMode("username")}>Via username</button><button className="button button-outline" aria-pressed={memberMode === "people"} onClick={() => setMemberMode("people")}>From private People</button></div></div>
+    <GroupBills key={group.id} groupId={group.id} members={group.members} viewerId={viewerId} ownerId={group.ownerId} onBalances={setBalances}/>
+    {owner && <details className="pg-panel pg-stack pg-add-member"><summary><h2><UserPlus size={18} aria-hidden="true"/>Add member</h2><span>{sent.filter(item => item.status === "PENDING").length > 0 ? `${sent.filter(item => item.status === "PENDING").length} pending` : "Invite or add someone"}</span><ChevronDown size={18} aria-hidden="true"/></summary><div className="pg-management-body">
+      <div className="pg-between"><div className="pg-member-tabs" role="group" aria-label="Add member method"><button className="button button-outline" aria-pressed={memberMode === "username"} onClick={() => setMemberMode("username")}>Via username</button><button className="button button-outline" aria-pressed={memberMode === "people"} onClick={() => setMemberMode("people")}>From private People</button></div></div>
       {memberMode === "people" && <>
         <label className="pg-stack">Search private People<input type="search" placeholder="Search by name" value={peopleSearch} onChange={(event) => { setPeopleSearch(event.target.value); setOfflineContactId(""); }}/></label>
         <form className="pg-stack" onSubmit={(event) => void addOffline(event)}>
@@ -149,7 +154,7 @@ function GroupDetails({ group, owner, viewerId, onChange, onBack }: {
         <div className="pg-invitation-scroll" role="region" aria-label="Sent invitations" tabIndex={0}>
         {sentError ? <p className="pg-error" role="alert">{sentError}</p> : sentLoading ? <p role="status">Loading invitations…</p> : sent.length === 0 ? <p className="pg-muted">No invitations sent yet.</p> : sent.map((item) => <div className="pg-row" key={item.id}><div className="pg-grow"><strong>{item.recipient.displayName}</strong><p>@{item.recipient.username}</p></div><span className={`pg-tag pg-${item.status.toLowerCase()}`}>{item.status.toLowerCase()}</span>{item.status !== "ACCEPTED" && !group.members.some((member) => member.userId === item.recipient.id) && <button className="button button-outline" disabled={busy} onClick={() => void resend(item.recipient.username)}>Resend</button>}</div>)}
         </div>
-      </section>}
+      </div></details>}
     {owner && <section className="pg-panel pg-stack pg-settings-card"><button className="pg-member-toggle" aria-expanded={settingsOpen} aria-controls="pg-settings-content" onClick={() => setSettingsOpen(!settingsOpen)}><span>Group settings</span><ChevronDown size={20} className={settingsOpen ? "pg-chevron-open" : ""}/></button>
       <div id="pg-settings-content" className="pg-stack" hidden={!settingsOpen}>
       <form className="pg-inline" onSubmit={(event) => void save(event, "rename")}>
@@ -172,7 +177,7 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const [selectedId, setSelectedId] = useHistoryParam("group");
   const [draft, setDraft] = useState<{ id: string; name: string } | null>(null);
   const [search, setSearch] = useState("");
-  const [layout, setLayout] = useState<"grid" | "list">("grid");
+  const [layout, setLayout] = useState<"grid" | "list">("list");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
@@ -212,7 +217,7 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
   const visible = data?.groups.filter((group) => group.name.toLowerCase().includes(search.toLowerCase())) ?? [];
   return <main className="signed-in-page pg-page groups-refresh">
     <header className="pg-between"><div className="brand"><BrandMark /><span>Paylet.</span></div><PageNavigation onBack={onBack} disabled={busy} beforeNavigate={() => !draft || window.confirm("Discard this unsaved group?")}/></header>
-    <div className="page-tools"><button className="button button-outline" disabled={busy || refreshing} aria-label="Refresh groups" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); reload(); }}><RefreshCw size={18} className={refreshing ? "spin" : ""} aria-hidden="true"/> {refreshing ? "Refreshing…" : "Refresh"}</button></div>
+    <div className="page-tools"><button className="button button-outline" disabled={busy || refreshing} aria-label="Refresh groups" aria-busy={refreshing} onClick={() => { manualRefresh.current = true; setRefreshing(true); reload(); }}><RefreshCw size={18} className={refreshing ? "spin" : ""} aria-hidden="true"/> <span className="pg-refresh-label">{refreshing ? "Refreshing…" : "Refresh"}</span></button></div>
     <SettlementNotifications disabled={busy || !!draft} onOpen={(groupId) => { setSelectedId(groupId); reload(); }}/>
     {error && !draft && <p className="pg-error" role="alert">{error}</p>}{notice && <p className="pg-success" role="status">{notice}</p>}
     {loadError && <div className="pg-error" role="alert">{loadError} <button className="button button-outline" onClick={reload}>Retry</button></div>}
@@ -221,15 +226,14 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
       <div className="pg-stats"><div><strong>{data?.groups.length ?? "—"}</strong><span>Your groups</span></div><div><strong>{invites.loading ? "—" : invites.invitations.length}</strong><span>Pending invitations</span></div><div><strong>{data?.groups.filter((group) => group.ownerId === data.viewerId).length ?? "—"}</strong><span>Created by you</span></div></div>
       <div className="pg-workspace pg-gallery-workspace">
         <section className="pg-panel pg-directory" aria-label="Your group list">
-          <div className="pg-gallery-toolbar"><label className="pg-stack pg-grow" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label><div className="pg-layout-toggle" role="group" aria-label="Group layout"><button className="button button-outline" aria-label="Grid view" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}><LayoutGrid size={19}/></button><button className="button button-outline" aria-label="List view" aria-pressed={layout === "list"} onClick={() => setLayout("list")}><List size={19}/></button></div></div>
+          <div className="pg-gallery-toolbar"><label className="pg-stack pg-grow" htmlFor="pg-search">Find a group<input id="pg-search" type="search" placeholder="Search your groups" value={search} onChange={(event) => setSearch(event.target.value)}/></label><button type="button" className="button pg-primary pg-create-action" aria-label="Create group" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><Plus size={18} aria-hidden="true"/>Create group</button><div className="pg-layout-toggle" role="group" aria-label="Group layout"><button className="button button-outline" aria-label="Grid view" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}><LayoutGrid size={19}/></button><button className="button button-outline" aria-label="List view" aria-pressed={layout === "list"} onClick={() => setLayout("list")}><List size={19}/></button></div></div>
           <div className={`pg-group-gallery pg-gallery-${layout}`}>
-            <button className="pg-create-tile" aria-label="Create group" disabled={busy || !!draft} onClick={() => setDraft({ id: crypto.randomUUID(), name: "" })}><span className="pg-create-icon"><Plus size={26}/></span><strong>Create group</strong><small>Share expenses with a group</small></button>
+
             {visible.map((group) => <article className="pg-gallery-item" key={group.id}>
               <button className="pg-group-tile" aria-label={`Open group ${group.name}`} disabled={busy || !!draft} onClick={() => { setSelectedId(group.id); setNotice(""); setError(""); }}>
-                <span className={`pg-tag pg-gallery-role ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span>
                 <span className="pg-avatar pg-avatar-large" aria-hidden="true">{initials(group.name)}</span>
                 <span className="pg-tile-copy"><strong>{group.name}</strong><small>{group.members.length} {group.members.length === 1 ? "member" : "members"}</small></span>
-                <span className="pg-tile-open" aria-hidden="true"><ArrowUpRight size={18}/></span>
+                <span className={`pg-tag pg-gallery-role ${group.ownerId === data?.viewerId ? "pg-owner" : ""}`}>{group.ownerId === data?.viewerId ? "Owner" : "Member"}</span><span className="pg-tile-open" aria-hidden="true"><ChevronRight size={18}/></span>
               </button>
             </article>)}
           </div>
@@ -242,7 +246,7 @@ export default function Groups({ onBack }: { onBack: () => void; initialGroupId?
         {invites.error && <p className="pg-error" role="alert">{invites.error} <button className="button button-outline" onClick={invites.refresh}>Retry</button></p>}
         {invites.loading ? <p>Checking invitations…</p> : !invites.error && invites.invitations.length === 0 ? <p className="pg-muted">You’re all caught up. New invitations will appear here.</p> : null}
         <div className="pg-incoming-scroll">
-        {invites.invitations.map((item) => <div className="pg-row pg-invite" key={item.id}><span className="pg-avatar" aria-hidden="true">{initials(item.group.name)}</span><div className="pg-grow"><strong>{item.group.name}</strong><p>{item.group.owner.displayName} (@{item.group.owner.username}) invited you</p></div><div className="pg-actions"><button className="button button-green" disabled={busy} onClick={() => void respond(item.id, "ACCEPT")}>Accept</button><button className="button button-outline" disabled={busy} onClick={() => void respond(item.id, "DECLINE")}>Decline</button></div></div>)}
+        {invites.invitations.map((item) => <div className="pg-row pg-invite" key={item.id}><span className="pg-avatar" aria-hidden="true">{initials(item.group.name)}</span><div className="pg-grow"><strong>{item.group.name}</strong><p>{item.group.owner.displayName} (@{item.group.owner.username}) invited you</p></div><div className="pg-actions"><button className="button button-green" disabled={busy} onClick={() => void respond(item.id, "ACCEPT")}>Accept</button><button className="button button-danger" disabled={busy} onClick={() => void respond(item.id, "DECLINE")}>Decline</button></div></div>)}
         </div>
       </section>
         </aside>

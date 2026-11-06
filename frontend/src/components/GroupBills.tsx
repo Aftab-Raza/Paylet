@@ -9,7 +9,7 @@ import { api } from "../lib/api";
 type Person = { id: string; displayName: string; username: string };
 type Member = { id: string; userId: string | null; user: Person };
 type Bill = { id: string; creatorId: string; creator: Person; payer: Person; payerId?: string; amount: string; currency: string; purpose: string; category: string; date: string; splitMode: string; deletedAt: string | null; shares: { memberId: string; user: Person; amount: string }[] };
-type Balance = { memberId: string; user: Person; currency: string; paid: string; share: string; net: string };
+export type GroupBalance = { memberId: string; user: Person; currency: string; paid: string; share: string; net: string };
 type Revision = { id: string; action: string; createdAt: string; actor: Person; snapshot: Bill };
 type Draft = { id: string; amount: string; currency: string; purpose: string; category: string; date: string; payerId: string; splitMode: "EQUAL" | "CUSTOM"; participants: { memberId: string; amount: string }[] };
 function errorText(error: unknown) { return error instanceof Error ? error.message : "Unable to complete the request."; }
@@ -49,13 +49,13 @@ function preview(draft: Draft) {
     return { valid: true, error: "", shares: shares.map((p) => ({ memberId: p.memberId, amount: format(p.value) })) };
   } catch (error) { return { valid: false, error: errorText(error), shares: [] }; }
 }
-export default function GroupBills({ groupId, members, viewerId, ownerId }: { groupId: string; members: Member[]; viewerId: string; ownerId: string }) {
+export default function GroupBills({ groupId, members, viewerId, ownerId, onBalances }: { groupId: string; members: Member[]; viewerId: string; ownerId: string; onBalances: (balances: GroupBalance[] | null) => void }) {
   const notify = useSuccessToast();
   const viewerMember = members.find((member) => member.userId === viewerId);
   const [revision, setRevision] = useState(0);
   const [refreshing, setRefreshing] = useState(true);
   const manualRefresh = useRef(false);
-  const [data, setData] = useState<{ bills: Bill[]; balances: Balance[] } | null>(null);
+  const [data, setData] = useState<{ bills: Bill[]; balances: GroupBalance[] } | null>(null);
   const [options, setOptions] = useState<{ currencies: string[]; categories: string[]; currency: string; timezone: string } | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -66,16 +66,16 @@ export default function GroupBills({ groupId, members, viewerId, ownerId }: { gr
   useEffect(() => {
     const controller = new AbortController();
     Promise.all([
-      api<{ bills: Bill[]; balances: Balance[] }>(`/groups/${groupId}/bills`, { signal: controller.signal }),
+      api<{ bills: Bill[]; balances: GroupBalance[] }>(`/groups/${groupId}/bills`, { signal: controller.signal }),
       api<{ currencies: string[]; categories: string[] }>("/expenses/options", { signal: controller.signal }),
       api<{ user: { defaultCurrency: string; timezone: string } }>("/auth/me", { signal: controller.signal }),
     ]).then(([result, choices, profile]) => {
       if (controller.signal.aborted) return;
-      setData(result); setOptions({ ...choices, currency: profile.user.defaultCurrency, timezone: profile.user.timezone }); setError(""); setRefreshing(false);
+      onBalances(result.balances); setData(result); setOptions({ ...choices, currency: profile.user.defaultCurrency, timezone: profile.user.timezone }); setError(""); setRefreshing(false);
       if (manualRefresh.current) { manualRefresh.current = false; notify("Bills refreshed.", { position: "top-left" }); }
-    }).catch((err: unknown) => { if (!controller.signal.aborted) { setError(errorText(err)); setRefreshing(false); if (manualRefresh.current) { manualRefresh.current = false; notify(errorText(err), { position: "top-left", tone: "error" }); } } });
+    }).catch((err: unknown) => { if (!controller.signal.aborted) { onBalances(null); setError(errorText(err)); setRefreshing(false); if (manualRefresh.current) { manualRefresh.current = false; notify(errorText(err), { position: "top-left", tone: "error" }); } } });
     return () => controller.abort();
-  }, [groupId, revision, notify]);
+  }, [groupId, revision, notify, onBalances]);
   function begin() {
     if (!options || !viewerMember) return;
     setDraft({ id: crypto.randomUUID(), amount: "", currency: options.currency, purpose: "", category: "Other", date: today(options.timezone), payerId: viewerMember.id, splitMode: "EQUAL", participants: members.map((m) => ({ memberId: m.id, amount: "" })) });

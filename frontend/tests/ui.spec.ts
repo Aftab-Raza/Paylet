@@ -476,6 +476,7 @@ for (const owner of [true, false]) {
     await expect(bill).toBeVisible();
     await expect(bill.getByRole("button", { name: "Delete", exact: true })).toHaveCount(owner ? 1 : 0);
     if (owner) {
+      await page.locator(".pg-add-member > summary").click();
       await page.getByRole("button", { name: "From private People" }).click();
       await expect(page.getByLabel("Search private People")).toBeVisible();
       await page.getByLabel("Search private People").fill("ani");
@@ -1350,7 +1351,7 @@ test("Groups gallery keeps counts, instant search, layout choices and invitation
   await page.route("**/api/groups/invitations/invite-1/respond", (route) => route.fulfill({ json: {} }));
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/?view=dashboard&screen=groups");
-  await expect(page.getByRole("button", { name: "Grid view" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "List view" })).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".pg-gallery-item")).toHaveCount(4);
   await expect(page.locator(".pg-gallery-role.pg-owner")).toHaveCount(1);
   await expect(page.locator(".pg-stats")).toContainText("4Your groups");
@@ -1683,4 +1684,49 @@ test("custom category creation retries safely, reuses duplicates and persists in
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole("region", { name: "Spending by category" }).screenshot({ path: `test-results/spending-percent-${theme}.png` });
   }
+});
+
+test("midnight groups show named members, separate currency balances and compact management", async ({ page }) => {
+  await mockApi(page);
+  const friend = { id: "friend", displayName: "Priya Sharma", username: "priya", avatarUrl: "https://example.com/group-avatar.png" };
+  const members = [{ id: "self", userId: user.id, user }, { id: "friend-member", userId: friend.id, user: friend }, { id: "offline-member", userId: null, offline: true, user: { id: "", displayName: "Offline friend", username: "" } }];
+  const group = { id: "midnight-group", name: "College shared expenses", ownerId: user.id, members };
+  let net = "-250.00";
+  await page.route("**/api/groups", route => route.fulfill({ json: { viewerId: user.id, groups: [group] } }));
+  await page.route("**/api/groups/midnight-group/invitations", route => route.fulfill({ json: { invitations: [] } }));
+  await page.route("**/api/groups/midnight-group/bills", route => route.fulfill({ json: { bills: [], balances: [{ memberId: "self", user, currency: "INR", net, paid: "0.00", share: "250.00" }, { memberId: "self", user, currency: "USD", net: "5.00", paid: "10.00", share: "5.00" }] } }));
+  await page.route(friend.avatarUrl, route => route.abort());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?view=dashboard&screen=groups");
+  await page.getByRole("button", { name: "Switch to dark mode" }).click();
+  await expect(page.getByRole("button", { name: "List view", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".groups-refresh")).toHaveCSS("background-color", "rgb(8, 11, 16)");
+  await expect(page.locator(".pg-owner")).toHaveCSS("background-color", "rgb(200, 255, 57)");
+  await page.getByRole("button", { name: "Open group College shared expenses", exact: true }).click();
+  const balance = page.getByRole("region", { name: "Your group balance", exact: true });
+  await expect(balance).toContainText("You owe₹ 250.00");
+  await expect(balance).toContainText("To receiveUSD 5.00");
+  const preview = page.getByRole("list", { name: "Member preview", exact: true });
+  await expect(preview).toContainText("Priya Sharma");
+  await expect(preview).toContainText("Not on Paylet");
+  await expect(preview.locator("img")).toHaveCount(0);
+  await expect(page.locator(".pg-add-member")).not.toHaveAttribute("open", "");
+  await expect(page.getByRole("button", { name: "Via username", exact: true })).toBeHidden();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: `test-results/groups-midnight-detail-${width}.png`, fullPage: true });
+  }
+  await page.getByRole("button", { name: "People in this group", exact: true }).click();
+  await expect(page.locator("#pg-member-list")).toContainText("Not on Paylet yet");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("region", { name: "All group members", exact: true })).toBeFocused();
+  net = "0.00";
+  await page.getByRole("button", { name: "Refresh bills", exact: true }).click();
+  await expect(balance).toContainText("Settled₹ 0.00");
+  await page.getByRole("button", { name: "Switch to light mode" }).click();
+  await expect(page.locator(".groups-refresh")).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await page.getByRole("button", { name: "All groups", exact: true }).click();
+  await page.getByRole("navigation", { name: "Page navigation" }).getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your expenses", exact: true })).toBeVisible();
 });

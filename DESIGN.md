@@ -21,3 +21,7 @@ Approved direction: precise ledger interfaces inspired by the landing page.
 - Landing dark mode uses midnight black #080B10, white, and lime #C8FF39 accents (visual balance roughly 60/30/10). Major dark-mode sections alternate black and white.
 - The landing hero follows the supplied centered Better Stack reference composition: large centered headline and actions, with restrained dotted side ribbons and expense-to-people trails. The money animation ends after three cycles and is disabled for reduced motion. The About section explains who owes whom.
 - Landing copyright: © 2026 Raza.co. All rights reserved.
+
+- Groups use the landing midnight/white/lime palette with solid, restrained surfaces. The directory defaults to compact rows; group pages show per-currency ledger balances, named member previews, bills, and collapsed member/settings tools. Existing permissions and payment confirmation rules remain authoritative.
+
+Groups direction: shared-money records for friends; calm, exact, accountable; the visual world is a shared ledger. Current balances and recognizable members carry the emphasis. The signature is a clear “You owe / To receive” label beside each currency amount.
